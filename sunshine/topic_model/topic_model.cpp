@@ -4,7 +4,6 @@
 
 void topic_model::words_callback(const sunshine_msgs::WordObservation::ConstPtr& words)
 {
-    //cerr<<"Got words: "<<words->source<<"  #"<<words->words.size()<<endl;
     int observation_time = words->observation_pose[0];
     //update the  list of observed time step ids
     if (observation_times.empty() || observation_times.back() < observation_time) {
