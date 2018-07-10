@@ -113,7 +113,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-#  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
