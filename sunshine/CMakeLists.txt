@@ -8,12 +8,16 @@ set(CMAKE_CXX_STANDARD 11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
   roscpp
   sensor_msgs
   std_msgs
+  cv_bridge
+  image_transport
   sunshine_msgs
-)
+  )
+
+find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
 
@@ -157,8 +161,9 @@ add_executable(topic_model topic_model/topic_model.cpp)
 #   ${catkin_LIBRARIES}
 # )
 
-target_link_libraries(visual_word_extractor ${libvisualwords})
-target_link_libraries(topic_model ${catkin_LIBRARIES})
+
+target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
