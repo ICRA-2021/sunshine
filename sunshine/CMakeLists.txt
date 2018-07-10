@@ -140,6 +140,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
+add_executable(topic_model topic_model/topic_model.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -157,6 +158,7 @@ add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 # )
 
 target_link_libraries(visual_word_extractor ${libvisualwords})
+target_link_libraries(topic_model ${catkin_LIBRARIES})
 
 #############
 ## Install ##
