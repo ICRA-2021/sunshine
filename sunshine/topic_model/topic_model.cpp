@@ -2,6 +2,64 @@
 
 #include <rost/refinery.hpp>
 
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "topic_model");
+    ros::NodeHandle nh;
+
+    topic_model model(&nh);
+
+    ros::MultiThreadedSpinner spinner;
+    ROS_INFO("Spinning...");
+    spinner.spin();
+}
+
+topic_model::topic_model(ros::NodeHandle* nh)
+    : nh(nh)
+{
+    nh->param<int>("K", K, 64); // number of topics
+    nh->param<int>("V", V, 1500); // vocabulary size
+    nh->param<double>("alpha", k_alpha, 0.1);
+    nh->param<double>("beta", k_beta, 0.1);
+    nh->param<double>("gamma", k_gamma, 0.0);
+    nh->param<double>("tau", k_tau, 2.0); // beta(1,tau) is used to pick cells for global refinement
+    nh->param<int>("observation_size", observation_size, 64); // number of cells in an observation
+    nh->param<double>("p_refine_last_observation", p_refine_last_observation, 0.5); // probability of refining last observation
+    nh->param<int>("num_threads", num_threads, 2); // beta(1,tau) is used to pick cells for refinement
+    nh->param<int>("cell_width", cell_width, 64);
+    nh->param<int>("G_time", G_time, 4);
+    nh->param<int>("G_space", G_space, 1);
+    nh->param<bool>("polled_refine", polled_refine, false);
+
+    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
+
+    topics_pub = nh->advertise<sunshine_msgs::WordObservation>("topics", 10);
+    perplexity_pub = nh->advertise<sunshine_msgs::Perplexity>("perplexity", 10);
+    cell_perplexity_pub = nh->advertise<sunshine_msgs::LocalSurprise>("cell_perplexity", 10);
+    topic_weights_pub = nh->advertise<sunshine_msgs::TopicWeights>("topic_weight", 10);
+    word_sub = nh->subscribe("words", 10, &topic_model::words_callback, this);
+
+    pose_t G{ { G_time, G_space, G_space } };
+    rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));
+    last_time = -1;
+
+    if (polled_refine) { //refine when requested
+        ROS_INFO("Topics will be refined on request.");
+    } else { //refine automatically
+        ROS_INFO("Topics will be refined online.");
+        stopWork = false;
+        workers = parallel_refine_online2(rost.get(), k_tau, p_refine_last_observation, static_cast<size_t>(observation_size), num_threads, &stopWork);
+    }
+}
+
+topic_model::~topic_model()
+{
+    stopWork = true; //signal workers to stop
+    for (auto t : workers) { //wait for them to stop
+        t->join();
+    }
+}
+
 void topic_model::words_callback(const sunshine_msgs::WordObservation::ConstPtr& words)
 {
     int observation_time = words->observation_pose[0];
@@ -107,62 +165,4 @@ void topic_model::broadcast_topics()
     perplexity_pub.publish(msg_ppx);
     topic_weights_pub.publish(msg_topic_weights);
     cell_perplexity_pub.publish(cell_perplexity);
-}
-
-topic_model::topic_model(ros::NodeHandle* nh)
-    : nh(nh)
-{
-    nh->param<int>("K", K, 64); // number of topics
-    nh->param<int>("V", V, 1500); // vocabulary size
-    nh->param<double>("alpha", k_alpha, 0.1);
-    nh->param<double>("beta", k_beta, 0.1);
-    nh->param<double>("gamma", k_gamma, 0.0);
-    nh->param<double>("tau", k_tau, 2.0); // beta(1,tau) is used to pick cells for global refinement
-    nh->param<int>("observation_size", observation_size, 64); // number of cells in an observation
-    nh->param<double>("p_refine_last_observation", p_refine_last_observation, 0.5); // probability of refining last observation
-    nh->param<int>("num_threads", num_threads, 2); // beta(1,tau) is used to pick cells for refinement
-    nh->param<int>("cell_width", cell_width, 64);
-    nh->param<int>("G_time", G_time, 4);
-    nh->param<int>("G_space", G_space, 1);
-    nh->param<bool>("polled_refine", polled_refine, false);
-
-    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
-
-    topics_pub = nh->advertise<sunshine_msgs::WordObservation>("topics", 10);
-    perplexity_pub = nh->advertise<sunshine_msgs::Perplexity>("perplexity", 10);
-    cell_perplexity_pub = nh->advertise<sunshine_msgs::LocalSurprise>("cell_perplexity", 10);
-    topic_weights_pub = nh->advertise<sunshine_msgs::TopicWeights>("topic_weight", 10);
-    word_sub = nh->subscribe("words", 10, &topic_model::words_callback, this);
-
-    pose_t G{ { G_time, G_space, G_space } };
-    rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));
-    last_time = -1;
-
-    if (polled_refine) { //refine when requested
-        ROS_INFO("Topics will be refined on request.");
-    } else { //refine automatically
-        ROS_INFO("Topics will be refined online.");
-        stopWork = false;
-        workers = parallel_refine_online2(rost.get(), k_tau, p_refine_last_observation, static_cast<size_t>(observation_size), num_threads, &stopWork);
-    }
-}
-
-topic_model::~topic_model()
-{
-    stopWork = true; //signal workers to stop
-    for (auto t : workers) { //wait for them to stop
-        t->join();
-    }
-}
-
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "topic_model");
-    ros::NodeHandle nh;
-
-    topic_model model(&nh);
-
-    ros::MultiThreadedSpinner spinner;
-    ROS_INFO("Spinning...");
-    spinner.spin();
 }
