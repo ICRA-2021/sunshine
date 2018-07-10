@@ -3,6 +3,7 @@ build/
 src/bin/
 *~
 *#
+*_gen/
 
 # CMake
 CMakeCache.txt
