@@ -164,6 +164,7 @@ add_executable(topic_model topic_model/topic_model.cpp)
 
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(topic_model ${catkin_LIBRARIES})
 
 #############
 ## Install ##
