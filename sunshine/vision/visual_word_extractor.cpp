@@ -23,10 +23,14 @@ namespace sunshine{
   MultiBOW multi_bow;
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     
     cv::Mat img = img_ptr->image;
 
+    //cv::imshow("Test",img);
+    //cv::waitKey(3);
+    
     WordObservation z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation);
 
@@ -44,11 +48,12 @@ namespace sunshine{
 }
 
 int main(int argc, char** argv){
-  
+
+  // Setup ROS node
   ros::init(argc, argv, "word_extractor");
   ros::NodeHandle nhp("~");
   ros::NodeHandle nh("");
-  
+
   char* data_root_c;
   data_root_c = getenv("ROSTPATH");
   std::string data_root;
@@ -57,31 +62,78 @@ int main(int argc, char** argv){
     data_root = data_root_c;
   }
 
-  std::string vocabname = data_root+"/share/visualwords/texton.vocabulary.baraka.1000.csv";
+  std::string vocabulary_filename, texton_vocab_filename, image_topic_name, feature_descriptor_name;
+  int num_surf, num_orb, color_cell_size, texton_cell_size;
+  bool use_surf, use_hue, use_intensity, use_orb, use_texton;
+  double img_scale;
 
-  TextonBOW texton_bow(0, 64, 1.0, vocabname);
-  
-  ColorBOW color_bow(0, 32, 1.0, true, true);
-  
-  std::vector<std::string> orb_feature_detector_names(1, std::string("ORB"));
-  std::vector<int> orb_num_features(1, 1000) ;
-  LabFeatureBOW orb_bow(0,
-			data_root+"/share/visualwords/orb_vocab/default.yml", 
-			orb_feature_detector_names,
-			orb_num_features,
-			"ORB",
-			1.0);
+  // Parse parameters
+  double rate; //looping rate
 
-  sunshine::multi_bow.add(&color_bow);
-  sunshine::multi_bow.add(&texton_bow);
-  sunshine::multi_bow.add(&orb_bow);
+  nhp.param<bool>("use_texton",use_texton, true);
+  nhp.param<int>("num_texton",texton_cell_size, 64);
+  nhp.param<string>("texton_vocab",texton_vocab_filename, data_root + "/share/visualwords/texton.vocabulary.baraka.1000.csv");
+
+  nhp.param<bool>("use_orb", use_orb, true);
+  nhp.param<int>("num_orb", num_orb, 1000);
+  nhp.param<string>("vocab", vocabulary_filename, data_root + "/share/visualwords/orb_vocab/default.yml");
+
+  nhp.param<bool>("use_hue",use_hue, true);
+  nhp.param<bool>("use_intensity",use_intensity, true);
+  nhp.param<int>("color_cell_size",color_cell_size, 32);
+
+  nhp.param<bool>("use_surf",use_surf, false);
+  nhp.param<int>("num_surf",num_surf, 1000);
+  
+  nhp.param<double>("scale", img_scale, 1.0);
+  nhp.param<string>("image", image_topic_name, "/camera/image_raw");
+  nhp.param<double>("rate", rate, 0);
+
+  nhp.param<string>("feature_descriptor",feature_descriptor_name, "ORB");
+
+  vector<string> feature_detector_names;
+  vector<int> feature_sizes;
+
+  if(use_surf){
+    feature_detector_names.push_back("SURF");
+    feature_sizes.push_back(num_surf);
+  }
+  if(use_orb){
+    feature_detector_names.push_back("ORB");
+    feature_sizes.push_back(num_orb);
+  }
+
+  if(use_surf || use_orb){
+    sunshine::multi_bow.add(new LabFeatureBOW(0,
+					      vocabulary_filename, 
+					      feature_detector_names,
+					      feature_sizes,
+					      feature_descriptor_name,
+					      img_scale));
+  }
+
+  if(use_hue || use_intensity){
+    sunshine::multi_bow.add(new ColorBOW(0, color_cell_size, img_scale, use_hue, use_intensity));
+  }
+
+  if(use_texton){
+    sunshine::multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
+  }
   
   image_transport::ImageTransport it(nhp);
-  image_transport::Subscriber sub = it.subscribe("/camera/image_raw", 1, sunshine::imageCallback);
+  image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
   sunshine::words_pub = nh.advertise<sunshine_msgs::WordObservation>("words", 1);
 
-  ros::spin();
-  
+  if(rate==0)
+    ros::spin();
+  else{
+    ros::Rate loop_rate(rate);
+    while (ros::ok()){
+      ros::spinOnce();
+      loop_rate.sleep();
+    }
+  }
+
   return 0;
 }
