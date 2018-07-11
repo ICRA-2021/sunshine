@@ -4,6 +4,7 @@ src/bin/
 *~
 *#
 *_gen/
+*.autosave
 
 # CMake
 CMakeCache.txt

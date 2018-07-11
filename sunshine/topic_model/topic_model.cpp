@@ -62,6 +62,11 @@ topic_model::~topic_model()
 
 void topic_model::words_callback(const sunshine_msgs::WordObservation::ConstPtr& words)
 {
+    if (words->observation_pose.empty()) {
+        ROS_ERROR("Word observations are missing observation poses! Skipping...");
+        return;
+    }
+
     int observation_time = words->observation_pose[0];
     //update the  list of observed time step ids
     if (observation_times.empty() || observation_times.back() < observation_time) {
@@ -103,7 +108,7 @@ void topic_model::broadcast_topics()
 
     //if nobody is listening, then why speak?
     if (topics_pub.getNumSubscribers() == 0 && perplexity_pub.getNumSubscribers() == 0
-            && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
+        && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
         return;
     }
 
