@@ -8,7 +8,7 @@ using namespace sunshine_msgs;
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "topic_model");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
 
     topic_model model(&nh);
 
@@ -40,7 +40,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     perplexity_pub = nh->advertise<Perplexity>("perplexity", 10);
     cell_perplexity_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
-    word_sub = nh->subscribe("words", 10, &topic_model::words_callback, this);
+    word_sub = nh->subscribe("/words", 10, &topic_model::words_callback, this);
 
     pose_t G{ { G_time, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));
@@ -112,10 +112,10 @@ void topic_model::broadcast_topics()
     auto const time = last_time;
 
     //if nobody is listening, then why speak?
-    if (topics_pub.getNumSubscribers() == 0 && perplexity_pub.getNumSubscribers() == 0
-        && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
-        return;
-    }
+//    if (topics_pub.getNumSubscribers() == 0 && perplexity_pub.getNumSubscribers() == 0
+//        && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
+//        return;
+//    }
 
     WordObservation::Ptr z(new WordObservation);
     Perplexity::Ptr msg_ppx(new Perplexity);

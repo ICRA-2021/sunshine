@@ -20,9 +20,8 @@ using namespace std;
 
 namespace sunshine{
 
-  ros::Publisher words_pub;
-
-  MultiBOW multi_bow;
+  static ros::Publisher words_pub;
+  static MultiBOW multi_bow;
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
