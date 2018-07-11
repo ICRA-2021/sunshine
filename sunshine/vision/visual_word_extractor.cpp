@@ -34,11 +34,16 @@ namespace sunshine{
     WordObservation z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation);
 
+    vector<int> pose(3);
+    pose[0] = msg->header.seq;
+    pose[1] = 0;
+    pose[2] = 0;
+    
     sz->source = z.source;
-    sz->seq = z.seq;
+    sz->seq = msg->header.seq;
+    sz->observation_pose = pose;
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
-    sz->observation_pose = z.observation_pose;
     sz->words = z.words;
     sz->word_pose = z.word_pose;
     sz->word_scale = z.word_scale;
@@ -70,20 +75,20 @@ int main(int argc, char** argv){
   // Parse parameters
   double rate; //looping rate
 
-  nhp.param<bool>("use_texton",use_texton, true);
-  nhp.param<int>("num_texton",texton_cell_size, 64);
-  nhp.param<string>("texton_vocab",texton_vocab_filename, data_root + "/share/visualwords/texton.vocabulary.baraka.1000.csv");
+  nhp.param<bool>("use_texton", use_texton, true);
+  nhp.param<int>("num_texton", texton_cell_size, 64);
+  nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/share/visualwords/texton.vocabulary.baraka.1000.csv");
 
   nhp.param<bool>("use_orb", use_orb, true);
   nhp.param<int>("num_orb", num_orb, 1000);
   nhp.param<string>("vocab", vocabulary_filename, data_root + "/share/visualwords/orb_vocab/default.yml");
 
-  nhp.param<bool>("use_hue",use_hue, true);
-  nhp.param<bool>("use_intensity",use_intensity, true);
-  nhp.param<int>("color_cell_size",color_cell_size, 32);
+  nhp.param<bool>("use_hue", use_hue, true);
+  nhp.param<bool>("use_intensity", use_intensity, true);
+  nhp.param<int>("color_cell_size", color_cell_size, 32);
 
-  nhp.param<bool>("use_surf",use_surf, false);
-  nhp.param<int>("num_surf",num_surf, 1000);
+  nhp.param<bool>("use_surf", use_surf, false);
+  nhp.param<int>("num_surf", num_surf, 1000);
   
   nhp.param<double>("scale", img_scale, 1.0);
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
