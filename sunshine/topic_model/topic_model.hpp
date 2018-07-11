@@ -10,8 +10,12 @@
 #include <sunshine_msgs/TopicWeights.h>
 #include <sunshine_msgs/WordObservation.h>
 
-typedef std::array<int, 3> pose_t;
-typedef ROST<pose_t, neighbors<pose_t>, hash_container<pose_t>> ROST_t;
+namespace sunshine {
+
+#define POSEDIM 3
+typedef std::array<int, POSEDIM> pose_t;
+typedef neighbors<pose_t> neighbors_t;
+typedef ROST<pose_t, neighbors_t, hash_container<pose_t>> ROST_t;
 
 class topic_model {
     ros::NodeHandle* nh;
@@ -25,9 +29,9 @@ class topic_model {
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
 
-    map<size_t, set<pose_t>> cellposes_for_time; //list of all poses observed at a given time
-    map<pose_t, vector<int>> worddata_for_pose; //stores [pose]-> {x_i,y_i,scale_i,.....} for the current time
-    vector<int> observation_times; //list of all time seq ids observed thus far.
+    std::map<size_t, std::set<pose_t>> cellposes_for_time; //list of all poses observed at a given time
+    std::map<pose_t, std::vector<int>> worddata_for_pose; //stores [pose]-> {x_i,y_i,scale_i,.....} for the current time
+    std::vector<int> observation_times; //list of all time seq ids observed thus far.
 
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
@@ -39,5 +43,7 @@ public:
     topic_model(ros::NodeHandle* nh);
     ~topic_model();
 };
+
+}
 
 #endif // TOPIC_MODEL_HPP

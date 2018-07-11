@@ -16,6 +16,8 @@
 #include <iostream>
 #include <boost/filesystem.hpp>
 
+using namespace std;
+
 namespace sunshine{
 
   ros::Publisher words_pub;
@@ -53,7 +55,6 @@ namespace sunshine{
 }
 
 int main(int argc, char** argv){
-
   // Setup ROS node
   ros::init(argc, argv, "word_extractor");
   ros::NodeHandle nhp("~");
