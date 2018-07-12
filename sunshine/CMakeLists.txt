@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sunshine_msgs
+  roslaunch
   )
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
@@ -213,3 +214,5 @@ target_link_libraries(topic_model ${catkin_LIBRARIES})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+roslaunch_add_file_check(launch)
