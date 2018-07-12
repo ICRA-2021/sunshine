@@ -2,10 +2,13 @@
 
 #include <rost/refinery.hpp>
 
+using namespace sunshine;
+using namespace sunshine_msgs;
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "topic_model");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
 
     topic_model model(&nh);
 
@@ -33,11 +36,11 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
 
-    topics_pub = nh->advertise<sunshine_msgs::WordObservation>("topics", 10);
-    perplexity_pub = nh->advertise<sunshine_msgs::Perplexity>("perplexity", 10);
-    cell_perplexity_pub = nh->advertise<sunshine_msgs::LocalSurprise>("cell_perplexity", 10);
-    topic_weights_pub = nh->advertise<sunshine_msgs::TopicWeights>("topic_weight", 10);
-    word_sub = nh->subscribe("words", 10, &topic_model::words_callback, this);
+    topics_pub = nh->advertise<WordObservation>("topics", 10);
+    perplexity_pub = nh->advertise<Perplexity>("perplexity", 10);
+    cell_perplexity_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
+    topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
+    word_sub = nh->subscribe("/words", 10, &topic_model::words_callback, this);
 
     pose_t G{ { G_time, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));
@@ -60,8 +63,9 @@ topic_model::~topic_model()
     }
 }
 
-void topic_model::words_callback(const sunshine_msgs::WordObservation::ConstPtr& words)
+void topic_model::words_callback(const WordObservation::ConstPtr& words)
 {
+    using namespace std;
     if (words->observation_pose.empty()) {
         ROS_ERROR("Word observations are missing observation poses! Skipping...");
         return;
@@ -104,18 +108,19 @@ void topic_model::words_callback(const sunshine_msgs::WordObservation::ConstPtr&
 
 void topic_model::broadcast_topics()
 {
+    using namespace std;
     auto const time = last_time;
 
     //if nobody is listening, then why speak?
-    if (topics_pub.getNumSubscribers() == 0 && perplexity_pub.getNumSubscribers() == 0
-        && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
-        return;
-    }
+//    if (topics_pub.getNumSubscribers() == 0 && perplexity_pub.getNumSubscribers() == 0
+//        && topic_weights_pub.getNumSubscribers() == 0 && cell_perplexity_pub.getNumSubscribers() == 0) {
+//        return;
+//    }
 
-    sunshine_msgs::WordObservation::Ptr z(new sunshine_msgs::WordObservation);
-    sunshine_msgs::Perplexity::Ptr msg_ppx(new sunshine_msgs::Perplexity);
-    sunshine_msgs::TopicWeights::Ptr msg_topic_weights(new sunshine_msgs::TopicWeights);
-    sunshine_msgs::LocalSurprise::Ptr cell_perplexity(new sunshine_msgs::LocalSurprise);
+    WordObservation::Ptr z(new WordObservation);
+    Perplexity::Ptr msg_ppx(new Perplexity);
+    TopicWeights::Ptr msg_topic_weights(new TopicWeights);
+    LocalSurprise::Ptr cell_perplexity(new LocalSurprise);
     z->source = "topics";
     z->vocabulary_begin = 0;
     z->vocabulary_size = static_cast<int32_t>(K);
@@ -170,4 +175,27 @@ void topic_model::broadcast_topics()
     perplexity_pub.publish(msg_ppx);
     topic_weights_pub.publish(msg_topic_weights);
     cell_perplexity_pub.publish(cell_perplexity);
+}
+
+std::pair<std::map<pose_t, std::vector<int>>,
+    std::map<pose_t, std::vector<pose_t>>>
+words_for_pose(WordObservation& z, int cell_size)
+{
+    using namespace std;
+    //	std::map<pose_t, vector<int>> m;
+    map<pose_t, vector<int>> out_words;
+    map<pose_t, vector<pose_t>> out_poses;
+
+    for (size_t i = 0; i < z.words.size(); ++i) {
+        pose_t pose, pose_original;
+        pose[0] = z.seq;
+        pose_original[0] = z.seq;
+        for (size_t d = 0; d < POSEDIM - 1; ++d) {
+            pose[d + 1] = z.word_pose[i * (POSEDIM - 1) + d] / cell_size;
+            pose_original[d + 1] = z.word_pose[i * (POSEDIM - 1) + d];
+        }
+        out_words[pose].push_back(z.words[i]);
+        out_poses[pose].push_back(pose_original);
+    }
+    return make_pair(out_words, out_poses);
 }

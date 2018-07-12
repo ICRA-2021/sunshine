@@ -16,11 +16,12 @@
 #include <iostream>
 #include <boost/filesystem.hpp>
 
+using namespace std;
+
 namespace sunshine{
 
-  ros::Publisher words_pub;
-
-  MultiBOW multi_bow;
+  static ros::Publisher words_pub;
+  static MultiBOW multi_bow;
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
@@ -53,7 +54,6 @@ namespace sunshine{
 }
 
 int main(int argc, char** argv){
-
   // Setup ROS node
   ros::init(argc, argv, "word_extractor");
   ros::NodeHandle nhp("~");
