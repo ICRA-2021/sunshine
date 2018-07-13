@@ -16,6 +16,9 @@ std::map<unsigned, cv::Mat> image_cache;
 
 using namespace std;
 
+bool show_topics, show_local_surprise, show_perplexity;
+string image_topic_name, words_topic_name, topic_topic_name; //todo: rename topic model...
+
 void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img = image_cache[z->seq];
 
@@ -56,11 +59,9 @@ int main(int argc, char** argv){
   ros::NodeHandle nhp("~");
   ros::NodeHandle nh("");
 
-  bool show_topics, show_local_surprise, show_perplexity;
-  string image_topic_name, word_topic_name, topic_topic_name; //todo: rename topic model...
   nhp.param<bool>("show_topics", show_topics, true);
   nhp.param<bool>("show_words", show_topics, true);
-  nhp.param<string>("word_topic", word_topic_name, "/words");
+  nhp.param<string>("words_topic", words_topic_name, "/words");
   nhp.param<string>("topic_topic", topic_topic_name, "/topics");
   
   nhp.param<bool>("local_surprise", show_local_surprise, true);
@@ -69,7 +70,7 @@ int main(int argc, char** argv){
 
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber img_sub = it.subscribe(image_topic_name, 1, image_callback);
-  ros::Subscriber word_sub = nh.subscribe(word_topic_name,1,words_callback);
+  ros::Subscriber word_sub = nhp.subscribe(words_topic_name,1,words_callback);
 
   ros::spin();
 
