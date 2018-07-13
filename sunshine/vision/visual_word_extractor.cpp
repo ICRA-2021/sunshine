@@ -128,7 +128,7 @@ int main(int argc, char** argv){
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
-  sunshine::words_pub = nh.advertise<sunshine_msgs::WordObservation>("words", 1);
+  sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
   if(rate==0)
     ros::spin();

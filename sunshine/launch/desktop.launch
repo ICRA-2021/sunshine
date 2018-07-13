@@ -7,6 +7,7 @@
   <arg name="rate" default="0" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="false" />
+  <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
   <arg name="image_topic" default="/camera/image_raw" />
@@ -25,6 +26,7 @@
   <arg name="G_time" default="4" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
+  <arg name="words_topic" default="/rost_vision/words" />
 
   <!-- Launch GSCAM with webcam -->
   <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! videoconvert" />
@@ -34,7 +36,7 @@
   <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
 
   <!-- Launch word extractor -->
-  <node pkg="sunshine" type="visual_word_extractor" name="visualwords">
+  <node pkg="sunshine" type="visual_word_extractor" name="rost_vision">
     <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
     <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
     <param name="feature_descriptor" type="string" value="ORB"/>
@@ -44,6 +46,7 @@
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>
     <param name="use_surf" value="$(arg surf)"/>
+    <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
   </node>
 
@@ -62,5 +65,6 @@
     <param name="G_time" type="int" value="$(arg G_time)" />
     <param name="G_space" type="int" value="$(arg G_space)" />
     <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
   </node>
 </launch>

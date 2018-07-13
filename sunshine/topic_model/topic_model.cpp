@@ -34,13 +34,16 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<int>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
 
+    nh->param<std::string>("words_topic",words_topic_name,"/words");
+    
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
 
     topics_pub = nh->advertise<WordObservation>("topics", 10);
     perplexity_pub = nh->advertise<Perplexity>("perplexity", 10);
     cell_perplexity_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
-    word_sub = nh->subscribe("/words", 10, &topic_model::words_callback, this);
+
+    word_sub = nh->subscribe(words_topic_name, 10, &topic_model::words_callback, this);
 
     pose_t G{ { G_time, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));

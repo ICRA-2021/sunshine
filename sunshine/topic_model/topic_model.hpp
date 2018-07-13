@@ -22,6 +22,7 @@ class topic_model {
     ros::Publisher topics_pub, perplexity_pub, cell_perplexity_pub, topic_weights_pub;
     ros::Subscriber word_sub;
 
+    std::string word_topic_name;
     int K, V, cell_width; //number of topic types, number of word types
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_last_observation;
     int G_time, G_space, num_threads, observation_size, last_time;
