@@ -24,9 +24,9 @@ class topic_model {
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub;
     ros::Subscriber word_sub;
 
-    int K, V, cell_width; //number of topic types, number of word types
-    double k_alpha, k_beta, k_gamma, k_tau, p_refine_last_observation;
-    int G_time, G_space, num_threads, observation_size, last_time;
+    int K, V, cell_space; //number of topic types, number of word types
+    double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
+    int G_time, G_space, num_threads, last_time;
     bool polled_refine, update_topic_model;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;

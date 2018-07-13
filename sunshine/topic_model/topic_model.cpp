@@ -21,17 +21,17 @@ int main(int argc, char** argv)
 topic_model::topic_model(ros::NodeHandle* nh)
     : nh(nh)
 {
-    nh->param<int>("K", K, 64); // number of topics
+    nh->param<int>("K", K, 100); // number of topics
     nh->param<int>("V", V, 1500); // vocabulary size
     nh->param<double>("alpha", k_alpha, 0.1);
-    nh->param<double>("beta", k_beta, 0.1);
-    nh->param<double>("gamma", k_gamma, 0.0);
-    nh->param<double>("tau", k_tau, 2.0); // beta(1,tau) is used to pick cells for global refinement
-    nh->param<int>("observation_size", observation_size, 64); // number of cells in an observation
-    nh->param<double>("p_refine_last_observation", p_refine_last_observation, 0.5); // probability of refining last observation
-    nh->param<int>("num_threads", num_threads, 2); // beta(1,tau) is used to pick cells for refinement
-    nh->param<int>("cell_width", cell_width, 64);
-    nh->param<int>("G_time", G_time, 4);
+    nh->param<double>("beta", k_beta, 1.0);
+    nh->param<double>("gamma", k_gamma, 0.001);
+    nh->param<double>("tau", k_tau, 0.5); // beta(1,tau) is used to pick cells for global refinement
+    nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
+    nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
+    nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
+    nh->param<int>("cell_space", cell_space, 32);
+    nh->param<int>("G_time", G_time, 1);
     nh->param<int>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
     nh->param<bool>("update_topic_model", update_topic_model, true);
@@ -54,7 +54,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     } else { //refine automatically
         ROS_INFO("Topics will be refined online.");
         stopWork = false;
-        workers = parallel_refine_online2(rost.get(), k_tau, p_refine_last_observation, static_cast<size_t>(observation_size), num_threads, &stopWork);
+        workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
     }
 }
 
@@ -117,7 +117,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
-    auto celldata = words_for_cell_poses(*wordObs, cell_width);
+    auto celldata = words_for_cell_poses(*wordObs, cell_space);
     auto const& cell_words = celldata.first;
     auto const& cell_word_poses = celldata.second;
     for (auto const& entry : cell_words) {
@@ -147,13 +147,13 @@ void topic_model::broadcast_topics()
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = cell_width;
+    global_surprise->cell_width = cell_space;
     global_surprise->surprise.resize(word_poses_by_cell.size(), 0);
     global_surprise->surprise_poses.resize(word_poses_by_cell.size() * (POSEDIM - 1), 0);
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = cell_width;
+    local_surprise->cell_width = cell_space;
     local_surprise->surprise.resize(word_poses_by_cell.size(), 0);
     local_surprise->surprise_poses.resize(word_poses_by_cell.size() * (POSEDIM - 1), 0);
 
