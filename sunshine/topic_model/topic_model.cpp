@@ -39,7 +39,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
 
     scene_pub = nh->advertise<WordObservation>("topics", 10);
-    global_perplexity_pub = nh->advertise<Perplexity>("perplexity", 10);
+    global_perplexity_pub = nh->advertise<Perplexity>("perplexity_score", 10);
+    global_surprise_pub = nh->advertise<LocalSurprise>("scene_perplexity", 10);
     local_surprise_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
     word_sub = nh->subscribe("/words", 10, &topic_model::words_callback, this);
@@ -160,7 +161,7 @@ void topic_model::broadcast_topics()
     msg_topic_weights->seq = static_cast<uint32_t>(time);
     msg_topic_weights->weight = rost->get_topic_weights();
 
-    int n_words = 0;
+    auto n_words = 0ul;
     double sum_log_p_word = 0;
     auto entryIdx = 0u;
 
@@ -182,15 +183,15 @@ void topic_model::broadcast_topics()
         //populate the topic label message
         topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
         vector<pose_t> const& word_poses = entry.second;
-        assert(topics.size() * POSEDIM == word_poses.size());
         for (auto const& word_pose : word_poses) {
-            for (auto const& x : word_pose) {
-                topicObs->word_pose.push_back(x);
+            for (auto i = 1u; i < POSEDIM; i++) {
+                topicObs->word_pose.push_back(word_pose[i]);
             }
         }
 
         n_words += topics.size();
         sum_log_p_word += log_likelihood;
+        assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
         entryIdx++;
     }
 
