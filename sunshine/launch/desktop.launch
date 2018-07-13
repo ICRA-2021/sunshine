@@ -1,0 +1,66 @@
+<launch>
+  <!-- GSCAM arguments -->
+  <arg name="camera" default="/dev/video0" />
+
+  <!-- Vision arguments -->
+  <arg name="scale" default="1.0" />
+  <arg name="rate" default="0" />
+  <arg name="hue" default="true" />
+  <arg name="intensity" default="false" />
+  <arg name="orb" default="true" />
+  <arg name="surf" default="false" />
+  <arg name="image_topic" default="/camera/image_raw" />
+  
+  <!-- Topic model arguments -->
+  <arg name="K" default="64" />
+  <arg name="V" default="16180" />
+  <arg name="alpha" default="0.1" />
+  <arg name="beta" default="0.1" />
+  <arg name="gamma" default="0.0" />
+  <arg name="tau" default="2.0" />
+  <arg name="observation_size" default="64" />
+  <arg name="p_refine_last_observation" default="0.5" />
+  <arg name="num_threads" default="2" />
+  <arg name="cell_width" default="64" />
+  <arg name="G_time" default="4" />
+  <arg name="G_space" default="1" />
+  <arg name="polled_refine" default="false" />
+
+  <!-- Launch GSCAM with webcam -->
+  <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! videoconvert" />
+  <node pkg="gscam" type="gscam" name="gscam">
+  </node>
+
+  <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
+
+  <!-- Launch word extractor -->
+  <node pkg="sunshine" type="visual_word_extractor" name="visualwords">
+    <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
+    <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
+    <param name="feature_descriptor" type="string" value="ORB"/>
+    <param name="scale" type="double" value="$(arg scale)"/>
+    <param name="rate" type="int" value="$(arg rate)"/>
+    <param name="use_hue" value="$(arg hue)"/>
+    <param name="use_intensity" value="$(arg intensity)"/>
+    <param name="use_orb" value="$(arg orb)"/>
+    <param name="use_surf" value="$(arg surf)"/>
+    <param name="image" value="$(arg image_topic)"/>
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="rost">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="observation_size" type="int" value="$(arg observation_size)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_width" type="int" value="$(arg cell_width)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+  </node>
+</launch>
