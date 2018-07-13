@@ -3,8 +3,8 @@
 #include "sensor_msgs/image_encodings.h"
 #include "cv_bridge/cv_bridge.h"
 
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 
 #include "visualwords/image_source.hpp"
 #include "visualwords/texton_words.hpp"
