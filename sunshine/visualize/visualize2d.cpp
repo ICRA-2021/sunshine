@@ -19,6 +19,18 @@ using namespace std;
 bool show_topics, show_local_surprise, show_perplexity;
 string image_topic_name, words_topic_name, topic_topic_name; //todo: rename topic model...
 
+WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::ConstPtr& z){
+  WordObservation zz;
+  zz.seq = z->seq;
+  zz.source = z->source;
+  zz.words = z->words;
+  zz.word_pose = z->word_pose;
+  zz.word_scale = z->word_scale;
+  zz.vocabulary_begin = z->vocabulary_begin;
+  zz.vocabulary_size = z->vocabulary_size;
+  return zz;
+}
+
 void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img = image_cache[z->seq];
 
@@ -28,17 +40,27 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img_grey_3c;
   cv::cvtColor(img_grey,img_grey_3c,CV_GRAY2BGR);
 
-  WordObservation zz;
-  zz.seq = z->seq;
-  zz.source = z->source;
-  zz.words = z->words;
-  zz.word_pose = z->word_pose;
-  zz.word_scale = z->word_scale;
-  zz.vocabulary_begin = z->vocabulary_begin;
-  zz.vocabulary_size = z->vocabulary_size;
+  WordObservation zz = msgToWordObservation(z);
   
   cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
-  cv::imshow("z->source", out_img);
+  cv::imshow("Words", out_img);
+  cv::waitKey(5); 
+}
+
+void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+
+  cv::Mat img = image_cache[z->seq];
+
+  if(img.empty()) return;
+  cv::Mat img_grey;
+  cv::cvtColor(img,img_grey,CV_BGR2GRAY);
+  cv::Mat img_grey_3c;
+  cv::cvtColor(img_grey,img_grey_3c,CV_GRAY2BGR);
+  
+  WordObservation zz = msgToWordObservation(z);
+  
+  cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
+  cv::imshow("Topics", out_img);
   cv::waitKey(5); 
 }
 
@@ -46,6 +68,7 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
+
   if (image_cache.size() > 100){
     image_cache.erase(image_cache.begin());
   }
@@ -70,7 +93,9 @@ int main(int argc, char** argv){
 
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber img_sub = it.subscribe(image_topic_name, 1, image_callback);
+
   ros::Subscriber word_sub = nhp.subscribe(words_topic_name,1,words_callback);
+  ros::Subscriber topic_sub = nhp.subscribe(topic_topic_name,1,topic_callback);
 
   ros::spin();
 
