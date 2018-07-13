@@ -14,11 +14,11 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sunshine_msgs
-  roslaunch
   )
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 find_package(OpenCV 3 REQUIRED)
+find_package(roslaunch REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
 
@@ -147,6 +147,7 @@ include_directories(
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 add_executable(topic_model topic_model/topic_model.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
+add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -168,6 +169,7 @@ target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 target_link_libraries(topic_model ${catkin_LIBRARIES})
+target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
 target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visualize ${catkin_LIBRARIES} ${OpenCV_LIBS})
