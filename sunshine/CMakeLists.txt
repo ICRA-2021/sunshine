@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   )
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
+set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 find_package(OpenCV 3 REQUIRED)
 find_package(roslaunch REQUIRED)
 
