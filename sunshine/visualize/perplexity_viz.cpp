@@ -14,7 +14,7 @@ void publishImage(sunshine_msgs::LocalSurprise::ConstPtr surpriseMsg)
         assert(surpriseMsg->surprise_poses[i] >= 0 && surpriseMsg->surprise_poses[i + 1] >= 0);
         max_x = std::max(max_x, surpriseMsg->surprise_poses[i] + 1);
         max_y = std::max(max_y, surpriseMsg->surprise_poses[i + 1] + 1);
-        max_perplexity = std::max(max_perplexity, std::abs(surpriseMsg->surprise[i / 2]));
+        max_perplexity = std::max(max_perplexity, surpriseMsg->surprise[i / 2]);
     }
 
     image.width = static_cast<uint32_t>(max_x);

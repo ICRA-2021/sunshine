@@ -10,9 +10,9 @@
   <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
+  <arg name="test_image" />  
   <arg name="image_topic" default="/camera/image_raw" />
   
-
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
   <arg name="V" default="16180" />
@@ -39,10 +39,11 @@
   <arg name="show_perplexity" default="true" />
   <arg name="show_equalized" default="true" />
   
-  <!-- Launch GSCAM with webcam -->
-  <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! video/x-raw, width=640, height=480, framerate=30/1 ! videoconvert" />
-  <node pkg="gscam" type="gscam" name="gscam">
+  <!-- Launch image publisher -->
+  <node pkg="sunshine" type="test.image_publisher" name="image_publisher" args="$(arg test_image)">
+    <param name="image_topic" type="string" value="$(arg image_topic)"/>
   </node>
+
 
   <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
 
@@ -52,7 +53,7 @@
     <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
     <param name="feature_descriptor" type="string" value="ORB"/>
     <param name="scale" type="double" value="$(arg scale)"/>
-    <param name="rate" type="int" value="$(arg rate)"/>
+    <param name="rate" type="double" value="$(arg rate)"/>
     <param name="use_hue" value="$(arg hue)"/>
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>

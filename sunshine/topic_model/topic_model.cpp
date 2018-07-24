@@ -35,7 +35,11 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<int>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
     nh->param<bool>("update_topic_model", update_topic_model, true);
+    nh->param<int>("min_obs_refine_time", min_obs_refine_time, 200);
+    nh->param<int>("word_obs_queue_size", obs_queue_size, 1);
 
+    nh->param<std::string>("words_topic",words_topic_name,"/word_extractor/words");
+    
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
 
     scene_pub = nh->advertise<WordObservation>("topics", 10);
@@ -43,13 +47,15 @@ topic_model::topic_model(ros::NodeHandle* nh)
     global_surprise_pub = nh->advertise<LocalSurprise>("scene_perplexity", 10);
     local_surprise_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
-    word_sub = nh->subscribe("/words", 10, &topic_model::words_callback, this);
+
+    word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
     pose_t G{ { G_time, G_space, G_space } };
-    rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, G));
+    rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
     last_time = -1;
 
     if (polled_refine) { //refine when requested
+        throw std::runtime_error("Not implemented. Requires services.");
         ROS_INFO("Topics will be refined on request.");
     } else { //refine automatically
         ROS_INFO("Topics will be refined online.");
@@ -88,9 +94,28 @@ words_for_cell_poses(WordObservation const& wordObs, int cell_size)
     return make_pair(words_by_cell_pose, word_poses_by_cell_pose);
 }
 
+void topic_model::wait_for_processing()
+{
+    using namespace std::chrono;
+    auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
+    ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
+              min_obs_refine_time, duration_cast<milliseconds>(elapsedSinceAdd).count());
+    if (duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time) {
+        ROS_WARN("New word observation received too soon! Delaying...");
+        if (++consecutive_rate_violations > obs_queue_size) {
+            ROS_ERROR("Next word observation will likely be dropped. Increase queue size, or reduce observation rate or processing time.");
+        }
+        std::this_thread::sleep_for(milliseconds(min_obs_refine_time) - elapsedSinceAdd);
+    } else {
+        consecutive_rate_violations = 0;
+    }
+}
+
 void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
 {
     using namespace std;
+    lock_guard<mutex> guard(wordsReceivedLock);
+
     if (wordObs->observation_pose.empty()) {
         ROS_ERROR("Word observations are missing observation poses! Skipping...");
         return;
@@ -110,7 +135,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     if (last_time >= 0 && (last_time != observation_time)) {
         broadcast_topics();
         size_t refine_count = rost->get_refine_count();
-        ROS_INFO("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
+        ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
         word_poses_by_cell.clear();
         current_cell_poses.clear();
@@ -118,20 +143,25 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     last_time = observation_time;
 
     auto celldata = words_for_cell_poses(*wordObs, cell_space);
-    auto const& cell_words = celldata.first;
-    auto const& cell_word_poses = celldata.second;
-    for (auto const& entry : cell_words) {
+    auto const& words_by_cell_pose = celldata.first;
+    auto const& word_poses_by_cell_pose = celldata.second;
+    for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
         auto const& cell_words = entry.second;
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
     }
-    word_poses_by_cell.insert(cell_word_poses.begin(), cell_word_poses.end());
+
+    lastWordsAdded = chrono::steady_clock::now();
+
+    word_poses_by_cell.insert(word_poses_by_cell_pose.begin(), word_poses_by_cell_pose.end());
 }
 
 void topic_model::broadcast_topics()
 {
     using namespace std;
+    wait_for_processing();
+
     auto const time = last_time;
 
     WordObservation::Ptr topicObs(new WordObservation);
@@ -177,8 +207,11 @@ void topic_model::broadcast_topics()
             local_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
             global_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
         }
-        local_surprise->surprise[entryIdx] = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
-        global_surprise->surprise[entryIdx] = rost->cell_perplexity_word(cell->W, rost->weight_Z);
+
+        auto const cell_perplexity = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
+        auto const scene_perplexity = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
+        local_surprise->surprise[entryIdx] = cell_perplexity;
+        global_surprise->surprise[entryIdx] = scene_perplexity;
 
         //populate the topic label message
         topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
@@ -196,6 +229,7 @@ void topic_model::broadcast_topics()
     }
 
     global_perplexity->perplexity = exp(-sum_log_p_word / n_words);
+    ROS_INFO("Perplexity: %f", global_perplexity->perplexity);
 
     scene_pub.publish(topicObs);
     topic_weights_pub.publish(msg_topic_weights);
