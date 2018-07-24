@@ -3,9 +3,6 @@
 #include "sensor_msgs/image_encodings.h"
 #include "cv_bridge/cv_bridge.h"
 
-//#include <opencv2/imgproc/imgproc.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-
 #include "visualwords/image_source.hpp"
 #include "visualwords/texton_words.hpp"
 #include "visualwords/feature_words.hpp"
@@ -108,6 +105,10 @@ int main(int argc, char** argv){
     feature_sizes.push_back(num_orb);
   }
 
+  if(use_texton){
+    sunshine::multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
+  }
+
   if(use_surf || use_orb){
     sunshine::multi_bow.add(new LabFeatureBOW(0,
 					      vocabulary_filename, 
@@ -120,17 +121,13 @@ int main(int argc, char** argv){
   if(use_hue || use_intensity){
     sunshine::multi_bow.add(new ColorBOW(0, color_cell_size, img_scale, use_hue, use_intensity));
   }
-
-  if(use_texton){
-    sunshine::multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
-  }
   
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
-  if(rate==0)
+  if(rate <= 0)
     ros::spin();
   else{
     ros::Rate loop_rate(rate);

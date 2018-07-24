@@ -24,10 +24,14 @@ class topic_model {
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub;
     ros::Subscriber word_sub;
 
+    std::mutex wordsReceivedLock;
+    std::chrono::steady_clock::time_point lastWordsAdded;
+    int consecutive_rate_violations = 0;
+
     std::string words_topic_name;
     int K, V, cell_space; //number of topic types, number of word types
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
-    int G_time, G_space, num_threads, last_time;
+    int G_time, G_space, num_threads, last_time, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
@@ -40,6 +44,7 @@ class topic_model {
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
 
+    void wait_for_processing();
     void words_callback(const sunshine_msgs::WordObservation::ConstPtr& words);
     void broadcast_topics();
 
