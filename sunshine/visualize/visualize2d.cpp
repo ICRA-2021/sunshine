@@ -69,7 +69,7 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 
 void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   // Create and normalize the image
-  cv::Mat ppx_img = toMat(s_msg->surprise_poses, s_msg->surprise);
+  cv::Mat ppx_img = toMat<int32_t, double, float>(s_msg->surprise_poses, s_msg->surprise);
   cv::Scalar mean_ppx, stddev_ppx;
   cv::meanStdDev(ppx_img, mean_ppx, stddev_ppx);
   ppx_img = ppx_img - mean_ppx.val[0];
