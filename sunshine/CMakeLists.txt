@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
+set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3 REQUIRED)
 find_package(roslaunch REQUIRED)
 
@@ -127,6 +128,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
+  common
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -149,6 +151,7 @@ add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 add_executable(topic_model topic_model/topic_model.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
+add_executable(test.image_publisher test/image_publisher.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -173,7 +176,10 @@ target_link_libraries(topic_model ${catkin_LIBRARIES})
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
 target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visualize ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
