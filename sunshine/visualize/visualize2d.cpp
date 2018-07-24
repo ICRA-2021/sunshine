@@ -10,16 +10,17 @@
 #include "sunshine_msgs/LocalSurprise.h"
 #include "rost_visualize/draw_keypoints.hpp"
 #include "rost_visualize/draw_local_surprise.hpp"
+#include "utils.hpp"
 
 #include <iostream>
 #include <algorithm>
 
-std::map<unsigned, cv::Mat> image_cache;
 
 using namespace std;
 
-bool show_topics, show_local_surprise, show_perplexity, show_words, show_equalized;
-string image_topic_name, words_topic_name, topic_topic_name, ppx_topic_name; //todo: rename topic model...
+static map<unsigned, cv::Mat> image_cache;
+static bool show_topics, show_perplexity, show_words, show_equalized;
+static string image_topic_name, words_topic_name, topic_topic_name, ppx_topic_name; //todo: rename topic model...
 
 WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::ConstPtr& z){
   WordObservation zz;
@@ -67,35 +68,15 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
-  
-  std::map<std::array<int,3>, double> pose_surprise_map;
-
-  // Gather poses and find the max and min values
-  int max_x_idx = 0, max_y_idx = 0;
-  
-  assert(s_msg->surprise.size() == s_msg->surprise_poses.size()/2);
-  for (int i = 0; i < s_msg->surprise_poses.size(); i += 2){
-    std::array<int,3> pose;
-    pose[0] = s_msg->seq;
-    pose[1] = static_cast<int>(s_msg->surprise_poses[i]);
-    pose[2] = static_cast<int>(s_msg->surprise_poses[i+1]);
-
-    // todo: use std::max, not sure what was wrong before
-    max_x_idx = (max_x_idx > pose[1]) ? max_x_idx : pose[1];
-    max_y_idx = (max_y_idx > pose[2]) ? max_y_idx : pose[2];
-    
-    //max_x_idx = std::max(max_x_idx, s_msg->surprise_poses[i]);
-    //max_y_idx = std::max(max_y_idx, s_msg->surprise_poses[i+1]);
-    pose_surprise_map[pose] = s_msg->surprise[i/2];
-  }
-
-  // Initialize empty image of correct size
-  cv::Mat ppx_img(max_x_idx + 1, max_y_idx + 1, CV_64F, cv::Scalar(0));
+  // Create and normalize the image
+  cv::Mat ppx_img = toMat(s_msg->surprise_poses, s_msg->surprise);
+  cv::Scalar mean_ppx, stddev_ppx;
+  cv::meanStdDev(ppx_img, mean_ppx, stddev_ppx);
+  ppx_img = ppx_img - mean_ppx.val[0];
+  ppx_img.convertTo(ppx_img, CV_32F, 1. / (2. * stddev_ppx.val[0]), 0.5);
   
   // Draw on the image
-  ppx_img = draw_pose_surprise<double>(pose_surprise_map, ppx_img, show_equalized);
-  cv::Mat ppx_img_color(ppx_img.rows, ppx_img.cols, CV_8UC3, cv::Scalar(0,0,0));
-  ppx_img_color = colorize(ppx_img, cv::Vec3b(0,0,255), cv::Vec3b(255,255,255));
+  cv::Mat ppx_img_color = colorize(ppx_img, cv::Vec3b(0,0,255), cv::Vec3b(255,255,255));
   
   // Add it to the existing image
   cv::Mat img = image_cache[s_msg->seq];
