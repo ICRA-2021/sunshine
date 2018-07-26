@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 3.3 REQUIRED)
 find_package(roslaunch REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
@@ -170,7 +170,7 @@ add_executable(test.image_publisher test/image_publisher.cpp)
 
 
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} lz4)
 
 target_link_libraries(topic_model ${catkin_LIBRARIES})
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
