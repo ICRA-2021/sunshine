@@ -153,6 +153,12 @@ add_executable(visualize visualize/visualize2d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
 
+add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
+add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
+add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
+add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
