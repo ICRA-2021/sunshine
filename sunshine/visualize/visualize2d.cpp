@@ -27,7 +27,8 @@ WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::Const
   zz.seq = z->seq;
   zz.source = z->source;
   zz.words = z->words;
-  zz.word_pose = z->word_pose;
+  zz.word_pose.resize(z->word_pose.size());
+  std::copy(std::begin(z->word_pose), std::end(z->word_pose), std::begin(zz.word_pose));
   zz.word_scale = z->word_scale;
   zz.vocabulary_begin = z->vocabulary_begin;
   zz.vocabulary_size = z->vocabulary_size;

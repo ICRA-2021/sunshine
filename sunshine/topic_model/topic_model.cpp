@@ -2,6 +2,10 @@
 
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
+#include <tf2/LinearMath/Vector3.h>
+#include <tf2/transform_storage.h>
+#include <tf2/convert.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace sunshine;
 using namespace sunshine_msgs;
@@ -31,8 +35,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
     nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
     nh->param<int>("cell_space", cell_space, 32);
-    nh->param<int>("G_time", G_time, 1);
-    nh->param<int>("G_space", G_space, 1);
+    nh->param<float>("G_time", G_time, 1);
+    nh->param<float>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
     nh->param<bool>("update_topic_model", update_topic_model, true);
     nh->param<int>("min_obs_refine_time", min_obs_refine_time, 200);
@@ -81,15 +85,28 @@ words_for_cell_poses(WordObservation const& wordObs, int cell_size)
     map<pose_t, vector<pose_t>> word_poses_by_cell_pose;
 
     for (size_t i = 0; i < wordObs.words.size(); ++i) {
-        pose_t cell_pose, word_pose;
-        cell_pose[0] = wordObs.observation_pose[0];
-        word_pose[0] = wordObs.observation_pose[0];
-        for (size_t d = 0; d < POSEDIM - 1; ++d) {
-            cell_pose[d + 1] = wordObs.word_pose[i * (POSEDIM - 1) + d] / cell_size;
-            word_pose[d + 1] = wordObs.word_pose[i * (POSEDIM - 1) + d];
-        }
-        words_by_cell_pose[cell_pose].push_back(wordObs.words[i]);
-        word_poses_by_cell_pose[cell_pose].push_back(word_pose);
+        geometry_msgs::Point cell_point, word_point;
+        cell_point.x = wordObs.word_pose[i * 3 + 0] / cell_size;
+        word_point.x = wordObs.word_pose[i * 3 + 0];
+        cell_point.y = wordObs.word_pose[i * 3 + 1] / cell_size;
+        word_point.y = wordObs.word_pose[i * 3 + 1];
+        cell_point.z = wordObs.word_pose[i * 3 + 2] / cell_size;
+        word_point.z = wordObs.word_pose[i * 3 + 2];
+        tf2::doTransform(cell_point, cell_point, wordObs.observation_transform);
+        tf2::doTransform(word_point, word_point, wordObs.observation_transform);
+
+        pose_t cell_stamped_point, word_stamped_point;
+        cell_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the time
+        word_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the time
+        cell_stamped_point[1] = static_cast<DimType>(cell_point.x);
+        word_stamped_point[1] = static_cast<DimType>(word_point.x);
+        cell_stamped_point[2] = static_cast<DimType>(cell_point.y);
+        word_stamped_point[2] = static_cast<DimType>(word_point.y);
+        cell_stamped_point[3] = static_cast<DimType>(cell_point.z);
+        word_stamped_point[3] = static_cast<DimType>(word_point.z);
+
+        words_by_cell_pose[cell_stamped_point].push_back(wordObs.words[i]);
+        word_poses_by_cell_pose[cell_stamped_point].push_back(word_stamped_point);
     }
     return make_pair(words_by_cell_pose, word_poses_by_cell_pose);
 }
@@ -116,12 +133,12 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     using namespace std;
     lock_guard<mutex> guard(wordsReceivedLock);
 
-    if (wordObs->observation_pose.empty()) {
+    if (false) { // TODO Can observation transform ever be invalid?
         ROS_ERROR("Word observations are missing observation poses! Skipping...");
         return;
     }
 
-    int observation_time = wordObs->observation_pose[0];
+    DimType observation_time = static_cast<DimType>(wordObs->observation_transform.header.stamp.toSec());
     //update the  list of observed time step ids
     if (observation_times.empty() || observation_times.back() < observation_time) {
         observation_times.push_back(observation_time);
@@ -169,7 +186,8 @@ void topic_model::broadcast_topics()
     topicObs->vocabulary_begin = 0;
     topicObs->vocabulary_size = static_cast<int32_t>(K);
     topicObs->seq = static_cast<uint32_t>(time);
-    topicObs->observation_pose.push_back(time);
+    topicObs->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
+    topicObs->observation_transform.header.stamp = ros::Time::now();
 
     Perplexity::Ptr global_perplexity(new Perplexity);
     global_perplexity->seq = static_cast<uint32_t>(time);
