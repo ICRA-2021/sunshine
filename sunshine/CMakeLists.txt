@@ -14,7 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sunshine_msgs
+  geometry_msgs
+  tf2
   )
+find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
@@ -116,7 +119,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs tf2 tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -178,7 +181,9 @@ add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} lz4)
 
+target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES})
+
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
 target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})

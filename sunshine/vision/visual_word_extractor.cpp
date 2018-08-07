@@ -32,18 +32,17 @@ namespace sunshine{
     WordObservation z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation);
 
-    vector<int> pose(3);
-    pose[0] = msg->header.seq;
-    pose[1] = 0;
-    pose[2] = 0;
+    geometry_msgs::TransformStamped transform;
+    transform.header.stamp = ros::Time::now();
     
     sz->source = z.source;
     sz->seq = msg->header.seq;
-    sz->observation_pose = pose;
+    sz->observation_transform = transform;
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    sz->word_pose = z.word_pose;
+    sz->word_pose.resize(z.word_pose.size());
+    std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
     sz->word_scale = z.word_scale;
 
     words_pub.publish(sz);
