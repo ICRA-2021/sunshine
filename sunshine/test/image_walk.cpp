@@ -1,8 +1,12 @@
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 #include <ros/ros.h>
+#include "utils.hpp"
+
+typedef float_t DepthType;
 
 cv::Mat getVisibleRegion(cv::Mat const& image, float cx, float cy, int width, int height, float scale)
 {
@@ -34,7 +38,12 @@ int main(int argc, char** argv)
     auto const scale = nh.param<float>("scale", 1);
     auto const image_name = nh.param<std::string>("image", argv[1]);
     auto const image_topic = nh.param<std::string>("image_topic", "/camera/image");
-    auto const depth_topic = nh.param<std::string>("depth_topic", "/camera/depth_image");
+//    auto const depth_cloud_topic = nh.param<std::string>("depth_cloud_topic", "/camera/points");
+    auto const depth_info_topic = nh.param<std::string>("depth_info_topic", "/camera/camera_info");
+    auto const depth_image_topic = nh.param<std::string>("depth_image_topic", "/camera/depth");
+
+    cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
+    cv::waitKey(30);
 
     if (fps <= 0) {
         throw std::invalid_argument("fps cannot be non-positive!");
@@ -66,22 +75,48 @@ int main(int argc, char** argv)
     float y = height / 2.f;
     float track = (col_major) ? x : y;
 
+    // Publish image topic
+    image_transport::ImageTransport it(nh);
+    image_transport::Publisher imagePub = it.advertise(image_topic, 1);
+
+    // Publish depth image topic
     bool const publishDepthImage = (fov > 0 || altitude > 0);
-    cv::Mat depthImage(height, width, CV_32F);
+    cv::Mat depthImage(height, width, cvType<DepthType>::value);
+//    sensor_msgs::PointCloud2 depthCloud;
+//    ros::Publisher depthCloudPub;
+    image_transport::Publisher depthImagePub;
+    ros::Publisher depthInfoPub;
     if (publishDepthImage) {
+        ROS_INFO("Publishing depth image.");
+//        sensor_msgs::PointField pointField;
+//        pointField.name = "depth";
+//        pointField.offset = 0;
+//        pointField.datatype = pointField.FLOAT32;
+//        pointField.count = 1;
+
+//        depthCloud.header.frame_id = "map";
+//        depthCloud.width = uint32_t(width);
+//        depthCloud.height = uint32_t(height);
+//        depthCloud.is_dense = true;
+//        depthCloud.point_step = sizeof(float) * 3;
+//        depthCloud.row_step = depthCloud.point_step * uint32_t(width);
+//        depthCloud.fields = std::vector<sensor_msgs::PointField>(1, pointField);
+//        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * size_t(height));
+//        float* depthCloudIterator = reinterpret_cast<float*>(&(depthCloud.data.data()[0]));
+
+//        depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
+        depthImagePub = it.advertise(depth_image_topic, 1);
+        depthInfoPub = nh.advertise<sensor_msgs::CameraInfo>(depth_info_topic, 1);
         for (auto row = 0; row < height; row++) {
             for (auto col = 0; col < width; col++) {
-                depthImage.at<float>(row, col) = static_cast<float>(std::pow(std::pow(row - y, 2) + std::pow(width - x, 2) + std::pow(altitude, 2), 1. / 2.));
+                double const depth = std::pow(std::pow(row - y, 2) + std::pow(col - x, 2) + std::pow(altitude, 2), 1. / 2.);
+                depthImage.at<DepthType>(row, col) = static_cast<DepthType>(depth);
+//                *(depthCloudIterator++) = col - width / 2.f;
+//                *(depthCloudIterator++) = row - height / 2.f;
+//                *(depthCloudIterator++) = depth;
             }
         }
     }
-
-    image_transport::ImageTransport it(nh);
-    image_transport::Publisher imagePub = it.advertise(image_topic, 1);
-    image_transport::ImageTransport it2(nh);
-    image_transport::Publisher depthPub = it.advertise(depth_topic, 1);
-    cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
-    cv::waitKey(30);
 
     enum class Direction {
         DOWN = -2,
@@ -141,7 +176,11 @@ int main(int argc, char** argv)
                                         .toImageMsg();
         imagePub.publish(msg);
         if (publishDepthImage) {
-            depthPub.publish(cv_bridge::CvImage(std_msgs::Header(), "MONO16", depthImage).toImageMsg());
+//            depthCloudPub.publish(depthCloud);
+            std_msgs::Header header;
+            header.frame_id = "base_link";
+            depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, depthImage).toImageMsg());
+            depthInfoPub.publish(sensor_msgs::CameraInfo());
         }
 
         ros::spinOnce();
