@@ -156,12 +156,14 @@ add_executable(topic_model topic_model/topic_model.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
+add_executable(test.image_walker test/image_walk.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -192,6 +194,9 @@ target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
