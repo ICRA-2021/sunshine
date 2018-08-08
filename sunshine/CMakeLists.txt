@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io)
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3.3 REQUIRED)
@@ -178,8 +179,8 @@ add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 # )
 
 
-target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} lz4)
+target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES})
