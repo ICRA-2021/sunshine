@@ -69,14 +69,25 @@ namespace sunshine{
     WordObservation z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation);
 
+    int num_words = z.words.size();
+    
     sz->source = z.source;
     sz->seq = msg->header.seq;
     sz->observation_transform = latest_transform;
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    sz->word_pose.resize(z.word_pose.size());
-    std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
+    sz->word_pose.resize(num_words * 3);
+    //std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
+    for(int i=0; i<num_words; ++i){
+      int u,v;
+      u = z.word_pose[i*2];
+      v = z.word_pose[i*2+1];
+      sz->word_pose[i*3] = (double)u;
+      sz->word_pose[i*3+1] = (double)v;
+      sz->word_pose[i*3+2] = depth_map->at<double>(cv::Point(u, v));
+    }
+    
     sz->word_scale = z.word_scale;
 
     words_pub.publish(sz);
