@@ -10,6 +10,8 @@
   <arg name="fps" default="30" />
   <arg name="height" default="-1" />
   <arg name="overlap" default="0" />
+  <arg name="transform_topic" default="/robot_tf" />
+  <arg name="camera_frame" default="base_link" />
 
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
@@ -58,6 +60,9 @@
     <param name="height" type="double" value="$(arg height)" />
     <param name="col_major" type="bool" value="false" />
     <param name="fov" type="double" value="-1" />
+    <param name="transform_topic" type="string" value="$(arg transform_topic)" />
+    <param name="frame_id" type="string" value="$(arg camera_frame)" />
+    <param name="depth_cloud_topic" type="string" value="$(arg depth_cloud_topic)" />
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)" />
   </node>
 
@@ -76,7 +81,10 @@
     <param name="use_surf" value="$(arg surf)"/>
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
+    <param name="transform" value="$(arg transform_topic)"/>
+    <param name="pc" value="$(arg depth_cloud_topic)" />
   </node>
+  
 
   <!-- Launch topic model -->
   <node pkg="sunshine" type="topic_model" name="rost">
