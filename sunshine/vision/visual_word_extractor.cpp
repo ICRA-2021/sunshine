@@ -30,6 +30,7 @@ namespace sunshine{
   static cv::Mat *depth_map;
 
   void transformCallback(const geometry_msgs::TransformStampedPtr& msg){
+    // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
       
     latest_transform = *msg;
@@ -58,7 +59,7 @@ namespace sunshine{
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
 
     if (!transform_recvd){
-      ROS_WARN("No transformation received, transformations may be incorrect");
+      ROS_ERROR("No transformation received, observations will not be published");
       return;
     }
     
@@ -174,6 +175,8 @@ int main(int argc, char** argv){
   
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
+
+  ros::Subscriber ros = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
