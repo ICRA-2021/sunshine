@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   sunshine_msgs
   geometry_msgs
   tf2
+  tf
   )
 find_package(tf2_geometry_msgs REQUIRED)
 

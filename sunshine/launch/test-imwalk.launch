@@ -46,9 +46,6 @@
   <arg name="show_perplexity" default="true" />
   <arg name="show_equalized" default="true" />
   
-  <!-- Nodelet manager for this pipeline -->
-  <node pkg="nodelet" type="nodelet" args="manager" name="nodelet_manager" output="screen"/>
-
   <!-- Launch image walker -->
   <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" >
     <param name="image_topic" type="string" value="$(arg image_topic)"/>
@@ -62,12 +59,6 @@
     <param name="col_major" type="bool" value="false" />
     <param name="fov" type="double" value="-1" />
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)" />
-  </node>
-
-  <!-- Launch point cloud conversion -->
-  <node pkg="nodelet" type="nodelet" name="cloudify" args="load depth_image_proc/point_cloud_xyz nodelet_manager --no-bond">
-    <remap from="image_rect" to="$(arg depth_image_topic)"/>
-    <remap from="points" to="$(arg depth_cloud_topic)"/>
   </node>
 
   <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->

@@ -1,26 +1,50 @@
+#include "utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
-#include <sensor_msgs/PointCloud2.h>
 #include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 #include <ros/ros.h>
-#include "utils.hpp"
+#include <sensor_msgs/PointCloud2.h>
+#include <tf/transform_broadcaster.h>
 
 typedef float_t DepthType;
 
-cv::Mat getVisibleRegion(cv::Mat const& image, float cx, float cy, int width, int height, float scale)
+cv::Mat getVisibleRegion(cv::Mat const& image, float cx, float cy, int width, int height)
 {
     cv::Rect roi;
     roi.x = std::round(cx - width / 2.);
     roi.y = std::round(cy - height / 2.);
     roi.width = width;
     roi.height = height;
+    return image(roi);
+}
 
-    cv::Mat const& region = image(roi);
-    cv::Mat scaled(std::ceil(height * scale), std::ceil(width * scale), region.type());
-
-    cv::resize(region, scaled, scaled.size(), 0, 0, cv::INTER_CUBIC);
+cv::Mat scaleImage(cv::Mat const& image, float scale)
+{
+    cv::Mat scaled(std::ceil(image.rows * scale), std::ceil(image.cols * scale), image.type());
+    cv::resize(image, scaled, scaled.size(), 0, 0, cv::INTER_CUBIC);
     return scaled;
+}
+
+void copyImageColorToPointCloud(cv::Mat const& image, sensor_msgs::PointCloud2& pointCloud)
+{
+    auto const& colorField = std::find_if(pointCloud.fields.begin(), pointCloud.fields.end(), [](decltype(pointCloud.fields)::value_type const& field) {
+        return field.name == "rgb";
+    });
+    if (colorField == pointCloud.fields.end()) {
+        throw std::invalid_argument("Cannot find color field in point cloud.");
+    }
+    assert(static_cast<uint64_t>(image.rows * image.cols) == pointCloud.width * pointCloud.height);
+    uint8_t* dataOffset = pointCloud.data.data() + colorField->offset;
+    size_t dataStep = pointCloud.point_step;
+    for (auto row = 0; row < image.rows; row++) {
+        for (auto col = 0; col < image.cols; col++) {
+            auto const color = image.at<cv::Vec3b>(row, col);
+            for (auto i = 0u; i < 3; i++)
+                *(dataOffset + i) = color.val[i];
+            dataOffset += dataStep;
+        }
+    }
 }
 
 int main(int argc, char** argv)
@@ -38,9 +62,9 @@ int main(int argc, char** argv)
     auto const scale = nh.param<float>("scale", 1);
     auto const image_name = nh.param<std::string>("image", argv[1]);
     auto const image_topic = nh.param<std::string>("image_topic", "/camera/image");
-//    auto const depth_cloud_topic = nh.param<std::string>("depth_cloud_topic", "/camera/points");
-    auto const depth_info_topic = nh.param<std::string>("depth_info_topic", "/camera/camera_info");
+    auto const depth_cloud_topic = nh.param<std::string>("depth_cloud_topic", "/camera/test_point_cloud");
     auto const depth_image_topic = nh.param<std::string>("depth_image_topic", "/camera/depth");
+    auto const pixel_scale = nh.param<double>("pixel_scale", 0.01);
 
     cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
     cv::waitKey(30);
@@ -75,6 +99,16 @@ int main(int argc, char** argv)
     float y = height / 2.f;
     float track = (col_major) ? x : y;
 
+    auto const poseCallback = [&](const ros::TimerEvent&) {
+        static tf::TransformBroadcaster br;
+        tf::Transform transform;
+        transform.setOrigin(tf::Vector3(x, -y, (altitude >= 0) ? altitude : 0) * pixel_scale);
+        tf::Quaternion q;
+        q.setRPY(0, M_PI, M_PI);
+        transform.setRotation(q);
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", "camera"));
+    };
+
     // Publish image topic
     image_transport::ImageTransport it(nh);
     image_transport::Publisher imagePub = it.advertise(image_topic, 1);
@@ -82,38 +116,51 @@ int main(int argc, char** argv)
     // Publish depth image topic
     bool const publishDepthImage = (fov > 0 || altitude > 0);
     cv::Mat depthImage(height, width, cvType<DepthType>::value);
-//    sensor_msgs::PointCloud2 depthCloud;
-//    ros::Publisher depthCloudPub;
+    sensor_msgs::PointCloud2 depthCloud;
+    ros::Publisher depthCloudPub;
     image_transport::Publisher depthImagePub;
-    ros::Publisher depthInfoPub;
     if (publishDepthImage) {
         ROS_INFO("Publishing depth image.");
-//        sensor_msgs::PointField pointField;
-//        pointField.name = "depth";
-//        pointField.offset = 0;
-//        pointField.datatype = pointField.FLOAT32;
-//        pointField.count = 1;
+        sensor_msgs::PointField basePointField;
+        basePointField.datatype = basePointField.FLOAT32;
+        basePointField.count = 1;
 
-//        depthCloud.header.frame_id = "map";
-//        depthCloud.width = uint32_t(width);
-//        depthCloud.height = uint32_t(height);
-//        depthCloud.is_dense = true;
-//        depthCloud.point_step = sizeof(float) * 3;
-//        depthCloud.row_step = depthCloud.point_step * uint32_t(width);
-//        depthCloud.fields = std::vector<sensor_msgs::PointField>(1, pointField);
-//        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * size_t(height));
-//        float* depthCloudIterator = reinterpret_cast<float*>(&(depthCloud.data.data()[0]));
+        auto offset = 0u;
+        for (auto const& field : { "x", "y", "z" }) {
+            sensor_msgs::PointField pointField = basePointField;
+            pointField.name = field;
+            pointField.offset = offset;
+            depthCloud.fields.push_back(pointField);
+            offset += sizeof(float);
+        }
 
-//        depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
+        sensor_msgs::PointField colorField;
+        colorField.datatype = colorField.UINT32;
+        colorField.count = 1;
+        colorField.offset = offset;
+        colorField.name = "rgb";
+        depthCloud.fields.push_back(colorField);
+
+        depthCloud.header.frame_id = "camera";
+        depthCloud.width = uint32_t(width);
+        depthCloud.height = uint32_t(height);
+        depthCloud.is_dense = true;
+        depthCloud.point_step = sizeof(float) * 3 + sizeof(uint32_t);
+        depthCloud.row_step = depthCloud.point_step * uint32_t(width);
+        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * size_t(height));
+        float* depthCloudIterator = reinterpret_cast<float*>(&(depthCloud.data.data()[0]));
+
+        depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
         depthImagePub = it.advertise(depth_image_topic, 1);
-        depthInfoPub = nh.advertise<sensor_msgs::CameraInfo>(depth_info_topic, 1);
         for (auto row = 0; row < height; row++) {
             for (auto col = 0; col < width; col++) {
-                double const depth = std::pow(std::pow(row - y, 2) + std::pow(col - x, 2) + std::pow(altitude, 2), 1. / 2.);
+                double const depth = std::pow(std::pow(row - y, 2) + std::pow(col - x, 2) + std::pow(altitude, 2), 1. / 2.) * pixel_scale;
                 depthImage.at<DepthType>(row, col) = static_cast<DepthType>(depth);
-//                *(depthCloudIterator++) = col - width / 2.f;
-//                *(depthCloudIterator++) = row - height / 2.f;
-//                *(depthCloudIterator++) = depth;
+                *(depthCloudIterator++) = (col - width / 2.f) * pixel_scale;
+                *(depthCloudIterator++) = (row - height / 2.f) * pixel_scale;
+                *(depthCloudIterator++) = altitude * pixel_scale;
+                static_assert(sizeof(float) == sizeof(uint32_t), "Following code assumes that sizeof(float) == sizeof(uint32_t)!");
+                depthCloudIterator++; // skip color
             }
         }
     }
@@ -169,18 +216,17 @@ int main(int argc, char** argv)
     };
 
     ros::Rate rate(fps);
+    auto poseTimer = nh.createTimer(rate.cycleTime(), poseCallback, false, true);
+    std_msgs::Header header;
+    header.frame_id = "camera";
     while (nh.ok()) {
-        ROS_INFO("x,y: %f,%f", x, y);
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8",
-            getVisibleRegion(image, x, y, width, height, scale))
-                                        .toImageMsg();
+        auto const& visibleRegion = getVisibleRegion(image, x, y, width, height);
+        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", scaleImage(visibleRegion, scale)).toImageMsg();
         imagePub.publish(msg);
         if (publishDepthImage) {
-//            depthCloudPub.publish(depthCloud);
-            std_msgs::Header header;
-            header.frame_id = "base_link";
+            copyImageColorToPointCloud(visibleRegion, depthCloud);
+            depthCloudPub.publish(depthCloud);
             depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, depthImage).toImageMsg());
-            depthInfoPub.publish(sensor_msgs::CameraInfo());
         }
 
         ros::spinOnce();
