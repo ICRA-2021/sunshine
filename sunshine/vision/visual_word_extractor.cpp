@@ -29,7 +29,7 @@ namespace sunshine{
   static bool depth_recvd;
   static cv::Mat *depth_map;
 
-  void transformCallback(const geometry_msgs::TransformStampedPtr& msg){
+  void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
       
