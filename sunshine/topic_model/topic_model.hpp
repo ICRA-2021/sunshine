@@ -33,7 +33,7 @@ class topic_model {
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     DimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
-    bool polled_refine, update_topic_model;
+    bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
 

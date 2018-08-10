@@ -108,16 +108,13 @@ int main(int argc, char** argv)
 
     auto tfPublisher = nh.advertise<geometry_msgs::TransformStamped>(transform_topic, 1);
     auto const poseCallback = [&]() {
-        static tf2_ros::TransformBroadcaster br;
-        tf2::Transform transform;
-        transform.setOrigin(tf2::Vector3(x, -y, (altitude >= 0) ? altitude : 0) * pixel_scale);
         tf2::Quaternion q;
         q.setRPY(0, M_PI, M_PI);
-        transform.setRotation(q);
-        auto stampedTransform = tf2::toMsg(tf2::Stamped<tf2::Transform>(transform, header.stamp, "map"));
-        stampedTransform.child_frame_id = frame_id;
-        br.sendTransform(stampedTransform);
-        tfPublisher.publish(stampedTransform);
+        tfPublisher.publish(broadcastTranform(frame_id,
+            tf2::Vector3(x, -y, (altitude >= 0) ? altitude : 0) * pixel_scale,
+            q,
+            "map",
+            header.stamp));
     };
     poseCallback();
     ros::spinOnce();
