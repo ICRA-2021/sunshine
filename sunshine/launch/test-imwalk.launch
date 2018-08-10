@@ -1,14 +1,14 @@
 <launch>
   <!-- Image Walk arguments -->
-  <arg name="size" default="160x120" />
+  <arg name="size" default="120x120" />
   <arg name="walk_scale" default="2" />
   <arg name="test_image" />
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_image_topic" default="/camera/depth" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="30" />
-  <arg name="fps" default="30" />
-  <arg name="height" default="-1" />
+  <arg name="speed" default="5" />
+  <arg name="fps" default="5" />
+  <arg name="height" default="120" />
   <arg name="overlap" default="0" />
   <arg name="transform_topic" default="/robot_tf" />
   <arg name="camera_frame" default="base_link" />
@@ -43,9 +43,9 @@
   <!--<arg name="words_topic" default="/rost_vision/words" />-->
   <arg name="topics_topic" default="/rost/topics" />
   <arg name="ppx_topic" default="/rost/cell_perplexity" />
-  <arg name="show_topics" default="true" />
+  <arg name="show_topics" default="false" />
   <arg name="show_words" default="true" />
-  <arg name="show_perplexity" default="true" />
+  <arg name="show_perplexity" default="false" />
   <arg name="show_equalized" default="true" />
   
   <!-- Launch image walker -->
