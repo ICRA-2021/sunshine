@@ -6,6 +6,8 @@
 template <typename ValType> struct cvType {};
 template <> struct cvType<float> { static int const value = CV_32F; };
 template <> struct cvType<double> { static int const value = CV_64F; };
+template <> struct cvType<uint8_t> { static int const value = CV_8U; };
+template <> struct cvType<uint16_t> { static int const value = CV_16U; };
 
 /**
  * @brief toMat Converts two parallel vectors, of 2D poses (xy-coordinates) and 1D values, respectively, to a cv::Mat object.

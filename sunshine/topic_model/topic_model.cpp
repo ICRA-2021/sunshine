@@ -35,8 +35,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
     nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
     nh->param<int>("cell_space", cell_space, 32);
-    nh->param<float>("G_time", G_time, 1);
-    nh->param<float>("G_space", G_space, 1);
+    nh->param<DimType>("G_time", G_time, 1);
+    nh->param<DimType>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
     nh->param<bool>("update_topic_model", update_topic_model, true);
     nh->param<int>("min_obs_refine_time", min_obs_refine_time, 200);
@@ -96,8 +96,8 @@ words_for_cell_poses(WordObservation const& wordObs, int cell_size)
         tf2::doTransform(word_point, word_point, wordObs.observation_transform);
 
         pose_t cell_stamped_point, word_stamped_point;
-        cell_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the time
-        word_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the time
+        cell_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
+        word_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
         cell_stamped_point[1] = static_cast<DimType>(cell_point.x);
         word_stamped_point[1] = static_cast<DimType>(word_point.x);
         cell_stamped_point[2] = static_cast<DimType>(cell_point.y);
@@ -138,7 +138,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         return;
     }
 
-    DimType observation_time = static_cast<DimType>(wordObs->observation_transform.header.stamp.toSec());
+    int observation_time = wordObs->seq;
     //update the  list of observed time step ids
     if (observation_times.empty() || observation_times.back() < observation_time) {
         observation_times.push_back(observation_time);

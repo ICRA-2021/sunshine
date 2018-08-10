@@ -14,7 +14,7 @@
 
 namespace sunshine {
 
-typedef float_t DimType;
+typedef double_t DimType;
 typedef std::array<DimType, POSEDIM> pose_t;
 typedef neighbors<pose_t> neighbors_t;
 typedef ROST<pose_t, neighbors_t, hash_container<pose_t>> ROST_t;
@@ -29,9 +29,9 @@ class topic_model {
     int consecutive_rate_violations = 0;
 
     std::string words_topic_name;
-    int K, V, cell_space; //number of topic types, number of word types
+    int K, V, cell_space, last_time; //number of topic types, number of word types
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
-    DimType G_time, G_space, last_time;
+    DimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model;
     size_t last_refine_count;

@@ -28,8 +28,9 @@ namespace sunshine{
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool depth_recvd;
   static cv::Mat *depth_map;
+  static std::string frame_id;
 
-  void transformCallback(const geometry_msgs::TransformStampedPtr& msg){
+  void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
       
@@ -50,6 +51,7 @@ namespace sunshine{
     pcl_conversions::toPCL(*msg,pcl_pc2);
     pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromPCLPointCloud2(pcl_pc2,*tmp_pcl);
+    frame_id = msg->header.frame_id;
 
     for (auto pt : tmp_pcl->points){
       depth_map->at<double>(cv::Point((int)pt.x,(int)pt.y)) = (double)pt.z;
@@ -61,6 +63,11 @@ namespace sunshine{
     if (!transform_recvd){
       ROS_ERROR("No transformation received, observations will not be published");
       return;
+    }
+
+    if (!depth_recvd) {
+        ROS_ERROR("No depth map received, observations will not be published");
+        return;
     }
     
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
@@ -90,6 +97,7 @@ namespace sunshine{
     }
     
     sz->word_scale = z.word_scale;
+    sz->header.frame_id = frame_id;
 
     words_pub.publish(sz);
   }
@@ -176,7 +184,8 @@ int main(int argc, char** argv){
   image_transport::ImageTransport it(nhp);
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
-  ros::Subscriber ros = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
+  ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
+  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
