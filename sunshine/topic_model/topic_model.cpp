@@ -58,7 +58,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
-    pose_t G{ { G_time, G_space, G_space } };
+    pose_t G{ { G_time, G_space, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
     last_time = -1;
 
