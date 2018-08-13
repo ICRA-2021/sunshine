@@ -116,4 +116,6 @@
     <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
+
+   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
 </launch>
