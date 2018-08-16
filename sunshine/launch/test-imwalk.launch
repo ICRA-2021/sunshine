@@ -21,7 +21,7 @@
   <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
-  <arg name="use_depth" default="true" />
+  <arg name="use_pc" default="true" />
   
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
@@ -83,8 +83,8 @@
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
     <param name="transform" value="$(arg transform_topic)"/>
-    <param name="depth" value="$(arg depth_image_topic)" />
-    <param name="use_depth" value="$(arg use_depth)" />
+    <param name="pc" value="$(arg depth_cloud_topic)" />
+    <param name="use_pc" value="$(arg use_pc)" />
   </node>
   
 

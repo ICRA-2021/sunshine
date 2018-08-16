@@ -28,7 +28,7 @@ namespace sunshine{
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool depth_recvd;
   static bool use_pc;
-  static cv_bridge::CvImageConstPtr depth_map;
+  static cv::Mat *depth_map;
   static std::string frame_id = "";
 
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
@@ -39,9 +39,34 @@ namespace sunshine{
     frame_id = msg->child_frame_id;
   }
 
-  void depthMapCallback(const sensor_msgs::ImageConstPtr& msg){
-      depth_map = cv_bridge::toCvShare(msg, msg->encoding);
+  void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
+    // TODO: probably a better way to do this, assumes pixel coordinates and non-overlapping z coordinates
+    // convert point cloud into a depth map
+    // Source: https://answers.ros.org/question/136916/conversion-from-sensor_msgspointcloud2-to-pclpointcloudt/
+
+      if (!transform_recvd){
+        ROS_ERROR("No transformation received, ignoring point cloud");
+        return;
+      }
+
+      if (!frame_id.empty() && frame_id != msg->header.frame_id) {
+          ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
+          return;
+      }
+
+    if (!depth_recvd){
+      depth_map = new cv::Mat(msg->height, msg->width, CV_64FC1);
       depth_recvd = true;
+    }
+    
+    pcl::PCLPointCloud2 pcl_pc2;
+    pcl_conversions::toPCL(*msg,pcl_pc2);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::fromPCLPointCloud2(pcl_pc2,*tmp_pcl);
+
+    for (auto pt : tmp_pcl->points){
+      depth_map->at<double>(cv::Point((int)pt.x,(int)pt.y)) = (double)pt.z;
+    }
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -81,7 +106,7 @@ namespace sunshine{
       sz->word_pose[i*poseDim] = static_cast<double>(u);
       sz->word_pose[i*poseDim+1] = static_cast<double>(v);
       if (use_pc) {
-        sz->word_pose[i*poseDim+2] = depth_map->image.at<double>(cv::Point(u, v));
+        sz->word_pose[i*poseDim+2] = depth_map->at<double>(cv::Point(u, v));
       }
     }
     
@@ -134,8 +159,8 @@ int main(int argc, char** argv){
   nhp.param<double>("scale", img_scale, 1.0);
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
   nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
-  nhp.param<string>("depth", pc_topic_name, "/camera/depth");
-  nhp.param<bool>("use_depth", sunshine::use_pc, false);
+  nhp.param<string>("pc", pc_topic_name, "/point_cloud");
+  nhp.param<bool>("use_pc", sunshine::use_pc, false);
   
   nhp.param<double>("rate", rate, 0);
 
@@ -175,7 +200,7 @@ int main(int argc, char** argv){
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
   ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
-  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::Image>(pc_topic_name, 1, sunshine::depthMapCallback);
+  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
