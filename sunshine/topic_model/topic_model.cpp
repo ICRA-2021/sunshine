@@ -6,6 +6,7 @@
 #include <tf2/convert.h>
 #include <tf2/transform_storage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "utils.hpp"
 
 using namespace sunshine;
 using namespace sunshine_msgs;
@@ -89,24 +90,17 @@ words_for_cell_poses(WordObservation const& wordObs, int cell_size)
     map<pose_t, vector<pose_t>> word_poses_by_cell_pose;
 
     for (size_t i = 0; i < wordObs.words.size(); ++i) {
-        geometry_msgs::Point cell_point, word_point;
-        cell_point.x = wordObs.word_pose[i * 3 + 0] / cell_size;
-        word_point.x = wordObs.word_pose[i * 3 + 0];
-        cell_point.y = wordObs.word_pose[i * 3 + 1] / cell_size;
-        word_point.y = wordObs.word_pose[i * 3 + 1];
-        cell_point.z = wordObs.word_pose[i * 3 + 2] / cell_size;
-        word_point.z = wordObs.word_pose[i * 3 + 2];
-        tf2::doTransform(cell_point, cell_point, wordObs.observation_transform);
-        tf2::doTransform(word_point, word_point, wordObs.observation_transform);
+        geometry_msgs::Point word_point;
+        transformPose(word_point, wordObs.word_pose, i * 3, wordObs.observation_transform);
 
         pose_t cell_stamped_point, word_stamped_point;
         cell_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
         word_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
-        cell_stamped_point[1] = static_cast<DimType>(cell_point.x);
+        cell_stamped_point[1] = static_cast<DimType>(word_point.x / cell_size);
         word_stamped_point[1] = static_cast<DimType>(word_point.x);
-        cell_stamped_point[2] = static_cast<DimType>(cell_point.y);
+        cell_stamped_point[2] = static_cast<DimType>(word_point.y / cell_size);
         word_stamped_point[2] = static_cast<DimType>(word_point.y);
-        cell_stamped_point[3] = static_cast<DimType>(cell_point.z);
+        cell_stamped_point[3] = static_cast<DimType>(word_point.z / cell_size);
         word_stamped_point[3] = static_cast<DimType>(word_point.z);
 
         words_by_cell_pose[cell_stamped_point].push_back(wordObs.words[i]);
