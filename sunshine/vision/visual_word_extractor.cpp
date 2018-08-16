@@ -58,8 +58,8 @@ int main(int argc, char** argv){
 
   char* data_root_c;
   data_root_c = getenv("ROSTPATH");
-  std::string data_root;
-  if (data_root_c!=NULL){
+  std::string data_root = "/share/rost";
+  if (data_root_c != nullptr){
     cerr << "ROSTPATH: " << data_root_c << endl; //TODO: ROS_WARNING
     data_root = data_root_c;
   }
@@ -74,11 +74,11 @@ int main(int argc, char** argv){
 
   nhp.param<bool>("use_texton", use_texton, true);
   nhp.param<int>("num_texton", texton_cell_size, 64);
-  nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/share/visualwords/texton.vocabulary.baraka.1000.csv");
+  nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/libvisualwords/data/texton.vocabulary.baraka.1000.csv");
 
   nhp.param<bool>("use_orb", use_orb, true);
   nhp.param<int>("num_orb", num_orb, 1000);
-  nhp.param<string>("vocab", vocabulary_filename, data_root + "/share/visualwords/orb_vocab/default.yml");
+  nhp.param<string>("vocab", vocabulary_filename, data_root + "/libvisualwords/data/orb_vocab/default.yml");
 
   nhp.param<bool>("use_hue", use_hue, true);
   nhp.param<bool>("use_intensity", use_intensity, true);
