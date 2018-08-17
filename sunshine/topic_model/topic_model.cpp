@@ -8,6 +8,9 @@
 #include <tf2/transform_storage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
+
 using namespace sunshine;
 using namespace sunshine_msgs;
 
@@ -35,9 +38,10 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
     nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
-    nh->param<int>("cell_space", cell_space, 32);
-    nh->param<DimType>("G_time", G_time, 1);
-    nh->param<DimType>("G_space", G_space, 1);
+    nh->param<double>("cell_space", cell_size_space, 32);
+    nh->param<double>("cell_time", cell_size_time, std::numeric_limits<decltype(cell_size_time)>::max());
+    nh->param<CellDimType>("G_time", G_time, 1);
+    nh->param<CellDimType>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);
     nh->param<bool>("update_topic_model", update_topic_model, true);
     nh->param<int>("min_obs_refine_time", min_obs_refine_time, 200);
@@ -59,7 +63,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
-    pose_t G{ { G_time, G_space, G_space, G_space } };
+    cell_pose_t G{ { G_time, G_space, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
     last_time = -1;
 
@@ -81,32 +85,44 @@ topic_model::~topic_model()
     }
 }
 
-static std::pair<std::map<pose_t, std::vector<int>>,
-    std::map<pose_t, std::vector<pose_t>>>
-words_for_cell_poses(WordObservation const& wordObs, int cell_size)
+static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space) {
+    return {
+        static_cast<CellDimType>(word[0] / cell_size_time),
+                static_cast<CellDimType>(word[1] / cell_size_space),
+                static_cast<CellDimType>(word[2] / cell_size_space),
+                static_cast<CellDimType>(word[3] / cell_size_space)
+    };
+}
+
+static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space) {
+    return {
+        static_cast<WordDimType>(cell[0] * cell_size_time),
+                static_cast<WordDimType>(cell[1] * cell_size_space),
+                static_cast<WordDimType>(cell[2] * cell_size_space),
+                static_cast<WordDimType>(cell[3] * cell_size_space)
+    };
+}
+
+static std::map<cell_pose_t, std::vector<int>>
+words_for_cell_poses(WordObservation const& wordObs, double cell_size_time, double cell_size_space)
 {
     using namespace std;
-    map<pose_t, vector<int>> words_by_cell_pose;
-    map<pose_t, vector<pose_t>> word_poses_by_cell_pose;
+    map<cell_pose_t, vector<int>> words_by_cell_pose;
 
     for (size_t i = 0; i < wordObs.words.size(); ++i) {
         geometry_msgs::Point word_point;
         transformPose(word_point, wordObs.word_pose, i * 3, wordObs.observation_transform);
 
-        pose_t cell_stamped_point, word_stamped_point;
-        cell_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
-        word_stamped_point[0] = static_cast<DimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
-        cell_stamped_point[1] = static_cast<DimType>(word_point.x / cell_size);
-        word_stamped_point[1] = static_cast<DimType>(word_point.x);
-        cell_stamped_point[2] = static_cast<DimType>(word_point.y / cell_size);
-        word_stamped_point[2] = static_cast<DimType>(word_point.y);
-        cell_stamped_point[3] = static_cast<DimType>(word_point.z / cell_size);
-        word_stamped_point[3] = static_cast<DimType>(word_point.z);
+        word_pose_t word_stamped_point;
+        word_stamped_point[0] = static_cast<WordDimType>(wordObs.observation_transform.header.stamp.toSec()); // TODO (Stewart Jamieson): Use the correct time
+        word_stamped_point[1] = static_cast<WordDimType>(word_point.x);
+        word_stamped_point[2] = static_cast<WordDimType>(word_point.y);
+        word_stamped_point[3] = static_cast<WordDimType>(word_point.z);
+        cell_pose_t cell_stamped_point = toCellPose(word_stamped_point, cell_size_time, cell_size_space);
 
         words_by_cell_pose[cell_stamped_point].push_back(wordObs.words[i]);
-        word_poses_by_cell_pose[cell_stamped_point].push_back(word_stamped_point);
     }
-    return make_pair(words_by_cell_pose, word_poses_by_cell_pose);
+    return words_by_cell_pose;
 }
 
 void topic_model::wait_for_processing()
@@ -136,7 +152,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         return;
     }
 
-    int observation_time = wordObs->seq;
+    int observation_time = int(wordObs->seq);
     //update the  list of observed time step ids
     if (observation_times.empty() || observation_times.back() < observation_time) {
         observation_times.push_back(observation_time);
@@ -152,14 +168,11 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         size_t refine_count = rost->get_refine_count();
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
-        word_poses_by_cell.clear();
         current_cell_poses.clear();
     }
     last_time = observation_time;
 
-    auto celldata = words_for_cell_poses(*wordObs, cell_space);
-    auto const& words_by_cell_pose = celldata.first;
-    auto const& word_poses_by_cell_pose = celldata.second;
+    auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size_time, cell_size_space);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
         auto const& cell_words = entry.second;
@@ -168,8 +181,6 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
 
     lastWordsAdded = chrono::steady_clock::now();
-
-    word_poses_by_cell.insert(word_poses_by_cell_pose.begin(), word_poses_by_cell_pose.end());
 }
 
 void topic_model::broadcast_topics()
@@ -197,15 +208,15 @@ void topic_model::broadcast_topics()
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = cell_space;
-    global_surprise->surprise.resize(word_poses_by_cell.size(), 0);
-    global_surprise->surprise_poses.resize(word_poses_by_cell.size() * (POSEDIM - 1), 0);
+    global_surprise->cell_width = {cell_size_time, cell_size_space, cell_size_space, cell_size_space};
+    global_surprise->surprise.resize(current_cell_poses.size(), 0);
+    global_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = cell_space;
-    local_surprise->surprise.resize(word_poses_by_cell.size(), 0);
-    local_surprise->surprise_poses.resize(word_poses_by_cell.size() * (POSEDIM - 1), 0);
+    local_surprise->cell_width = {cell_size_time, cell_size_space, cell_size_space, cell_size_space};
+    local_surprise->surprise.resize(current_cell_poses.size(), 0);
+    local_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
 
     TopicWeights::Ptr msg_topic_weights(new TopicWeights);
     msg_topic_weights->seq = static_cast<uint32_t>(time);
@@ -215,8 +226,7 @@ void topic_model::broadcast_topics()
     double sum_log_p_word = 0;
     auto entryIdx = 0u;
 
-    for (auto const& entry : word_poses_by_cell) {
-        const pose_t& cell_pose = entry.first;
+    for (auto const& cell_pose : current_cell_poses) {
         auto const& cell = rost->get_cell(cell_pose);
 
         vector<int> topics; //topic labels for each word in the cell
@@ -227,10 +237,10 @@ void topic_model::broadcast_topics()
             if (publish_topics) {
                 //populate the topic label message
                 topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
-                vector<pose_t> const& word_poses = entry.second;
-                for (auto const& word_pose : word_poses) {
-                    for (auto i = 1u; i < POSEDIM; i++) {
-                        topicObs->word_pose.push_back(word_pose[i]);
+                auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
+                for (size_t i = 0; i < topics.size(); i++) {
+                    for (size_t k = 1; k < POSEDIM; k++) {
+                        topicObs->word_pose.push_back(word_pose[k]);
                     }
                 }
                 n_words += topics.size();

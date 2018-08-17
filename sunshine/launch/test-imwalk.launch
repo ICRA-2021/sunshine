@@ -32,7 +32,8 @@
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_width" default="32" />
+  <arg name="cell_space" default="1" />
+  <arg name="cell_time" default="1" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -98,7 +99,8 @@
     <param name="tau" type="double" value="$(arg tau)" />
     <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
     <param name="num_threads" type="int" value="$(arg num_threads)" />
-    <param name="cell_width" type="int" value="$(arg cell_width)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
     <param name="G_time" type="int" value="$(arg G_time)" />
     <param name="G_space" type="int" value="$(arg G_space)" />
     <param name="polled_refine" value="$(arg polled_refine)" />
