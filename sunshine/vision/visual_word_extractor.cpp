@@ -28,7 +28,7 @@ namespace sunshine{
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool depth_recvd;
   static bool use_pc;
-  static cv::Mat *depth_map;
+  static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
 
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
@@ -54,19 +54,14 @@ namespace sunshine{
           return;
       }
 
-    if (!depth_recvd){
-      depth_map = new cv::Mat(msg->height, msg->width, CV_64FC1);
-      depth_recvd = true;
-    }
-    
+      if (!depth_recvd) {
+        pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
+        depth_recvd = true;
+      }
+
     pcl::PCLPointCloud2 pcl_pc2;
     pcl_conversions::toPCL(*msg,pcl_pc2);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromPCLPointCloud2(pcl_pc2,*tmp_pcl);
-
-    for (auto pt : tmp_pcl->points){
-      depth_map->at<double>(cv::Point((int)pt.x,(int)pt.y)) = (double)pt.z;
-    }
+    pcl::fromPCLPointCloud2(pcl_pc2, *pc);
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -85,7 +80,7 @@ namespace sunshine{
     
     cv::Mat img = img_ptr->image;
 
-    WordObservation z = multi_bow(img);
+    WordObservation const z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
 
     size_t const num_words = z.words.size();
@@ -97,17 +92,23 @@ namespace sunshine{
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    sz->word_pose.resize(num_words * poseDim);
     //std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
-    for(size_t i=0; i<num_words; ++i){
-      int u,v;
-      u = z.word_pose[i*2];
-      v = z.word_pose[i*2+1];
-      sz->word_pose[i*poseDim] = static_cast<double>(u);
-      sz->word_pose[i*poseDim+1] = static_cast<double>(v);
-      if (use_pc) {
-        sz->word_pose[i*poseDim+2] = depth_map->at<double>(cv::Point(u, v));
+    if (use_pc) {
+      auto const& cloud = *pc;
+      sz->word_pose.resize(num_words * poseDim);
+      for(size_t i=0; i < num_words; ++i){
+        int u,v;
+        u = z.word_pose[i*2];
+        v = z.word_pose[i*2+1];
+        assert(u <= cloud.width && v <= cloud.height);
+        auto const pcPose = cloud.at(u, v).getArray3fMap();
+          sz->word_pose[i*poseDim+0] = static_cast<double>(pcPose.x());
+          sz->word_pose[i*poseDim+1] = static_cast<double>(pcPose.y());
+          sz->word_pose[i*poseDim+2] = static_cast<double>(pcPose.z());
       }
+    } else {
+        sz->word_pose.reserve(z.word_pose.size());
+        sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
     }
     
     sz->word_scale.resize(num_words);
