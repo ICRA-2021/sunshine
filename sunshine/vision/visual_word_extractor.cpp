@@ -27,35 +27,21 @@ namespace sunshine{
   static geometry_msgs::TransformStamped latest_transform;
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool depth_recvd;
-  static cv::Mat *depth_map;
-  static std::string frame_id;
+  static bool use_pc;
+  static cv_bridge::CvImageConstPtr depth_map;
+  static std::string frame_id = "";
 
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
       
     latest_transform = *msg;
+    frame_id = msg->child_frame_id;
   }
 
-  void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
-    // TODO: probably a better way to do this, assumes pixel coordinates and non-overlapping z coordinates
-    // convert point cloud into a depth map
-    // Source: https://answers.ros.org/question/136916/conversion-from-sensor_msgspointcloud2-to-pclpointcloudt/
-
-    if (!depth_recvd){
-      depth_map = new cv::Mat(msg->height, msg->width, CV_64FC1);
+  void depthMapCallback(const sensor_msgs::ImageConstPtr& msg){
+      depth_map = cv_bridge::toCvShare(msg, msg->encoding);
       depth_recvd = true;
-    }
-    
-    pcl::PCLPointCloud2 pcl_pc2;
-    pcl_conversions::toPCL(*msg,pcl_pc2);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_pcl(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::fromPCLPointCloud2(pcl_pc2,*tmp_pcl);
-    frame_id = msg->header.frame_id;
-
-    for (auto pt : tmp_pcl->points){
-      depth_map->at<double>(cv::Point((int)pt.x,(int)pt.y)) = (double)pt.z;
-    }
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -65,7 +51,7 @@ namespace sunshine{
       return;
     }
 
-    if (!depth_recvd) {
+    if (!depth_recvd && use_pc) {
         ROS_ERROR("No depth map received, observations will not be published");
         return;
     }
@@ -75,9 +61,10 @@ namespace sunshine{
     cv::Mat img = img_ptr->image;
 
     WordObservation z = multi_bow(img);
-    sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation);
+    sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
 
-    int num_words = z.words.size();
+    size_t const num_words = z.words.size();
+    size_t const poseDim = (use_pc) ? 3 : 2;
     
     sz->source = z.source;
     sz->seq = msg->header.seq;
@@ -85,17 +72,20 @@ namespace sunshine{
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    sz->word_pose.resize(num_words * 3);
+    sz->word_pose.resize(num_words * poseDim);
     //std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
-    for(int i=0; i<num_words; ++i){
+    for(size_t i=0; i<num_words; ++i){
       int u,v;
       u = z.word_pose[i*2];
       v = z.word_pose[i*2+1];
-      sz->word_pose[i*3] = (double)u;
-      sz->word_pose[i*3+1] = (double)v;
-      sz->word_pose[i*3+2] = depth_map->at<double>(cv::Point(u, v));
+      sz->word_pose[i*poseDim] = static_cast<double>(u);
+      sz->word_pose[i*poseDim+1] = static_cast<double>(v);
+      if (use_pc) {
+        sz->word_pose[i*poseDim+2] = depth_map->image.at<double>(cv::Point(u, v));
+      }
     }
     
+    sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
     sz->header.frame_id = frame_id;
 
@@ -111,8 +101,8 @@ int main(int argc, char** argv){
 
   char* data_root_c;
   data_root_c = getenv("ROSTPATH");
-  std::string data_root;
-  if (data_root_c!=NULL){
+  std::string data_root = "/share/rost";
+  if (data_root_c != nullptr){
     cerr << "ROSTPATH: " << data_root_c << endl; //TODO: ROS_WARNING
     data_root = data_root_c;
   }
@@ -120,7 +110,7 @@ int main(int argc, char** argv){
   std::string vocabulary_filename, texton_vocab_filename, image_topic_name,
     feature_descriptor_name, pc_topic_name, transform_topic_name;
   int num_surf, num_orb, color_cell_size, texton_cell_size;
-  bool use_surf, use_hue, use_intensity, use_orb, use_texton, use_pc;
+  bool use_surf, use_hue, use_intensity, use_orb, use_texton;
   double img_scale;
 
   // Parse parameters
@@ -128,11 +118,11 @@ int main(int argc, char** argv){
 
   nhp.param<bool>("use_texton", use_texton, true);
   nhp.param<int>("num_texton", texton_cell_size, 64);
-  nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/share/visualwords/texton.vocabulary.baraka.1000.csv");
+  nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/libvisualwords/data/texton.vocabulary.baraka.1000.csv");
 
   nhp.param<bool>("use_orb", use_orb, true);
   nhp.param<int>("num_orb", num_orb, 1000);
-  nhp.param<string>("vocab", vocabulary_filename, data_root + "/share/visualwords/orb_vocab/default.yml");
+  nhp.param<string>("vocab", vocabulary_filename, data_root + "/libvisualwords/data/orb_vocab/default.yml");
 
   nhp.param<bool>("use_hue", use_hue, true);
   nhp.param<bool>("use_intensity", use_intensity, true);
@@ -144,8 +134,8 @@ int main(int argc, char** argv){
   nhp.param<double>("scale", img_scale, 1.0);
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
   nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
-  nhp.param<string>("pc", pc_topic_name, "/point_cloud");
-  nhp.param<bool>("use_pc", use_pc, false);
+  nhp.param<string>("depth", pc_topic_name, "/camera/depth");
+  nhp.param<bool>("use_depth", sunshine::use_pc, false);
   
   nhp.param<double>("rate", rate, 0);
 
@@ -185,7 +175,7 @@ int main(int argc, char** argv){
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
   ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
-  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
+  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::Image>(pc_topic_name, 1, sunshine::depthMapCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 

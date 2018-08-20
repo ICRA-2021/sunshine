@@ -3,8 +3,8 @@
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
 #include <tf2/LinearMath/Vector3.h>
-#include <tf2/transform_storage.h>
 #include <tf2/convert.h>
+#include <tf2/transform_storage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace sunshine;
@@ -41,9 +41,13 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<bool>("update_topic_model", update_topic_model, true);
     nh->param<int>("min_obs_refine_time", min_obs_refine_time, 200);
     nh->param<int>("word_obs_queue_size", obs_queue_size, 1);
+    nh->param<bool>("publish_topics", publish_topics, true);
+    nh->param<bool>("publish_local_surprise", publish_local_surprise, true);
+    nh->param<bool>("publish_global_surprise", publish_global_surprise, true);
+    nh->param<bool>("publish_ppx", publish_ppx, true);
 
-    nh->param<std::string>("words_topic",words_topic_name,"/word_extractor/words");
-    
+    nh->param<std::string>("words_topic", words_topic_name, "/word_extractor/words");
+
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
 
     scene_pub = nh->advertise<WordObservation>("topics", 10);
@@ -54,7 +58,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
-    pose_t G{ { G_time, G_space, G_space } };
+    pose_t G{ { G_time, G_space, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
     last_time = -1;
 
@@ -116,7 +120,7 @@ void topic_model::wait_for_processing()
     using namespace std::chrono;
     auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
     ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
-              min_obs_refine_time, duration_cast<milliseconds>(elapsedSinceAdd).count());
+        min_obs_refine_time, duration_cast<milliseconds>(elapsedSinceAdd).count());
     if (duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time) {
         ROS_WARN("New word observation received too soon! Delaying...");
         if (++consecutive_rate_violations > obs_queue_size) {
@@ -176,6 +180,10 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
 
 void topic_model::broadcast_topics()
 {
+    if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) {
+        return;
+    }
+
     using namespace std;
     wait_for_processing();
 
@@ -215,43 +223,64 @@ void topic_model::broadcast_topics()
 
     for (auto const& entry : word_poses_by_cell) {
         const pose_t& cell_pose = entry.first;
+        auto const& cell = rost->get_cell(cell_pose);
+
         vector<int> topics; //topic labels for each word in the cell
         double log_likelihood; //cell's sum_w log(p(w | model) = log p(cell | model)
-        tie(topics, log_likelihood) = rost->get_ml_topics_and_ppx_for_pose(cell_pose);
+        if (publish_topics || publish_ppx) {
+            tie(topics, log_likelihood) = rost->get_ml_topics_and_ppx_for_pose(cell_pose);
 
-        auto const& cell = rost->get_cell(cell_pose);
-        for (auto i = 0u; i < POSEDIM - 1; i++) {
-            auto const poseIdx = entryIdx * (POSEDIM - 1) + i;
-            local_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
-            global_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
-        }
-
-        auto const cell_perplexity = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
-        auto const scene_perplexity = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
-        local_surprise->surprise[entryIdx] = cell_perplexity;
-        global_surprise->surprise[entryIdx] = scene_perplexity;
-
-        //populate the topic label message
-        topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
-        vector<pose_t> const& word_poses = entry.second;
-        for (auto const& word_pose : word_poses) {
-            for (auto i = 1u; i < POSEDIM; i++) {
-                topicObs->word_pose.push_back(word_pose[i]);
+            if (publish_topics) {
+                //populate the topic label message
+                topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
+                vector<pose_t> const& word_poses = entry.second;
+                for (auto const& word_pose : word_poses) {
+                    for (auto i = 1u; i < POSEDIM; i++) {
+                        topicObs->word_pose.push_back(word_pose[i]);
+                    }
+                }
+                n_words += topics.size();
+                assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
             }
         }
 
-        n_words += topics.size();
+        if (publish_local_surprise || publish_global_surprise) {
+            for (auto i = 0u; i < POSEDIM - 1; i++) {
+                auto const poseIdx = entryIdx * (POSEDIM - 1) + i;
+                local_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
+                global_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
+            }
+
+            if (publish_local_surprise) {
+                auto const cell_perplexity = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
+                local_surprise->surprise[entryIdx] = cell_perplexity;
+            }
+            if (publish_global_surprise) {
+                auto const scene_perplexity = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
+                global_surprise->surprise[entryIdx] = scene_perplexity;
+            }
+        }
+
         sum_log_p_word += log_likelihood;
-        assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
         entryIdx++;
     }
 
-    global_perplexity->perplexity = exp(-sum_log_p_word / n_words);
-    ROS_INFO("Perplexity: %f", global_perplexity->perplexity);
+    if (publish_topics) {
+        scene_pub.publish(topicObs);
+        topic_weights_pub.publish(msg_topic_weights);
+    }
 
-    scene_pub.publish(topicObs);
-    topic_weights_pub.publish(msg_topic_weights);
-    global_perplexity_pub.publish(global_perplexity);
-    global_surprise_pub.publish(global_surprise);
-    local_surprise_pub.publish(local_surprise);
+    if (publish_ppx) {
+        global_perplexity->perplexity = exp(-sum_log_p_word / n_words);
+        ROS_INFO("Perplexity: %f", global_perplexity->perplexity);
+        global_perplexity_pub.publish(global_perplexity);
+    }
+
+    if (publish_global_surprise) {
+        global_surprise_pub.publish(global_surprise);
+    }
+
+    if (publish_local_surprise) {
+        local_surprise_pub.publish(local_surprise);
+    }
 }

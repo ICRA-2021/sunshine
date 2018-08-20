@@ -21,6 +21,7 @@
   <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
+  <arg name="use_depth" default="true" />
   
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
@@ -82,7 +83,8 @@
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
     <param name="transform" value="$(arg transform_topic)"/>
-    <param name="pc" value="$(arg depth_cloud_topic)" />
+    <param name="depth" value="$(arg depth_image_topic)" />
+    <param name="use_depth" value="$(arg use_depth)" />
   </node>
   
 
@@ -114,4 +116,6 @@
     <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
+
+   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
 </launch>
