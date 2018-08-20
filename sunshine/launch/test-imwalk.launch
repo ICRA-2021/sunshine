@@ -6,10 +6,11 @@
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_image_topic" default="/camera/depth" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="5" />
-  <arg name="fps" default="5" />
+  <arg name="speed" default="20" />
+  <arg name="fps" default="4" />
   <arg name="height" default="120" />
   <arg name="overlap" default="0" />
+  <arg name="pixel_scale" default="0.01" />
   <arg name="transform_topic" default="/robot_tf" />
   <arg name="camera_frame" default="base_link" />
 
@@ -32,7 +33,7 @@
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="1" />
+  <arg name="cell_space" default="$(arg pixel_scale)" />
   <arg name="cell_time" default="1" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
@@ -62,6 +63,7 @@
     <param name="height" type="double" value="$(arg height)" />
     <param name="col_major" type="bool" value="false" />
     <param name="fov" type="double" value="-1" />
+    <param name="pixel_scale" type="double" value="$(arg pixel_scale)" />
     <param name="transform_topic" type="string" value="$(arg transform_topic)" />
     <param name="frame_id" type="string" value="$(arg camera_frame)" />
     <param name="depth_cloud_topic" type="string" value="$(arg depth_cloud_topic)" />

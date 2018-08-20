@@ -85,21 +85,23 @@ topic_model::~topic_model()
     }
 }
 
-static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space) {
+static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space)
+{
     return {
         static_cast<CellDimType>(word[0] / cell_size_time),
-                static_cast<CellDimType>(word[1] / cell_size_space),
-                static_cast<CellDimType>(word[2] / cell_size_space),
-                static_cast<CellDimType>(word[3] / cell_size_space)
+        static_cast<CellDimType>(word[1] / cell_size_space),
+        static_cast<CellDimType>(word[2] / cell_size_space),
+        static_cast<CellDimType>(word[3] / cell_size_space)
     };
 }
 
-static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space) {
+static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space)
+{
     return {
         static_cast<WordDimType>(cell[0] * cell_size_time),
-                static_cast<WordDimType>(cell[1] * cell_size_space),
-                static_cast<WordDimType>(cell[2] * cell_size_space),
-                static_cast<WordDimType>(cell[3] * cell_size_space)
+        static_cast<WordDimType>(cell[1] * cell_size_space),
+        static_cast<WordDimType>(cell[2] * cell_size_space),
+        static_cast<WordDimType>(cell[3] * cell_size_space)
     };
 }
 
@@ -208,13 +210,13 @@ void topic_model::broadcast_topics()
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = {cell_size_time, cell_size_space, cell_size_space, cell_size_space};
+    global_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
     global_surprise->surprise.resize(current_cell_poses.size(), 0);
     global_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = {cell_size_time, cell_size_space, cell_size_space, cell_size_space};
+    local_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
     local_surprise->surprise.resize(current_cell_poses.size(), 0);
     local_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
 
