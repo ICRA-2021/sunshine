@@ -27,7 +27,7 @@ namespace sunshine{
   static geometry_msgs::TransformStamped latest_transform;
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool depth_recvd;
-  static bool use_pc;
+  static bool use_depth;
   static cv_bridge::CvImageConstPtr depth_map;
   static std::string frame_id = "";
 
@@ -51,7 +51,7 @@ namespace sunshine{
       return;
     }
 
-    if (!depth_recvd && use_pc) {
+    if (!depth_recvd && use_depth) {
         ROS_ERROR("No depth map received, observations will not be published");
         return;
     }
@@ -64,7 +64,7 @@ namespace sunshine{
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
 
     size_t const num_words = z.words.size();
-    size_t const poseDim = (use_pc) ? 3 : 2;
+    size_t const poseDim = (use_depth) ? 3 : 2;
     
     sz->source = z.source;
     sz->seq = msg->header.seq;
@@ -80,7 +80,7 @@ namespace sunshine{
       v = z.word_pose[i*2+1];
       sz->word_pose[i*poseDim] = static_cast<double>(u);
       sz->word_pose[i*poseDim+1] = static_cast<double>(v);
-      if (use_pc) {
+      if (use_depth) {
         sz->word_pose[i*poseDim+2] = depth_map->image.at<double>(cv::Point(u, v));
       }
     }
@@ -135,7 +135,7 @@ int main(int argc, char** argv){
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
   nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
   nhp.param<string>("depth", pc_topic_name, "/camera/depth");
-  nhp.param<bool>("use_depth", sunshine::use_pc, false);
+  nhp.param<bool>("use_depth", sunshine::use_depth, false);
   
   nhp.param<double>("rate", rate, 0);
 
