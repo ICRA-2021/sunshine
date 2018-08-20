@@ -26,7 +26,7 @@ namespace sunshine{
   static MultiBOW multi_bow;
   static geometry_msgs::TransformStamped latest_transform;
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
-  static bool depth_recvd;
+  static bool pc_recvd;
   static bool use_pc;
   static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
@@ -54,9 +54,9 @@ namespace sunshine{
           return;
       }
 
-      if (!depth_recvd) {
+      if (!pc_recvd) {
         pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        depth_recvd = true;
+        pc_recvd = true;
       }
 
     pcl::PCLPointCloud2 pcl_pc2;
@@ -71,8 +71,8 @@ namespace sunshine{
       return;
     }
 
-    if (!depth_recvd && use_pc) {
-        ROS_ERROR("No depth map received, observations will not be published");
+    if (!pc_recvd && use_pc) {
+        ROS_ERROR("No point cloud received, observations will not be published");
         return;
     }
     
@@ -102,9 +102,9 @@ namespace sunshine{
         v = z.word_pose[i*2+1];
         assert(u <= cloud.width && v <= cloud.height);
         auto const pcPose = cloud.at(u, v).getArray3fMap();
-          sz->word_pose[i*poseDim+0] = static_cast<double>(pcPose.x());
-          sz->word_pose[i*poseDim+1] = static_cast<double>(pcPose.y());
-          sz->word_pose[i*poseDim+2] = static_cast<double>(pcPose.z());
+        sz->word_pose[i*poseDim+0] = static_cast<double>(pcPose.x());
+        sz->word_pose[i*poseDim+1] = static_cast<double>(pcPose.y());
+        sz->word_pose[i*poseDim+2] = static_cast<double>(pcPose.z());
       }
     } else {
         sz->word_pose.reserve(z.word_pose.size());
@@ -206,7 +206,7 @@ int main(int argc, char** argv){
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
   sunshine::transform_recvd = false;
-  sunshine::depth_recvd = false;
+  sunshine::pc_recvd = false;
 
   if(rate <= 0)
     ros::spin();
