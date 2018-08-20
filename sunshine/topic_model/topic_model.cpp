@@ -1,12 +1,12 @@
 #include "topic_model.hpp"
 
+#include "utils.hpp"
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/convert.h>
 #include <tf2/transform_storage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include "utils.hpp"
 
 using namespace sunshine;
 using namespace sunshine_msgs;

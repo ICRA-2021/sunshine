@@ -53,7 +53,6 @@ public:
     topic_model(ros::NodeHandle* nh);
     ~topic_model();
 };
-
 }
 
 #endif // TOPIC_MODEL_HPP
