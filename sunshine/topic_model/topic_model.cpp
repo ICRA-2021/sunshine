@@ -38,8 +38,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
     nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
-    nh->param<double>("cell_space", cell_size_space, 32);
-    nh->param<double>("cell_time", cell_size_time, std::numeric_limits<decltype(cell_size_time)>::max());
+    nh->param<double>("cell_space", cell_size_space, 1);
+    nh->param<double>("cell_time", cell_size_time, 1);
     nh->param<CellDimType>("G_time", G_time, 1);
     nh->param<CellDimType>("G_space", G_space, 1);
     nh->param<bool>("polled_refine", polled_refine, false);

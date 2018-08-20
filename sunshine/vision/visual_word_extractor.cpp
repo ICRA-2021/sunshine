@@ -40,24 +40,20 @@ namespace sunshine{
   }
 
   void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
-    // TODO: probably a better way to do this, assumes pixel coordinates and non-overlapping z coordinates
-    // convert point cloud into a depth map
-    // Source: https://answers.ros.org/question/136916/conversion-from-sensor_msgspointcloud2-to-pclpointcloudt/
+    if (!transform_recvd){
+      ROS_ERROR("No transformation received, ignoring point cloud");
+      return;
+    }
 
-      if (!transform_recvd){
-        ROS_ERROR("No transformation received, ignoring point cloud");
+    if (frame_id != msg->header.frame_id) {
+        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
         return;
-      }
+    }
 
-      if (!frame_id.empty() && frame_id != msg->header.frame_id) {
-          ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
-          return;
-      }
-
-      if (!pc_recvd) {
-        pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
-        pc_recvd = true;
-      }
+    if (!pc_recvd) {
+      pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
+      pc_recvd = true;
+    }
 
     pcl::PCLPointCloud2 pcl_pc2;
     pcl_conversions::toPCL(*msg,pcl_pc2);
