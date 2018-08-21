@@ -17,6 +17,7 @@
 
 
 using namespace std;
+using namespace sunshine;
 
 static map<unsigned, cv::Mat> image_cache;
 static bool show_topics, show_perplexity, show_words, show_equalized;

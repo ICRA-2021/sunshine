@@ -45,8 +45,9 @@
 
   <!-- Visualization arguments -->
   <!--<arg name="words_topic" default="/rost_vision/words" />-->
-  <arg name="topics_topic" default="/rost/topics" />
+  <arg name="map_topic" default="/rost/topic_map" />
   <arg name="ppx_topic" default="/rost/cell_perplexity" />
+  <arg name="map_type" default="TopicMap" />
   <arg name="show_topics" default="false" />
   <arg name="show_words" default="true" />
   <arg name="show_perplexity" default="false" />
@@ -127,7 +128,8 @@
    -->
 
   <node pkg="sunshine" type="visualize3d" name="visualizer">
-    <param name="observation_topic" type="string" value="$(arg topics_topic)" />
+    <param name="input_topic" type="string" value="$(arg map_topic)" />
+    <param name="input_type" type="string" value="$(arg map_type)" />
     <param name="output_topic" type="string" value="/topic_cloud" />
   </node>
    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
