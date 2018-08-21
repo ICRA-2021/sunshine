@@ -22,6 +22,7 @@ add_message_files(
   SummaryObservations.msg
   TopicModel.msg
   TopicWeights.msg
+  TopicMap.msg
   WordObservation.msg
 )
 

@@ -41,6 +41,7 @@
   <arg name="words_topic" default="/rost_vision/words" />
   <arg name="min_obs_refine_time" default="200" />
   <arg name="word_obs_queue_size" default="1" />
+  <arg name="map_ppx_type" default="global" />
 
   <!-- Visualization arguments -->
   <!--<arg name="words_topic" default="/rost_vision/words" />-->
@@ -109,6 +110,8 @@
     <param name="words_topic" value="$(arg words_topic)" />
     <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="publish_map" type="bool" value="true" />
+    <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
   </node>
 
   <!--
