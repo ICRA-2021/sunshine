@@ -91,7 +91,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.00999999978
+      Size (m): 0.075000003
       Style: Flat Squares
       Topic: /camera/points
       Unreliable: false
@@ -132,7 +132,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
-      Size (Pixels): 3
+      Size (Pixels): 5
       Size (m): 0.00999999978
       Style: Points
       Topic: /topic_cloud
@@ -165,16 +165,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 51.6156387
+      Distance: 72.1244431
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 7.56385803
-        Y: -1.0188657
-        Z: -1.05175591
+        X: 48.3065186
+        Y: -4.62943172
+        Z: -3.96877027
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false

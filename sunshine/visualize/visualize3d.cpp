@@ -11,34 +11,33 @@ using namespace sunshine_msgs;
 
 using WordType = WordObservation::_words_type::value_type;
 
-static std::map<WordType, RGB> colorMap;
-static std::map<double, WordType> hueMap;
+static std::map<WordType, double> hueMapBackward;
+static std::map<double, WordType> hueMapForward;
 
 static inline RGB colorForWord(int32_t word, double saturation = 1, double value = 1)
 {
 
-    auto const colorIter = colorMap.find(word);
-    if (colorIter != colorMap.end()) {
-        return colorIter->second;
+    auto const hueIter = hueMapBackward.find(word);
+    if (hueIter != hueMapBackward.end()) {
+        return hsvToRgb({ hueIter->second, saturation, value });
     }
 
     double hue = double(rand()) * 360. / double(RAND_MAX);
-    if (hueMap.size() == 1) {
-        hue = fmod(hueMap.begin()->first + 180., 360.);
-    } else if (hueMap.size() > 1) {
-        auto const& upper = (hueMap.upper_bound(hue) == hueMap.end())
-            ? hueMap.lower_bound(0)->first + 360.
-            : hueMap.upper_bound(hue)->first;
-        auto const& lower = (hueMap.lower_bound(hue) == hueMap.end())
-            ? hueMap.crbegin()->first
-            : (--hueMap.lower_bound(hue))->first;
+    if (hueMapForward.size() == 1) {
+        hue = fmod(hueMapForward.begin()->first + 180., 360.);
+    } else if (hueMapForward.size() > 1) {
+        auto const& upper = (hueMapForward.upper_bound(hue) == hueMapForward.end())
+            ? hueMapForward.lower_bound(0)->first + 360.
+            : hueMapForward.upper_bound(hue)->first;
+        auto const& lower = (hueMapForward.lower_bound(hue) == hueMapForward.end())
+            ? hueMapForward.crbegin()->first
+            : (--hueMapForward.lower_bound(hue))->first;
         hue = fmod((lower + upper) / 2., 360.);
     }
-    hueMap.insert({ hue, word });
+    hueMapForward.insert({ hue, word });
+    hueMapBackward.insert({ word, hue });
 
-    auto const rgb = hsvToRgb({ hue, saturation, value });
-    colorMap.insert({ word, rgb });
-    return rgb;
+    return hsvToRgb({ hue, saturation, value });
 }
 
 struct Point {
@@ -92,8 +91,8 @@ public:
         Point p;
         p.x = topicMap.cell_poses[idx * 3];
         p.y = topicMap.cell_poses[idx * 3 + 1];
-        p.z = topicMap.cell_poses[idx * 3 + 2];
-        p.color = colorForWord(topicMap.cell_topics[idx], 1, topicMap.cell_ppx[idx] / max_ppx);
+        p.z = topicMap.cell_poses[idx * 3 + 2] + 0.1;
+        p.color = colorForWord(topicMap.cell_topics[idx], 1, 0.5 + topicMap.cell_ppx[idx] / (2 * max_ppx));
         return p;
     }
 };

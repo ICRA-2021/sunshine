@@ -341,9 +341,8 @@ void topic_model::broadcast_topics() const
             for (size_t i = 1; i < POSEDIM; i++) {
                 topic_map->cell_poses.push_back(word_pose[i]);
             }
-            auto const map_ppx = (map_ppx_type == CELL_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
-                                                            : (map_ppx_type == NEIGHBORHOOD_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
-                                                                                                 : rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
+            auto const map_ppx = (map_ppx_type == NEIGHBORHOOD_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
+                                                                    : rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
             topic_map->cell_ppx.push_back(map_ppx);
         }
         map_pub.publish(topic_map);
