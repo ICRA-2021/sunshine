@@ -1,12 +1,12 @@
 <launch>
   <!-- Image Walk arguments -->
-  <arg name="size" default="120x120" />
-  <arg name="walk_scale" default="2" />
+  <arg name="size" default="240x240" />
+  <arg name="walk_scale" default="1" />
   <arg name="test_image" />
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_image_topic" default="/camera/depth" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="20" />
+  <arg name="speed" default="60" />
   <arg name="fps" default="4" />
   <arg name="height" default="120" />
   <arg name="overlap" default="0" />
@@ -16,7 +16,7 @@
 
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
-  <arg name="rate" default="0" />
+  <arg name="rate" default="4" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
   <arg name="texton" default="true" />
@@ -34,7 +34,7 @@
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
   <arg name="cell_space" default="$(arg pixel_scale)" />
-  <arg name="cell_time" default="1" />
+  <arg name="cell_time" default="3600" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
