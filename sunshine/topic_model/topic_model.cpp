@@ -257,9 +257,9 @@ void topic_model::broadcast_topics() const
     auto entryIdx = 0u;
 
     bool const topics_required = publish_topics || publish_map;
-    bool const cell_ppx_required = publish_ppx || (publish_map && map_ppx_type == CELL_PPX);
-    bool const neighborhood_ppx_required = publish_local_surprise || (publish_map && map_ppx_type == NEIGHBORHOOD_PPX);
-    bool const global_ppx_required = publish_global_surprise || (publish_map && map_ppx_type == GLOBAL_PPX);
+    bool const cell_ppx_required = publish_ppx;
+    bool const neighborhood_ppx_required = publish_local_surprise;
+    bool const global_ppx_required = publish_global_surprise;
 
     for (auto const& cell_pose : current_cell_poses) {
         auto const& cell = rost->get_cell(cell_pose);
@@ -285,16 +285,6 @@ void topic_model::broadcast_topics() const
             cell_ppx = exp(-cell_log_likelihood / topics.size());
             n_words += topics.size(); // used to compute total ppx
             assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
-
-            if (publish_map) {
-                auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
-                if (ml_cell_topic == cell->nZ.cend()) {
-                    topic_map->cell_topics.push_back(-1);
-                    ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
-                } else {
-                    topic_map->cell_topics.push_back(int32_t(ml_cell_topic - cell->nZ.cbegin()));
-                }
-            }
         }
 
         if (neighborhood_ppx_required) {
@@ -305,18 +295,13 @@ void topic_model::broadcast_topics() const
             global_ppx = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
         }
 
-        if (publish_map || publish_local_surprise || publish_global_surprise) {
+        if (publish_local_surprise || publish_global_surprise) {
             for (size_t i = 1; i < POSEDIM; i++) {
                 local_surprise->surprise_poses.push_back(cell_pose[i]);
                 global_surprise->surprise_poses.push_back(cell_pose[i]);
-                topic_map->cell_poses.push_back(word_pose[i]);
             }
             local_surprise->surprise.push_back(neighborhood_ppx);
             global_surprise->surprise.push_back(global_ppx);
-            auto const map_ppx = (map_ppx_type == CELL_PPX) ? cell_ppx
-                                                            : (map_ppx_type == NEIGHBORHOOD_PPX) ? neighborhood_ppx
-                                                                                                 : global_ppx;
-            topic_map->cell_ppx.push_back(map_ppx);
         }
 
         sum_log_p_word += cell_log_likelihood;
@@ -343,6 +328,24 @@ void topic_model::broadcast_topics() const
     }
 
     if (publish_map) {
+        for (auto const& cell_pose : rost->cell_pose) {
+            auto const& cell = rost->get_cell(cell_pose);
+            auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
+            auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
+            if (ml_cell_topic == cell->nZ.cend()) {
+                topic_map->cell_topics.push_back(-1);
+                ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
+            } else {
+                topic_map->cell_topics.push_back(int32_t(ml_cell_topic - cell->nZ.cbegin()));
+            }
+            for (size_t i = 1; i < POSEDIM; i++) {
+                topic_map->cell_poses.push_back(word_pose[i]);
+            }
+            auto const map_ppx = (map_ppx_type == CELL_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
+                                                            : (map_ppx_type == NEIGHBORHOOD_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
+                                                                                                 : rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
+            topic_map->cell_ppx.push_back(map_ppx);
+        }
         map_pub.publish(topic_map);
     }
 }
