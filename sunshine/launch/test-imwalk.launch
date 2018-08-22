@@ -49,6 +49,7 @@
   <arg name="ppx_topic" default="/rost/cell_perplexity" />
   <arg name="map_type" default="TopicMap" />
   <arg name="show_topics" default="false" />
+  <arg name="2d_words_topic" default="/rost_vision/words_2d" />
   <arg name="show_words" default="true" />
   <arg name="show_perplexity" default="false" />
   <arg name="show_equalized" default="true" />
@@ -90,6 +91,7 @@
     <param name="transform" value="$(arg transform_topic)"/>
     <param name="pc" value="$(arg depth_cloud_topic)" />
     <param name="use_pc" value="$(arg use_pc)" />
+    <param name="publish_2d_words" value="true" />
   </node>
   
 
@@ -115,17 +117,13 @@
     <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
   </node>
 
-  <!--
-  <node pkg="sunshine" type="visualize" name="visualizer">
-    <param name="words_topic" type="string" value="$(arg words_topic)" />
-    <param name="topics_topic" type="string" value="$(arg topics_topic)" />
-    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
-    <param name="show_topics" type="bool" value="$(arg show_topics)" />
+  <node pkg="sunshine" type="visualize" name="word_visualizer">
+    <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
+    <param name="show_topics" type="bool" value="false" />
     <param name="show_words" type="bool" value="$(arg show_words)" />
-    <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
+    <param name="show_perplexity" type="bool" value="false" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
-   -->
 
   <node pkg="sunshine" type="visualize3d" name="visualizer">
     <param name="input_topic" type="string" value="$(arg map_topic)" />
