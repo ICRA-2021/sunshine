@@ -29,7 +29,7 @@ class topic_model {
     mutable int consecutive_rate_violations = 0;
 
     std::string words_topic_name;
-    int K, V, last_time; //number of topic types, number of word types
+    int K, V, last_time = -1; //number of topic types, number of word types
     double cell_size_time, cell_size_space, k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;

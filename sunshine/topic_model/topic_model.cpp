@@ -42,7 +42,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<int>("V", V, 1500); // vocabulary size
     nh->param<double>("alpha", k_alpha, 0.1);
     nh->param<double>("beta", k_beta, 1.0);
-    nh->param<double>("gamma", k_gamma, 0.001);
+    nh->param<double>("gamma", k_gamma, 0);
     nh->param<double>("tau", k_tau, 0.5); // beta(1,tau) is used to pick cells for global refinement
     nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
@@ -60,15 +60,13 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<bool>("publish_global_surprise", publish_global_surprise, true);
     nh->param<bool>("publish_ppx", publish_ppx, true);
     nh->param<bool>("publish_map", publish_map, false);
-
+    nh->param<std::string>("words_topic", words_topic_name, "/word_extractor/words");
     nh->param<std::string>("map_ppx", map_ppx_type, "global");
     if (std::find(VALID_MAP_PPX_TYPES.cbegin(), VALID_MAP_PPX_TYPES.cend(), map_ppx_type) == VALID_MAP_PPX_TYPES.cend()) {
         throw std::invalid_argument("Invalid map perplexity type: " + map_ppx_type);
     }
 
-    nh->param<std::string>("words_topic", words_topic_name, "/word_extractor/words");
-
-    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
+    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
 
     scene_pub = nh->advertise<WordObservation>("topics", 10);
     global_perplexity_pub = nh->advertise<Perplexity>("perplexity_score", 10);
@@ -81,7 +79,12 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     cell_pose_t G{ { G_time, G_space, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
-    last_time = -1;
+
+    if (k_gamma > 0) {
+        ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
+        rost->gamma = k_gamma;
+        rost->enable_auto_topics_size(true);
+    }
 
     if (polled_refine) { //refine when requested
         throw std::runtime_error("Not implemented. Requires services.");

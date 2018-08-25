@@ -29,7 +29,7 @@
   <arg name="V" default="16180" />
   <arg name="alpha" default="0.1" />
   <arg name="beta" default="1.0" />
-  <arg name="gamma" default="0.001" />
+  <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
@@ -46,13 +46,14 @@
   <!-- Visualization arguments -->
   <!--<arg name="words_topic" default="/rost_vision/words" />-->
   <arg name="map_topic" default="/rost/topic_map" />
-  <arg name="ppx_topic" default="/rost/cell_perplexity" />
+  <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
   <arg name="show_topics" default="false" />
   <arg name="2d_words_topic" default="/rost_vision/words_2d" />
   <arg name="show_words" default="true" />
   <arg name="show_perplexity" default="false" />
   <arg name="show_equalized" default="true" />
+  <arg name="ppx_display_factor" default="0.75" />
   
   <!-- Launch image walker -->
   <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" >
@@ -129,6 +130,8 @@
     <param name="input_topic" type="string" value="$(arg map_topic)" />
     <param name="input_type" type="string" value="$(arg map_type)" />
     <param name="output_topic" type="string" value="/topic_cloud" />
+    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
+    <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
   </node>
    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
 </launch>
