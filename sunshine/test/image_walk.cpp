@@ -20,7 +20,7 @@ cv::Mat getVisibleRegion(cv::Mat const& image, double cx, double cy, int width, 
     return image(roi);
 }
 
-cv::Mat scaleImage(cv::Mat const& image, float scale)
+cv::Mat scaleImage(cv::Mat const& image, double scale)
 {
     cv::Mat scaled(std::ceil(image.rows * scale), std::ceil(image.cols * scale), image.type());
     cv::resize(image, scaled, scaled.size(), 0, 0, cv::INTER_CUBIC);
@@ -98,9 +98,10 @@ int main(int argc, char** argv)
         throw std::invalid_argument("Overlap is too large!");
     }
 
-    double x = width / 2.;
-    double y = height / 2.;
-    double track = (col_major) ? x : y;
+    double cx = width / 2.;
+    double cy = height / 2.;
+    double track = (col_major) ? cx : cy;
+    int const iwidth = std::ceil(width * scale), iheight = std::ceil(height * scale);
 
     std_msgs::Header header;
     header.stamp = ros::Time::now();
@@ -111,7 +112,7 @@ int main(int argc, char** argv)
         tf2::Quaternion q;
         q.setRPY(0, M_PI, M_PI);
         tfPublisher.publish(broadcastTranform(frame_id,
-            tf2::Vector3(x, -y, (altitude >= 0) ? altitude : 0) * pixel_scale,
+            tf2::Vector3(cx, -cy, (altitude >= 0) ? altitude : 0) * pixel_scale,
             q,
             "map",
             header.stamp));
@@ -125,7 +126,7 @@ int main(int argc, char** argv)
 
     // Publish depth image topic
     bool const publishDepthImage = (fov > 0 || altitude > 0);
-    cv::Mat depthImage(height, width, cvType<DepthType>::value);
+    cv::Mat depthImage(iheight, iwidth, cvType<DepthType>::value);
     sensor_msgs::PointCloud2 depthCloud;
     ros::Publisher depthCloudPub;
     image_transport::Publisher depthImagePub;
@@ -152,23 +153,24 @@ int main(int argc, char** argv)
         depthCloud.fields.push_back(colorField);
 
         depthCloud.header.frame_id = frame_id;
-        depthCloud.width = uint32_t(width);
-        depthCloud.height = uint32_t(height);
+        depthCloud.width = uint32_t(iwidth);
+        depthCloud.height = uint32_t(iheight);
         depthCloud.is_dense = true;
         depthCloud.point_step = sizeof(float) * 3 + sizeof(uint32_t);
-        depthCloud.row_step = depthCloud.point_step * uint32_t(width);
-        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * size_t(height));
+        depthCloud.row_step = depthCloud.point_step * depthCloud.width;
+        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * depthCloud.height);
         float* depthCloudIterator = reinterpret_cast<float*>(&(depthCloud.data.data()[0]));
 
         depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
         depthImagePub = it.advertise(depth_image_topic, 1);
         auto const extentX = (width - 1) / 2., extentY = (height - 1) / 2.;
-        for (auto row = 0; row < height; row++) {
-            for (auto col = 0; col < width; col++) {
-                double const depth = std::pow(std::pow(row - extentY, 2) + std::pow(col - extentX, 2) + std::pow(altitude, 2), 1. / 2.) * pixel_scale;
+        for (auto row = 0; row < iheight; row++) {
+            for (auto col = 0; col < iwidth; col++) {
+                double const x = col / scale, y = row / scale;
+                double const depth = std::pow(std::pow(y - extentY, 2) + std::pow(x - extentX, 2) + std::pow(altitude, 2), 1. / 2.) * pixel_scale;
                 depthImage.at<DepthType>(row, col) = static_cast<DepthType>(depth);
-                *(depthCloudIterator++) = static_cast<float>((col - extentX) * pixel_scale);
-                *(depthCloudIterator++) = static_cast<float>((row - extentY) * pixel_scale);
+                *(depthCloudIterator++) = static_cast<float>((x - extentX) * pixel_scale);
+                *(depthCloudIterator++) = static_cast<float>((y - extentY) * pixel_scale);
                 *(depthCloudIterator++) = static_cast<float>(altitude * pixel_scale);
                 static_assert(sizeof(float) == sizeof(uint32_t), "Following code assumes that sizeof(float) == sizeof(uint32_t)!");
                 depthCloudIterator++; // skip color
@@ -185,10 +187,10 @@ int main(int argc, char** argv)
     };
     Direction dir = Direction::RIGHT;
 
-    auto& primary_axis = (col_major) ? y : x;
+    auto& primary_axis = (col_major) ? cy : cx;
     auto const primary_axis_max = ((col_major) ? image.rows : image.cols);
     auto const primary_window_extent = ((col_major) ? height : width) / 2.;
-    auto& secondary_axis = (col_major) ? x : y;
+    auto& secondary_axis = (col_major) ? cx : cy;
     auto const secondary_axis_max = ((col_major) ? image.cols : image.rows);
     auto const secondary_window_extent = ((col_major) ? width : height) / 2.;
     auto const step_size = speed / fps;
@@ -230,8 +232,8 @@ int main(int argc, char** argv)
     while (nh.ok()) {
         header.stamp = ros::Time::now();
         poseCallback();
-        auto const& visibleRegion = getVisibleRegion(image, x, y, width, height);
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", scaleImage(visibleRegion, scale)).toImageMsg();
+        auto const& visibleRegion = scaleImage(getVisibleRegion(image, cx, cy, width, height), scale);
+        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", visibleRegion).toImageMsg();
         if (publishDepthImage) {
             copyImageColorToPointCloud(visibleRegion, depthCloud);
             depthCloud.header = header;

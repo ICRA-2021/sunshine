@@ -3,6 +3,7 @@
 
 #include <opencv2/core.hpp>
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -62,6 +63,15 @@ geometry_msgs::TransformStamped broadcastTranform(std::string frame_id, tf2::Vec
     stampedTransform.child_frame_id = frame_id;
     br.sendTransform(stampedTransform);
     return stampedTransform;
+}
+
+template<typename T>
+inline void transformPose(geometry_msgs::Point& out, std::vector<T> const& poses, size_t const& idx, geometry_msgs::TransformStamped const& transform) {
+    geometry_msgs::Point point;
+    point.x = poses[idx];
+    point.y = poses[idx+1];
+    point.z = poses[idx+2];
+    tf2::doTransform(point, out, transform);
 }
 
 #endif // UTILS_HPP

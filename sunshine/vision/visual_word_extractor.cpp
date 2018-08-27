@@ -26,9 +26,9 @@ namespace sunshine{
   static MultiBOW multi_bow;
   static geometry_msgs::TransformStamped latest_transform;
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
-  static bool depth_recvd;
-  static bool use_depth;
-  static cv_bridge::CvImageConstPtr depth_map;
+  static bool pc_recvd;
+  static bool use_pc;
+  static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
 
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
@@ -39,9 +39,25 @@ namespace sunshine{
     frame_id = msg->child_frame_id;
   }
 
-  void depthMapCallback(const sensor_msgs::ImageConstPtr& msg){
-      depth_map = cv_bridge::toCvShare(msg, msg->encoding);
-      depth_recvd = true;
+  void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
+    if (!transform_recvd){
+      ROS_ERROR("No transformation received, ignoring point cloud");
+      return;
+    }
+
+    if (frame_id != msg->header.frame_id) {
+        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
+        return;
+    }
+
+    if (!pc_recvd) {
+      pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
+      pc_recvd = true;
+    }
+
+    pcl::PCLPointCloud2 pcl_pc2;
+    pcl_conversions::toPCL(*msg,pcl_pc2);
+    pcl::fromPCLPointCloud2(pcl_pc2, *pc);
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
@@ -51,8 +67,8 @@ namespace sunshine{
       return;
     }
 
-    if (!depth_recvd && use_depth) {
-        ROS_ERROR("No depth map received, observations will not be published");
+    if (!pc_recvd && use_pc) {
+        ROS_ERROR("No point cloud received, observations will not be published");
         return;
     }
     
@@ -60,11 +76,11 @@ namespace sunshine{
     
     cv::Mat img = img_ptr->image;
 
-    WordObservation z = multi_bow(img);
+    WordObservation const z = multi_bow(img);
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
 
     size_t const num_words = z.words.size();
-    size_t const poseDim = (use_depth) ? 3 : 2;
+    size_t const poseDim = (use_pc) ? 3 : 2;
     
     sz->source = z.source;
     sz->seq = msg->header.seq;
@@ -72,17 +88,23 @@ namespace sunshine{
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    sz->word_pose.resize(num_words * poseDim);
     //std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
-    for(size_t i=0; i<num_words; ++i){
-      int u,v;
-      u = z.word_pose[i*2];
-      v = z.word_pose[i*2+1];
-      sz->word_pose[i*poseDim] = static_cast<double>(u);
-      sz->word_pose[i*poseDim+1] = static_cast<double>(v);
-      if (use_depth) {
-        sz->word_pose[i*poseDim+2] = depth_map->image.at<double>(cv::Point(u, v));
+    if (use_pc) {
+      auto const& cloud = *pc;
+      sz->word_pose.resize(num_words * poseDim);
+      for(size_t i=0; i < num_words; ++i){
+        int u,v;
+        u = z.word_pose[i*2];
+        v = z.word_pose[i*2+1];
+        assert(u <= cloud.width && v <= cloud.height);
+        auto const pcPose = cloud.at(u, v).getArray3fMap();
+        sz->word_pose[i*poseDim+0] = static_cast<double>(pcPose.x());
+        sz->word_pose[i*poseDim+1] = static_cast<double>(pcPose.y());
+        sz->word_pose[i*poseDim+2] = static_cast<double>(pcPose.z());
       }
+    } else {
+        sz->word_pose.reserve(z.word_pose.size());
+        sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
     }
     
     sz->word_scale.resize(num_words);
@@ -134,8 +156,8 @@ int main(int argc, char** argv){
   nhp.param<double>("scale", img_scale, 1.0);
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
   nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
-  nhp.param<string>("depth", pc_topic_name, "/camera/depth");
-  nhp.param<bool>("use_depth", sunshine::use_depth, false);
+  nhp.param<string>("pc", pc_topic_name, "/point_cloud");
+  nhp.param<bool>("use_pc", sunshine::use_pc, false);
   
   nhp.param<double>("rate", rate, 0);
 
@@ -175,12 +197,12 @@ int main(int argc, char** argv){
   image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
   ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
-  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::Image>(pc_topic_name, 1, sunshine::depthMapCallback);
+  ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
 
   sunshine::transform_recvd = false;
-  sunshine::depth_recvd = false;
+  sunshine::pc_recvd = false;
 
   if(rate <= 0)
     ros::spin();

@@ -14,10 +14,12 @@
 
 namespace sunshine {
 
-typedef double_t DimType;
-typedef std::array<DimType, POSEDIM> pose_t;
-typedef neighbors<pose_t> neighbors_t;
-typedef ROST<pose_t, neighbors_t, hash_container<pose_t>> ROST_t;
+typedef double_t WordDimType;
+typedef int32_t CellDimType;
+typedef std::array<CellDimType, POSEDIM> cell_pose_t;
+typedef std::array<WordDimType, POSEDIM> word_pose_t;
+typedef neighbors<cell_pose_t> neighbors_t;
+typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
 
 class topic_model {
     ros::NodeHandle* nh;
@@ -29,17 +31,16 @@ class topic_model {
     int consecutive_rate_violations = 0;
 
     std::string words_topic_name;
-    int K, V, cell_space, last_time; //number of topic types, number of word types
-    double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
-    DimType G_time, G_space;
+    int K, V, last_time; //number of topic types, number of word types
+    double cell_size_time, cell_size_space, k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
+    CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
 
-    std::vector<DimType> observation_times; //list of all time seq ids observed thus far.
-    std::map<pose_t, std::vector<pose_t>> word_poses_by_cell; //stores [pose]-> {x_i,y_i,scale_i,.....} for the current time
-    std::vector<pose_t> current_cell_poses, last_poses;
+    std::vector<CellDimType> observation_times; //list of all time seq ids observed thus far.
+    std::vector<cell_pose_t> current_cell_poses, last_poses;
     sunshine_msgs::WordObservation topicObs;
 
     std::atomic<bool> stopWork;
@@ -53,7 +54,6 @@ public:
     topic_model(ros::NodeHandle* nh);
     ~topic_model();
 };
-
 }
 
 #endif // TOPIC_MODEL_HPP
