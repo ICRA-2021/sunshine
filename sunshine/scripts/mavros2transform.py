@@ -77,7 +77,7 @@ class Mav2Sunshine():
     def local_pos_cb(self, odom_msg):
         # odom
         self.ts.child_frame_id = odom_msg.child_frame_id
-        self.ts.orientation = odom_msg.pose.pose.orientation
+        self.ts.transform.rotation = odom_msg.pose.pose.orientation
 
 
 if __name__ == '__main__':
