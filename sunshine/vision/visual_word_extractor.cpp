@@ -46,10 +46,10 @@ namespace sunshine{
       return;
     }
 
-    if (frame_id != msg->header.frame_id) {
-        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
-        return;
-    }
+//    if (frame_id != msg->header.frame_id) {
+//        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
+//        return;
+//    }
 
     if (!pc_recvd) {
       pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
