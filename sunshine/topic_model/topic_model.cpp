@@ -3,6 +3,10 @@
 #include "utils.hpp"
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
+#include <sunshine_msgs/LocalSurprise.h>
+#include <sunshine_msgs/Perplexity.h>
+#include <sunshine_msgs/TopicMap.h>
+#include <sunshine_msgs/TopicWeights.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/convert.h>
 #include <tf2/transform_storage.h>
@@ -13,6 +17,11 @@
 
 using namespace sunshine;
 using namespace sunshine_msgs;
+
+static std::string const CELL_PPX = "cell";
+static std::string const NEIGHBORHOOD_PPX = "neighborhood";
+static std::string const GLOBAL_PPX = "global";
+std::vector<std::string> const topic_model::VALID_MAP_PPX_TYPES = { CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX };
 
 int main(int argc, char** argv)
 {
@@ -33,7 +42,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<int>("V", V, 1500); // vocabulary size
     nh->param<double>("alpha", k_alpha, 0.1);
     nh->param<double>("beta", k_beta, 1.0);
-    nh->param<double>("gamma", k_gamma, 0.001);
+    nh->param<double>("gamma", k_gamma, 0);
     nh->param<double>("tau", k_tau, 0.5); // beta(1,tau) is used to pick cells for global refinement
     nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
@@ -50,22 +59,32 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<bool>("publish_local_surprise", publish_local_surprise, true);
     nh->param<bool>("publish_global_surprise", publish_global_surprise, true);
     nh->param<bool>("publish_ppx", publish_ppx, true);
-
+    nh->param<bool>("publish_map", publish_map, false);
     nh->param<std::string>("words_topic", words_topic_name, "/word_extractor/words");
+    nh->param<std::string>("map_ppx", map_ppx_type, "global");
+    if (std::find(VALID_MAP_PPX_TYPES.cbegin(), VALID_MAP_PPX_TYPES.cend(), map_ppx_type) == VALID_MAP_PPX_TYPES.cend()) {
+        throw std::invalid_argument("Invalid map perplexity type: " + map_ppx_type);
+    }
 
-    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, gamma=%f tau=%f", K, k_alpha, k_beta, k_gamma, k_tau);
+    ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
 
     scene_pub = nh->advertise<WordObservation>("topics", 10);
     global_perplexity_pub = nh->advertise<Perplexity>("perplexity_score", 10);
     global_surprise_pub = nh->advertise<LocalSurprise>("scene_perplexity", 10);
     local_surprise_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
+    map_pub = nh->advertise<TopicMap>("topic_map", 1);
 
     word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
     cell_pose_t G{ { G_time, G_space, G_space, G_space } };
     rost = std::unique_ptr<ROST_t>(new ROST_t(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G)));
-    last_time = -1;
+
+    if (k_gamma > 0) {
+        ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
+        rost->gamma = k_gamma;
+        rost->enable_auto_topics_size(true);
+    }
 
     if (polled_refine) { //refine when requested
         throw std::runtime_error("Not implemented. Requires services.");
@@ -127,7 +146,7 @@ words_for_cell_poses(WordObservation const& wordObs, double cell_size_time, doub
     return words_by_cell_pose;
 }
 
-void topic_model::wait_for_processing()
+void topic_model::wait_for_processing() const
 {
     using namespace std::chrono;
     auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
@@ -185,7 +204,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     lastWordsAdded = chrono::steady_clock::now();
 }
 
-void topic_model::broadcast_topics()
+void topic_model::broadcast_topics() const
 {
     if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) {
         return;
@@ -204,6 +223,18 @@ void topic_model::broadcast_topics()
     topicObs->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
     topicObs->observation_transform.header.stamp = ros::Time::now();
 
+    TopicMap::Ptr topic_map(new TopicMap);
+    topic_map->seq = static_cast<uint32_t>(time);
+    topic_map->source = "topics";
+    topic_map->vocabulary_begin = 0;
+    topic_map->vocabulary_size = static_cast<int32_t>(K);
+    topic_map->ppx_type = map_ppx_type;
+    topic_map->cell_topics.reserve(current_cell_poses.size());
+    topic_map->cell_ppx.reserve(current_cell_poses.size());
+    topic_map->cell_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
+    topic_map->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
+    topic_map->observation_transform.header.stamp = ros::Time::now();
+
     Perplexity::Ptr global_perplexity(new Perplexity);
     global_perplexity->seq = static_cast<uint32_t>(time);
     global_perplexity->perplexity = -1;
@@ -212,13 +243,13 @@ void topic_model::broadcast_topics()
     global_surprise->seq = static_cast<uint32_t>(time);
     global_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
     global_surprise->surprise.resize(current_cell_poses.size(), 0);
-    global_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
+    global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
     local_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
     local_surprise->surprise.resize(current_cell_poses.size(), 0);
-    local_surprise->surprise_poses.resize(current_cell_poses.size() * (POSEDIM - 1), 0);
+    local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     TopicWeights::Ptr msg_topic_weights(new TopicWeights);
     msg_topic_weights->seq = static_cast<uint32_t>(time);
@@ -228,46 +259,55 @@ void topic_model::broadcast_topics()
     double sum_log_p_word = 0;
     auto entryIdx = 0u;
 
+    bool const topics_required = publish_topics || publish_map;
+    bool const cell_ppx_required = publish_ppx;
+    bool const neighborhood_ppx_required = publish_local_surprise;
+    bool const global_ppx_required = publish_global_surprise;
+
     for (auto const& cell_pose : current_cell_poses) {
         auto const& cell = rost->get_cell(cell_pose);
+        auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
 
         vector<int> topics; //topic labels for each word in the cell
-        double log_likelihood; //cell's sum_w log(p(w | model) = log p(cell | model)
-        if (publish_topics || publish_ppx) {
-            tie(topics, log_likelihood) = rost->get_ml_topics_and_ppx_for_pose(cell_pose);
+        double cell_log_likelihood; //cell's sum_w log(p(w | model) = log p(cell | model)
+        double cell_ppx, neighborhood_ppx, global_ppx;
+
+        if (topics_required || cell_ppx_required) {
+            tie(topics, cell_log_likelihood) = rost->get_ml_topics_and_ppx_for_pose(cell_pose);
 
             if (publish_topics) {
                 //populate the topic label message
                 topicObs->words.insert(topicObs->words.end(), topics.begin(), topics.end());
-                auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
                 for (size_t i = 0; i < topics.size(); i++) {
-                    for (size_t k = 1; k < POSEDIM; k++) {
-                        topicObs->word_pose.push_back(word_pose[k]);
+                    for (size_t j = 1; j < POSEDIM; j++) {
+                        topicObs->word_pose.push_back(word_pose[j]);
                     }
                 }
-                n_words += topics.size();
-                assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
             }
+
+            cell_ppx = exp(-cell_log_likelihood / topics.size());
+            n_words += topics.size(); // used to compute total ppx
+            assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
+        }
+
+        if (neighborhood_ppx_required) {
+            neighborhood_ppx = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
+        }
+
+        if (global_ppx_required) {
+            global_ppx = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
         }
 
         if (publish_local_surprise || publish_global_surprise) {
-            for (auto i = 0u; i < POSEDIM - 1; i++) {
-                auto const poseIdx = entryIdx * (POSEDIM - 1) + i;
-                local_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
-                global_surprise->surprise_poses[poseIdx] = cell_pose[i + 1];
+            for (size_t i = 1; i < POSEDIM; i++) {
+                local_surprise->surprise_poses.push_back(cell_pose[i]);
+                global_surprise->surprise_poses.push_back(cell_pose[i]);
             }
-
-            if (publish_local_surprise) {
-                auto const cell_perplexity = rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell));
-                local_surprise->surprise[entryIdx] = cell_perplexity;
-            }
-            if (publish_global_surprise) {
-                auto const scene_perplexity = rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
-                global_surprise->surprise[entryIdx] = scene_perplexity;
-            }
+            local_surprise->surprise.push_back(neighborhood_ppx);
+            global_surprise->surprise.push_back(global_ppx);
         }
 
-        sum_log_p_word += log_likelihood;
+        sum_log_p_word += cell_log_likelihood;
         entryIdx++;
     }
 
@@ -288,5 +328,26 @@ void topic_model::broadcast_topics()
 
     if (publish_local_surprise) {
         local_surprise_pub.publish(local_surprise);
+    }
+
+    if (publish_map) {
+        for (auto const& cell_pose : rost->cell_pose) {
+            auto const& cell = rost->get_cell(cell_pose);
+            auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
+            auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
+            if (ml_cell_topic == cell->nZ.cend()) {
+                topic_map->cell_topics.push_back(-1);
+                ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
+            } else {
+                topic_map->cell_topics.push_back(int32_t(ml_cell_topic - cell->nZ.cbegin()));
+            }
+            for (size_t i = 1; i < POSEDIM; i++) {
+                topic_map->cell_poses.push_back(word_pose[i]);
+            }
+            auto const map_ppx = (map_ppx_type == NEIGHBORHOOD_PPX) ? rost->cell_perplexity_word(cell->W, rost->neighborhood(*cell))
+                                                                    : rost->cell_perplexity_word(cell->W, rost->get_topic_weights());
+            topic_map->cell_ppx.push_back(map_ppx);
+        }
+        map_pub.publish(topic_map);
     }
 }

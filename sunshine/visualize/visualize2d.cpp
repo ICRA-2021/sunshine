@@ -17,6 +17,7 @@
 
 
 using namespace std;
+using namespace sunshine;
 
 static map<unsigned, cv::Mat> image_cache;
 static bool show_topics, show_perplexity, show_words, show_equalized;
@@ -28,19 +29,8 @@ WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::Const
   zz.source = z->source;
   zz.words = z->words;
 
-  bool const legacy = false;
-  if (legacy) {
-    zz.word_pose.resize(z->word_pose.size());
-    std::copy(std::begin(z->word_pose), std::end(z->word_pose), std::begin(zz.word_pose));
-  } else {
-    zz.word_pose.reserve(z->words.size() * 2);
-    for (size_t i = 0; i < z->word_pose.size(); i++) {
-        if ((i+1) % 3 == 0) {
-            continue;
-        }
-        zz.word_pose.push_back(static_cast<int>(z->word_pose[i]));
-    }
-  }
+  zz.word_pose.resize(z->word_pose.size());
+  std::copy(std::begin(z->word_pose), std::end(z->word_pose), std::begin(zz.word_pose));
   zz.word_scale = z->word_scale;
   zz.vocabulary_begin = z->vocabulary_begin;
   zz.vocabulary_size = z->vocabulary_size;

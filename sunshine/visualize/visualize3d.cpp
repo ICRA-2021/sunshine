@@ -2,149 +2,178 @@
 #include <cstdlib>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sunshine_msgs/TopicMap.h>
 #include <sunshine_msgs/WordObservation.h>
 
+using namespace sunshine;
 using namespace sensor_msgs;
 using namespace sunshine_msgs;
 
-using HSV = std::array<double, 3>;
-using RGB = std::array<uint8_t, 3>;
 using WordType = WordObservation::_words_type::value_type;
 
-RGB hsvToRgb(HSV const& hsv)
-{
-    double const chroma = hsv[1] * hsv[2];
-    double const hueNorm = fmod(hsv[0], 360) / 60.;
-    double const secondaryChroma = chroma * (1 - fabs(fmod(hueNorm, 2) - 1));
+class Visualize3d {
+    std::map<WordType, double> hueMapBackward;
+    std::map<double, WordType> hueMapForward;
+    ros::Publisher pcPub, ppxPub;
+    ros::Subscriber obsSub;
+    double ppx_display_factor;
 
-    uint32_t const hueSectant = static_cast<uint32_t>(std::floor(hueNorm));
-    std::array<double, 3> rgb = { 0, 0, 0 };
-    switch (hueSectant) {
-    case 0:
-        rgb = { chroma, secondaryChroma, 0 };
-        break;
-    case 1:
-        rgb = { secondaryChroma, chroma, 0 };
-        break;
-    case 2:
-        rgb = { 0, chroma, secondaryChroma };
-        break;
-    case 3:
-        rgb = { 0, secondaryChroma, chroma };
-        break;
-    case 4:
-        rgb = { secondaryChroma, 0, chroma };
-        break;
-    case 5:
-        rgb = { chroma, 0, secondaryChroma };
-        break;
+public:
+    Visualize3d(ros::NodeHandle& nh);
+
+    inline ARGB colorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
+    {
+        auto const hueIter = hueMapBackward.find(word);
+        if (hueIter != hueMapBackward.end()) {
+            return HSV_TO_ARGB({ hueIter->second, saturation, value });
+        }
+
+        double hue = double(rand()) * 360. / double(RAND_MAX);
+        if (hueMapForward.size() == 1) {
+            hue = fmod(hueMapForward.begin()->first + 180., 360.);
+        } else if (hueMapForward.size() > 1) {
+            auto const& upper = (hueMapForward.upper_bound(hue) == hueMapForward.end())
+                ? hueMapForward.lower_bound(0)->first + 360.
+                : hueMapForward.upper_bound(hue)->first;
+            auto const& lower = (hueMapForward.lower_bound(hue) == hueMapForward.end())
+                ? hueMapForward.crbegin()->first
+                : (--hueMapForward.lower_bound(hue))->first;
+            hue = fmod((lower + upper) / 2., 360.);
+        }
+        hueMapForward.insert({ hue, word });
+        hueMapBackward.insert({ word, hue });
+
+        return HSV_TO_ARGB({ hue, saturation, value }, alpha);
     }
 
-    double const offset = hsv[2] - chroma;
-    return { uint8_t((rgb[0] + offset) * 255.), uint8_t((rgb[1] + offset) * 255.), uint8_t((rgb[2] + offset) * 255.) };
-}
-
-sensor_msgs::PointCloud2Ptr toPointCloud(WordObservationConstPtr const& observation,
-    std::function<RGB(WordType)> const& wordColorFunc,
-    std::string frame_id = "/map")
-{
-    uint32_t const height = 1, width = uint32_t(observation->words.size());
-
-    sensor_msgs::PointCloud2Ptr pc = PointCloud2Ptr(new PointCloud2());
-    sensor_msgs::PointField basePointField;
-    basePointField.datatype = basePointField.FLOAT32;
-    basePointField.count = 1;
-
-    auto offset = 0u;
-    for (auto const& field : { "x", "y", "z" }) {
-        sensor_msgs::PointField pointField = basePointField;
-        pointField.name = field;
-        pointField.offset = offset;
-        pc->fields.push_back(pointField);
-        offset += sizeof(float);
+    double perplexity_display_factor() const
+    {
+        return ppx_display_factor;
     }
-
-    sensor_msgs::PointField colorField;
-    colorField.datatype = colorField.UINT32;
-    colorField.count = 1;
-    colorField.offset = offset;
-    offset += sizeof(uint32_t);
-    colorField.name = "rgb";
-    pc->fields.push_back(colorField);
-
-    union PointCloudElement {
-        uint8_t bytes[sizeof(float) * 3 + sizeof(uint32_t)]; // to enforce size
-        struct {
-            float x;
-            float y;
-            float z;
-            uint8_t rgb[3];
-        } data;
-    };
-
-    pc->header.frame_id = frame_id;
-    pc->width = uint32_t(width);
-    pc->height = uint32_t(height);
-    pc->point_step = sizeof(float) * 3 + sizeof(uint32_t);
-    pc->row_step = pc->point_step * uint32_t(width);
-    pc->data = std::vector<uint8_t>(pc->row_step * size_t(height));
-    PointCloudElement* pcIterator = reinterpret_cast<PointCloudElement*>(pc->data.data());
-
-    for (size_t i = 0; i < observation->words.size(); i++) {
-        geometry_msgs::Point point;
-        transformPose(point, observation->word_pose, i * 3, observation->observation_transform);
-        auto const& color = wordColorFunc(observation->words[i]);
-
-        pcIterator->data.x = static_cast<float>(point.x);
-        pcIterator->data.y = static_cast<float>(point.y);
-        pcIterator->data.z = static_cast<float>(point.z);
-        std::copy(color.begin(), color.end(), std::begin(pcIterator->data.rgb));
-        pcIterator++;
-    }
-    return pc;
-}
+};
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "visualize3d");
     ros::NodeHandle nh("~");
-    auto const saturation = nh.param<double>("saturation", 1.);
-    auto const value = nh.param<double>("value", 1.);
-    auto const input_topic = nh.param<std::string>("observation_topic", "/words");
-    auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
-
-    std::map<WordType, RGB> colorMap;
-    std::map<double, WordType> hueMap;
-    auto const& colorFunc = [&](WordType word) {
-        auto const colorIter = colorMap.find(word);
-        if (colorIter != colorMap.end()) {
-            return colorIter->second;
-        }
-
-        double hue = double(rand()) * 360. / double(RAND_MAX);
-        if (hueMap.size() == 1) {
-            hue = fmod(hueMap.begin()->first + 180., 360.);
-        } else if (hueMap.size() > 1) {
-            auto const& upper = (hueMap.upper_bound(hue) == hueMap.end())
-                ? hueMap.lower_bound(0)->first + 360.
-                : hueMap.upper_bound(hue)->first;
-            auto const& lower = (hueMap.lower_bound(hue) == hueMap.end())
-                ? hueMap.crbegin()->first
-                : (--hueMap.lower_bound(hue))->first;
-            hue = fmod((lower + upper) / 2., 360.);
-        }
-        hueMap.insert({ hue, word });
-
-        auto const rgb = hsvToRgb({ hue, saturation, value });
-        colorMap.insert({ word, rgb });
-        return rgb;
-    };
-
-    ros::Publisher pcPub = nh.advertise<PointCloud2>(output_topic, 1);
-    ros::Subscriber wordSub = nh.subscribe<WordObservation>(input_topic, 1, [&colorFunc, &pcPub](WordObservationConstPtr const& msg) {
-        auto pc = toPointCloud(msg, colorFunc);
-        pcPub.publish(pc);
-    });
-
+    Visualize3d visualizer(nh);
     ros::spin();
+}
+
+class WordObservationPoints {
+    Visualize3d* cls;
+    WordObservation const& wordObservations;
+
+public:
+    WordObservationPoints(Visualize3d* cls, WordObservationConstPtr wordObservations)
+        : cls(cls)
+        , wordObservations(*wordObservations)
+    {
+    }
+
+    size_t size() const
+    {
+        return wordObservations.words.size();
+    }
+
+    Point operator[](size_t idx) const
+    {
+        Point p;
+        p.x = wordObservations.word_pose[idx * 3];
+        p.y = wordObservations.word_pose[idx * 3 + 1];
+        p.z = wordObservations.word_pose[idx * 3 + 2];
+        p.color = cls->colorForWord(wordObservations.words[idx]);
+        return p;
+    }
+};
+
+template <bool show_ppx>
+class TopicMapPoints {
+    Visualize3d* cls;
+    TopicMap const& topicMap;
+    double const max_ppx;
+
+public:
+    TopicMapPoints(Visualize3d* cls, TopicMapConstPtr topicMap)
+        : cls(cls)
+        , topicMap(*topicMap)
+        , max_ppx((show_ppx && size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 1)
+    {
+    }
+
+    size_t size() const
+    {
+        return topicMap.cell_topics.size();
+    }
+
+    Point operator[](size_t idx) const
+    {
+        Point p;
+        p.x = topicMap.cell_poses[idx * 3];
+        p.y = topicMap.cell_poses[idx * 3 + 1];
+        p.z = topicMap.cell_poses[idx * 3 + 2] + 0.1;
+        p.color = cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1));
+        return p;
+    }
+};
+
+class PerplexityPoints {
+    TopicMap const& topicMap;
+    double const max_ppx;
+
+public:
+    PerplexityPoints(TopicMapConstPtr topicMap)
+        : topicMap(*topicMap)
+        , max_ppx((size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 0)
+    {
+    }
+
+    size_t size() const
+    {
+        return topicMap.cell_topics.size();
+    }
+
+    Point operator[](size_t idx) const
+    {
+        Point p;
+        p.x = topicMap.cell_poses[idx * 3];
+        p.y = topicMap.cell_poses[idx * 3 + 1];
+        p.z = topicMap.cell_poses[idx * 3 + 2] + 0.1;
+        uint8_t const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);
+        p.color = { relativePpx, relativePpx, 0, 0 };
+        return p;
+    }
+};
+
+Visualize3d::Visualize3d(ros::NodeHandle& nh)
+{
+    auto const input_topic = nh.param<std::string>("input_topic", "/words");
+    auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
+    auto const input_type = nh.param<std::string>("input_type", "TopicMap");
+    auto const ppx_topic = nh.param<std::string>("ppx_topic", "/ppx_cloud");
+    ppx_display_factor = nh.param<double>("ppx_display_factor", 0.5);
+
+    pcPub = nh.advertise<PointCloud2>(output_topic, 1);
+    if (ppx_topic != output_topic) {
+        ppxPub = nh.advertise<PointCloud2>(ppx_topic, 1);
+    }
+
+    if (input_type == "WordObservation") {
+        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this](WordObservationConstPtr const& msg) {
+            auto pc = toPointCloud<WordObservationPoints>(WordObservationPoints(this, msg));
+            pcPub.publish(pc);
+        });
+    } else if (input_type == "TopicMap") {
+        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic](sunshine_msgs::TopicMapConstPtr const& msg) {
+            if (ppx_topic == output_topic) {
+                auto pc = toPointCloud(TopicMapPoints<true>(this, msg));
+                pcPub.publish(pc);
+            } else {
+                auto topicPc = toPointCloud(TopicMapPoints<false>(this, msg));
+                pcPub.publish(topicPc);
+                auto ppxPc = toPointCloud(PerplexityPoints(msg));
+                ppxPub.publish(ppxPc);
+            }
+        });
+    }
 }

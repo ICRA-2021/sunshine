@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     ros::Rate rate(loop_rate);
     while (nh.ok()) {
         header.stamp = ros::Time::now();
-        tfPublisher.publish(broadcastTranform(frame_id, {0,0,0}, q, "map", header.stamp));
+        tfPublisher.publish(sunshine::broadcastTranform(frame_id, {0,0,0}, q, "map", header.stamp));
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
         pub.publish(msg);
             ros::spinOnce();

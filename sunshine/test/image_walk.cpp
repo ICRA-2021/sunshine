@@ -8,6 +8,7 @@
 #include <tf/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+using namespace sunshine;
 typedef double_t DepthType;
 
 cv::Mat getVisibleRegion(cv::Mat const& image, double cx, double cy, int width, int height)

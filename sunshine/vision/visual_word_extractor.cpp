@@ -22,12 +22,13 @@ using namespace std;
 
 namespace sunshine{
 
-  static ros::Publisher words_pub;
+  static ros::Publisher words_pub, words_2d_pub;
   static MultiBOW multi_bow;
   static geometry_msgs::TransformStamped latest_transform;
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool pc_recvd;
   static bool use_pc;
+  static bool publish_2d;
   static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
 
@@ -61,36 +62,49 @@ namespace sunshine{
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
-
     if (!transform_recvd){
       ROS_ERROR("No transformation received, observations will not be published");
       return;
     }
 
-    if (!pc_recvd && use_pc) {
-        ROS_ERROR("No point cloud received, observations will not be published");
-        return;
-    }
-    
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
-    
     cv::Mat img = img_ptr->image;
 
     WordObservation const z = multi_bow(img);
-    sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
-
     size_t const num_words = z.words.size();
-    size_t const poseDim = (use_pc) ? 3 : 2;
-    
+
+    sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
     sz->source = z.source;
     sz->seq = msg->header.seq;
-    sz->observation_transform = latest_transform;
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
-    //std::copy(std::begin(z.word_pose), std::end(z.word_pose), std::begin(sz->word_pose));
+    sz->header.frame_id = frame_id;
+    sz->observation_transform = latest_transform;
+    sz->word_scale.resize(num_words);
+    sz->word_scale = z.word_scale;
+
+    if (!use_pc || sunshine::publish_2d) {
+      sz->word_pose.reserve(z.word_pose.size());
+      sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
+
+      if (!use_pc) {
+        sunshine::words_pub.publish(sz);
+        return;
+      } else {
+        sunshine::words_2d_pub.publish(sz);
+      }
+    }
+
+    if (use_pc && !pc_recvd) {
+      ROS_ERROR("No point cloud received, observations will not be published");
+      return;
+    }
+
+    size_t const poseDim = (use_pc) ? 3 : 2;
     if (use_pc) {
       auto const& cloud = *pc;
+      sz->word_pose.clear();
       sz->word_pose.resize(num_words * poseDim);
       for(size_t i=0; i < num_words; ++i){
         int u,v;
@@ -102,15 +116,7 @@ namespace sunshine{
         sz->word_pose[i*poseDim+1] = static_cast<double>(pcPose.y());
         sz->word_pose[i*poseDim+2] = static_cast<double>(pcPose.z());
       }
-    } else {
-        sz->word_pose.reserve(z.word_pose.size());
-        sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
     }
-    
-    sz->word_scale.resize(num_words);
-    sz->word_scale = z.word_scale;
-    sz->header.frame_id = frame_id;
-
     words_pub.publish(sz);
   }
 }
@@ -157,7 +163,8 @@ int main(int argc, char** argv){
   nhp.param<string>("image", image_topic_name, "/camera/image_raw");
   nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
   nhp.param<string>("pc", pc_topic_name, "/point_cloud");
-  nhp.param<bool>("use_pc", sunshine::use_pc, false);
+  nhp.param<bool>("use_pc", sunshine::use_pc, true);
+  nhp.param<bool>("publish_2d_words", sunshine::publish_2d, false);
   
   nhp.param<double>("rate", rate, 0);
 
@@ -200,6 +207,7 @@ int main(int argc, char** argv){
   ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
 
   sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
+  sunshine::words_2d_pub = nhp.advertise<sunshine_msgs::WordObservation>("words_2d", 1);
 
   sunshine::transform_recvd = false;
   sunshine::pc_recvd = false;
