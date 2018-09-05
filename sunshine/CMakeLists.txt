@@ -14,9 +14,14 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   sunshine_msgs
+  geometry_msgs
+  tf2
+  tf
   )
+find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io)
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3.3 REQUIRED)
@@ -116,7 +121,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs tf2 tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -150,14 +155,18 @@ include_directories(
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 add_executable(topic_model topic_model/topic_model.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
+add_executable(visualize3d visualize/visualize3d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
+add_executable(test.image_walker test/image_walk.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
+add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
 add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -175,17 +184,25 @@ add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 # )
 
 
-target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} lz4)
+target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
+target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES})
+
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
 target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
+target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
