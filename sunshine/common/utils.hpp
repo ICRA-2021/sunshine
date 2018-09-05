@@ -79,7 +79,7 @@ inline void transformPose(geometry_msgs::Point& out, std::vector<T> const& poses
     tf2::doTransform(point, out, transform);
 }
 
-ARGB inline hsvToRgba(HSV const& hsv, double alpha = 1)
+ARGB inline HSV_TO_ARGB(HSV const& hsv, double alpha = 1)
 {
     double const hueNorm = fmod(hsv[0], 360) / 60.;
     uint32_t const hueSectant = static_cast<uint32_t>(std::floor(hueNorm));
@@ -139,7 +139,7 @@ sensor_msgs::PointCloud2Ptr toPointCloud(PointContainer const& points, std::stri
     colorField.count = 1;
     colorField.offset = offset;
     offset += sizeof(uint32_t);
-    colorField.name = "rgba";
+    colorField.name = "rgba"; // It's actually ARGB (documentation refers to it as "unfortunately named")
     pc->fields.push_back(colorField);
 
     union PointCloudElement {
@@ -148,7 +148,7 @@ sensor_msgs::PointCloud2Ptr toPointCloud(PointContainer const& points, std::stri
             float x;
             float y;
             float z;
-            uint8_t rgba[4];
+            uint8_t argb[4];
         } data;
     };
     assert(offset == sizeof(PointCloudElement));
@@ -167,7 +167,7 @@ sensor_msgs::PointCloud2Ptr toPointCloud(PointContainer const& points, std::stri
         pcIterator->data.y = static_cast<float>(point.y);
         pcIterator->data.z = static_cast<float>(point.z);
         ARGB const& color = point.color;
-        std::copy(color.crbegin(), color.crend(), std::begin(pcIterator->data.rgba));
+        std::copy(color.crbegin(), color.crend(), std::begin(pcIterator->data.argb));
         pcIterator++;
     }
     return pc;

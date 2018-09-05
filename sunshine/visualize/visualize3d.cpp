@@ -25,7 +25,7 @@ public:
     {
         auto const hueIter = hueMapBackward.find(word);
         if (hueIter != hueMapBackward.end()) {
-            return hsvToRgba({ hueIter->second, saturation, value });
+            return HSV_TO_ARGB({ hueIter->second, saturation, value });
         }
 
         double hue = double(rand()) * 360. / double(RAND_MAX);
@@ -43,7 +43,7 @@ public:
         hueMapForward.insert({ hue, word });
         hueMapBackward.insert({ word, hue });
 
-        return hsvToRgba({ hue, saturation, value }, alpha);
+        return HSV_TO_ARGB({ hue, saturation, value }, alpha);
     }
 
     double perplexity_display_factor() const
