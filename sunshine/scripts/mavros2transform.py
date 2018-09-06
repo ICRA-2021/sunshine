@@ -43,7 +43,7 @@ class Mav2Sunshine():
         # navsatfix
         ned = navpy.lla2ned(sat_msg.latitude, sat_msg.longitude, -self.depth, self.home_lat, self.home_lon, self.home_alt)
         self.ts.header = sat_msg.header
-        self.ts.header.frame_id = "map"
+        self.ts.header.frame_id = "zed_left_camera_optical_frame" # odom_msg.child_frame_id
 
         # ENU coordinates returned
         self.ts.transform.translation.x = ned[1]
@@ -51,7 +51,7 @@ class Mav2Sunshine():
         self.ts.transform.translation.z = -ned[2]
 
         br = tf.TransformBroadcaster()
-        br.sendTransform((ned[1], ned[0], -ned[2]), (self.ts.transform.rotation.x, self.ts.transform.rotation.y, self.ts.transform.rotation.z, self.ts.transform.rotation.w), rospy.Time.now(), self.ts.child_frame_id, "map")
+        br.sendTransform((ned[1], ned[0], -ned[2]), (self.ts.transform.rotation.x, self.ts.transform.rotation.y, self.ts.transform.rotation.z, self.ts.transform.rotation.w), rospy.Time.now(), self.ts.child_frame_id, self.ts.header.frame_id)
 
         # Orientation captured from before
         self.transform_pub.publish(self.ts)
@@ -62,7 +62,7 @@ class Mav2Sunshine():
         
     def local_pos_cb(self, odom_msg):
         # odom
-        self.ts.child_frame_id = "zed_left_camera_optical_frame" # odom_msg.child_frame_id
+        self.ts.child_frame_id = "map"
         self.ts.transform.rotation = odom_msg.pose.pose.orientation
 
 

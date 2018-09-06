@@ -2,8 +2,10 @@
   <param name="/use_sim_time" value="true"/>
   <!-- depth_image_proc arguments -->
   <arg name="rgb_camera_info" value="/zed/rgb/camera_info"/>
+  <arg name="depReg_raw" default="/zed/depth/depth_registered" />
+  <arg name="depReg_info" default="/zed/depth/camera_info" />
   <arg name="image_topic" default="/zed/rgb/image_rect_color" /> <!--Rectified color image-->
-  <arg name="depReg_imgrect" value="/zed/depth/depth_registered"/>  <!--Rectified depth image-->
+  <arg name="depReg_imgrect" value="/zed/depth/depth_registered_m"/>  <!--Rectified depth image-->
   <arg name="depth_cloud_topic" default="/camera/points" />
 
   <!-- Vision arguments -->
@@ -50,6 +52,11 @@
   <node pkg="nodelet" type="nodelet" name="standalone_nodelet" args="manager" output="screen"/>
   <node name="republish" type="republish" pkg="image_transport" output="screen" args="compressed in:=$(arg image_topic) raw out:=$(arg image_topic)" />
   <node pkg="sunshine" type="mavros2transform.py" name="mavros_to_transform" ns="bluerov/gnc" />
+
+  <node pkg="nodelet" type="nodelet" name="metric_rect" args="load depth_image_proc/convert_metric standalone_nodelet --no-bond">
+    <remap from="image_raw" to="$(arg depReg_raw)"/>
+    <remap from="image" to="$(arg depReg_imgrect)"/>
+  </node>
 
   <!-- Construct point cloud of the rgb and depth topics -->
   <node pkg="nodelet" type="nodelet" name="points_xyzrgb" args="load depth_image_proc/point_cloud_xyzrgb standalone_nodelet --no-bond">
