@@ -43,7 +43,7 @@ class Mav2Sunshine():
         # navsatfix
         ned = navpy.lla2ned(sat_msg.latitude, sat_msg.longitude, -self.depth, self.home_lat, self.home_lon, self.home_alt)
         self.ts.header = sat_msg.header
-        self.ts.header.frame_id = "zed_left_camera_optical_frame" # odom_msg.child_frame_id
+        self.ts.header.frame_id = "map"
 
         # ENU coordinates returned
         self.ts.transform.translation.x = ned[1]
@@ -62,7 +62,7 @@ class Mav2Sunshine():
         
     def local_pos_cb(self, odom_msg):
         # odom
-        self.ts.child_frame_id = "map"
+        self.ts.child_frame_id = "zed_left_camera_frame" # odom_msg.child_frame_id
         self.ts.transform.rotation = odom_msg.pose.pose.orientation
 
 
