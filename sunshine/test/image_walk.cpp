@@ -51,7 +51,7 @@ void copyImageColorToPointCloud(cv::Mat const& image, sensor_msgs::PointCloud2& 
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "image_publisher");
+    ros::init(argc, argv, "image_walker");
 
     ros::NodeHandle nh("~");
     auto const fps = nh.param<double>("fps", 30);
