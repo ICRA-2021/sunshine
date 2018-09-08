@@ -104,26 +104,6 @@ topic_model::~topic_model()
     }
 }
 
-static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space)
-{
-    return {
-        static_cast<CellDimType>(word[0] / cell_size_time),
-        static_cast<CellDimType>(word[1] / cell_size_space),
-        static_cast<CellDimType>(word[2] / cell_size_space),
-        static_cast<CellDimType>(word[3] / cell_size_space)
-    };
-}
-
-static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space)
-{
-    return {
-        static_cast<WordDimType>(cell[0] * cell_size_time),
-        static_cast<WordDimType>(cell[1] * cell_size_space),
-        static_cast<WordDimType>(cell[2] * cell_size_space),
-        static_cast<WordDimType>(cell[3] * cell_size_space)
-    };
-}
-
 static std::map<cell_pose_t, std::vector<int>>
 words_for_cell_poses(WordObservation const& wordObs, double cell_size_time, double cell_size_space)
 {
