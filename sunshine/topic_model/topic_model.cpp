@@ -316,8 +316,8 @@ void topic_model::broadcast_topics() const
             auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
             auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
             if (ml_cell_topic == cell->nZ.cend()) {
-                topic_map->cell_topics.push_back(-1);
                 ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
+                continue;
             } else {
                 topic_map->cell_topics.push_back(int32_t(ml_cell_topic - cell->nZ.cbegin()));
             }
