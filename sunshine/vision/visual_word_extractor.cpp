@@ -6,6 +6,7 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "pcl_ros/point_cloud.h"
 #include "pcl/io/pcd_io.h"
+#include "tf/transform_listener.h"
 
 #include "visualwords/image_source.hpp"
 #include "visualwords/texton_words.hpp"
@@ -28,9 +29,13 @@ namespace sunshine{
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool pc_recvd;
   static bool use_pc;
+  static bool use_tf;
   static bool publish_2d;
   static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
+  static std::string world_frame_name = "";
+  static std::string sensor_frame_name = "";
+  static tf::TransformListener *tf_listener;
 
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
@@ -80,10 +85,19 @@ namespace sunshine{
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
     sz->header.frame_id = frame_id;
-    sz->observation_transform = latest_transform;
     sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
 
+    if (use_tf){
+      tf::StampedTransform transform;
+      geometry_msgs::TransformStamped transform_msg;
+      tf_listener->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0), transform);
+      tf::transformStampedTFToMsg(transform, transform_msg);
+      sz->observation_transform = transform_msg;
+    } else {
+      sz->observation_transform = latest_transform;
+    }
+    
     if (!use_pc || sunshine::publish_2d) {
       sz->word_pose.reserve(z.word_pose.size());
       sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
@@ -125,7 +139,7 @@ int main(int argc, char** argv){
   // Setup ROS node
   ros::init(argc, argv, "word_extractor");
   ros::NodeHandle nhp("~");
-  ros::NodeHandle nh("");
+  //ros::NodeHandle nh("");
 
   char* data_root_c;
   data_root_c = getenv("ROSTPATH");
@@ -136,9 +150,9 @@ int main(int argc, char** argv){
   }
 
   std::string vocabulary_filename, texton_vocab_filename, image_topic_name,
-    feature_descriptor_name, pc_topic_name, transform_topic_name;
+    feature_descriptor_name, pc_topic_name, transform_topic_name, world_frame_name, sensor_frame_name;
   int num_surf, num_orb, color_cell_size, texton_cell_size;
-  bool use_surf, use_hue, use_intensity, use_orb, use_texton;
+  bool use_surf, use_hue, use_intensity, use_orb, use_texton, use_tf;
   double img_scale;
 
   // Parse parameters
@@ -170,8 +184,16 @@ int main(int argc, char** argv){
 
   nhp.param<string>("feature_descriptor",feature_descriptor_name, "ORB");
 
+  nhp.param<bool>("use_tf", sunshine::use_tf, false);
+  nhp.param<string>("world_frame", sunshine::world_frame_name, "world");
+  nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "sensor");
+
   vector<string> feature_detector_names;
   vector<int> feature_sizes;
+
+  if(use_tf){
+    sunshine::tf_listener = new tf::TransformListener();
+  }
 
   if(use_surf){
     feature_detector_names.push_back("SURF");
