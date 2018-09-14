@@ -4,7 +4,7 @@ source devel/setup.bash
 cd $DATA_DIR
 
 echo "Starting task $OUTFILE"
-roslaunch sunshine test-imwalk-norviz.launch test_image:=$HOME/data/HAW_2016_48_RAW-subsampled.png num_threads:=6 speed:=600 size:=1800x1800 walk_scale:=0.1 fps:=2 rate:=0.5 cell_time:=3600 cell_space:=0.8 ppx_display_factor:=.75 K:=${K:-8} texton:=${TEXTON:-true} alpha:=$ALPHA beta:=$BETA gamma:=$GAMMA overlap:=450 &
+roslaunch sunshine test-imwalk-norviz.launch test_image:=$HOME/data/HAW_2016_48_RAW-subsampled-equalized.png num_threads:=6 speed:=600 size:=1800x1800 walk_scale:=0.1 fps:=1 rate:=0.5 cell_time:=3600 cell_space:=0.8 K:=${K:-8} texton:=${TEXTON:-true} alpha:=$ALPHA beta:=$BETA gamma:=$GAMMA overlap:=450 &
 PROC_ID=$!
 
 function killafter() {
