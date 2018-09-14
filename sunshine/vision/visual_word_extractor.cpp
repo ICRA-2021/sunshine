@@ -6,7 +6,9 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "pcl_ros/point_cloud.h"
 #include "pcl/io/pcd_io.h"
-#include "tf/transform_listener.h"
+//#include "tf/transform_listener.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include "visualwords/image_source.hpp"
 #include "visualwords/texton_words.hpp"
@@ -35,8 +37,10 @@ namespace sunshine{
   static std::string frame_id = "";
   static std::string world_frame_name = "";
   static std::string sensor_frame_name = "";
-  static tf::TransformListener *tf_listener;
-
+  //static tf::TransformListener *tf_listener;
+  static tf2_ros::TransformListener *tf_listener;
+  static tf2_ros::Buffer *tf_buffer;
+  
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
@@ -46,7 +50,7 @@ namespace sunshine{
   }
 
   void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
-    if (!transform_recvd){
+    if (!transform_recvd && !use_tf){
       ROS_ERROR("No transformation received, ignoring point cloud");
       return;
     }
@@ -67,7 +71,8 @@ namespace sunshine{
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
-    if (!transform_recvd){
+    
+    if (!transform_recvd && !use_tf){
       ROS_ERROR("No transformation received, observations will not be published");
       return;
     }
@@ -88,12 +93,25 @@ namespace sunshine{
     sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
 
+    //tf2_ros::Buffer buffer;
+    //tf2_ros::TransformListener tfl(buffer);
     if (use_tf){
-      tf::StampedTransform transform;
-      geometry_msgs::TransformStamped transform_msg;
-      tf_listener->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0), transform);
-      tf::transformStampedTFToMsg(transform, transform_msg);
-      sz->observation_transform = transform_msg;
+      try{
+      	//tf2::StampedTransform transform;
+	geometry_msgs::TransformStamped transform_msg;
+	ROS_INFO(world_frame_name.c_str());
+	ROS_INFO(sensor_frame_name.c_str());
+	transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
+	//tf2::transformStampedTFToMsg(transform, transform_msg);
+	sz->observation_transform = transform_msg;
+      } catch (tf2::TransformException ex){
+	ROS_ERROR("%s",ex.what());
+	//ros::Duration(1.0).sleep();
+	return;
+      } catch (tf2::LookupException ex){
+	ROS_ERROR("%s",ex.what());
+	return;
+      }
     } else {
       sz->observation_transform = latest_transform;
     }
@@ -190,10 +208,12 @@ int main(int argc, char** argv){
 
   vector<string> feature_detector_names;
   vector<int> feature_sizes;
+  
 
-  if(use_tf){
-    sunshine::tf_listener = new tf::TransformListener();
-  }
+  //if(use_tf){
+  sunshine::tf_buffer = new tf2_ros::Buffer();
+  tf2_ros::TransformListener tf2_listener(*sunshine::tf_buffer);
+  //}
 
   if(use_surf){
     feature_detector_names.push_back("SURF");

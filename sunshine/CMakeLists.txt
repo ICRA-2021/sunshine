@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   sunshine_msgs
   geometry_msgs
   tf2
+  tf2_ros
   tf
   )
 find_package(tf2_geometry_msgs REQUIRED)
@@ -121,7 +122,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_geometry_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 

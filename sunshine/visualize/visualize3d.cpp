@@ -151,29 +151,30 @@ Visualize3d::Visualize3d(ros::NodeHandle& nh)
     auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
     auto const input_type = nh.param<std::string>("input_type", "TopicMap");
     auto const ppx_topic = nh.param<std::string>("ppx_topic", "/ppx_cloud");
+    auto const world_frame = nh.param<std::string>("world_frame", "map");
     ppx_display_factor = nh.param<double>("ppx_display_factor", 0.5);
-
+    
     pcPub = nh.advertise<PointCloud2>(output_topic, 1);
     if (ppx_topic != output_topic) {
-        ppxPub = nh.advertise<PointCloud2>(ppx_topic, 1);
+      ppxPub = nh.advertise<PointCloud2>(ppx_topic, 1);
     }
-
+    
     if (input_type == "WordObservation") {
-        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this](WordObservationConstPtr const& msg) {
-            auto pc = toPointCloud<WordObservationPoints>(WordObservationPoints(this, msg));
-            pcPub.publish(pc);
+      obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this, world_frame](WordObservationConstPtr const& msg) {
+	  auto pc = toPointCloud<WordObservationPoints>(WordObservationPoints(this, msg), world_frame);
+	  pcPub.publish(pc);
         });
     } else if (input_type == "TopicMap") {
-        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic](sunshine_msgs::TopicMapConstPtr const& msg) {
-            if (ppx_topic == output_topic) {
-                auto pc = toPointCloud(TopicMapPoints<true>(this, msg));
-                pcPub.publish(pc);
-            } else {
-                auto topicPc = toPointCloud(TopicMapPoints<false>(this, msg));
-                pcPub.publish(topicPc);
-                auto ppxPc = toPointCloud(PerplexityPoints(msg));
-                ppxPub.publish(ppxPc);
-            }
+      obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic, world_frame](sunshine_msgs::TopicMapConstPtr const& msg) {
+	  if (ppx_topic == output_topic) {
+	    auto pc = toPointCloud(TopicMapPoints<true>(this, msg), world_frame);
+	    pcPub.publish(pc);
+	  } else {
+	    auto topicPc = toPointCloud(TopicMapPoints<false>(this, msg), world_frame);
+	    pcPub.publish(topicPc);
+	    auto ppxPc = toPointCloud(PerplexityPoints(msg), world_frame);
+	    ppxPub.publish(ppxPc);
+	  }
         });
     }
 }
