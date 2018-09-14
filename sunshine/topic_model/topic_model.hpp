@@ -30,7 +30,8 @@ class topic_model {
 
     std::string words_topic_name;
     int K, V, last_time = -1; //number of topic types, number of word types
-    double cell_size_time, cell_size_space, k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
+    std::array<double, POSEDIM> cell_size;
+    double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx, publish_map;
@@ -54,23 +55,23 @@ public:
     ~topic_model();
 };
 
-static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space)
+static inline cell_pose_t toCellPose(word_pose_t const& word, std::array<double, POSEDIM> cell_size)
 {
     return {
-        static_cast<CellDimType>(word[0] / cell_size_time),
-        static_cast<CellDimType>(word[1] / cell_size_space),
-        static_cast<CellDimType>(word[2] / cell_size_space),
-        static_cast<CellDimType>(word[3] / cell_size_space)
+        static_cast<CellDimType>(word[0] / cell_size[0]),
+        static_cast<CellDimType>(word[1] / cell_size[1]),
+        static_cast<CellDimType>(word[2] / cell_size[2]),
+        static_cast<CellDimType>(word[3] / cell_size[3])
     };
 }
 
-static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space)
+static inline word_pose_t toWordPose(cell_pose_t const& cell, std::array<double, POSEDIM> cell_size)
 {
     return {
-        static_cast<WordDimType>(cell[0] * cell_size_time),
-        static_cast<WordDimType>(cell[1] * cell_size_space),
-        static_cast<WordDimType>(cell[2] * cell_size_space),
-        static_cast<WordDimType>(cell[3] * cell_size_space)
+        static_cast<WordDimType>(cell[0] * cell_size[0]),
+        static_cast<WordDimType>(cell[1] * cell_size[1]),
+        static_cast<WordDimType>(cell[2] * cell_size[2]),
+        static_cast<WordDimType>(cell[3] * cell_size[3])
     };
 }
 }
