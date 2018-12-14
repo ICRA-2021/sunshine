@@ -38,6 +38,8 @@ int main(int argc, char** argv)
 topic_model::topic_model(ros::NodeHandle* nh)
     : nh(nh)
 {
+    std::string cell_size_string;
+    double cell_size_space, cell_size_time;
     nh->param<int>("K", K, 100); // number of topics
     nh->param<int>("V", V, 1500); // vocabulary size
     nh->param<double>("alpha", k_alpha, 0.1);
@@ -48,6 +50,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
     nh->param<int>("num_threads", num_threads, 4); // beta(1,tau) is used to pick cells for refinement
     nh->param<double>("cell_space", cell_size_space, 1);
+    nh->param<std::string>("cell_size", cell_size_string, "");
     nh->param<double>("cell_time", cell_size_time, 1);
     nh->param<CellDimType>("G_time", G_time, 1);
     nh->param<CellDimType>("G_space", G_space, 1);
@@ -64,6 +67,23 @@ topic_model::topic_model(ros::NodeHandle* nh)
     nh->param<std::string>("map_ppx", map_ppx_type, "global");
     if (std::find(VALID_MAP_PPX_TYPES.cbegin(), VALID_MAP_PPX_TYPES.cend(), map_ppx_type) == VALID_MAP_PPX_TYPES.cend()) {
         throw std::invalid_argument("Invalid map perplexity type: " + map_ppx_type);
+    }
+
+    if (!cell_size_string.empty()) {
+        double idx = 0;
+        for (size_t i = 1; i <= POSEDIM; i++) {
+            auto const next = (i < POSEDIM) ? cell_size_string.find("x", idx) : cell_size_string.size();
+            if (next == cell_size_string.npos) {
+                throw std::invalid_argument("Cell size string '" + cell_size_string + "' is invalid!");
+            }
+            cell_size[i-1] = std::stod(cell_size_string.substr(idx, next));
+            idx = next + 1;
+        }
+    } else {
+        cell_size[0] = cell_size_time;
+        for (size_t i = 1; i < POSEDIM; i++) {
+            cell_size[i] = cell_size_space;
+        }
     }
 
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
@@ -104,28 +124,8 @@ topic_model::~topic_model()
     }
 }
 
-static inline cell_pose_t toCellPose(word_pose_t const& word, double cell_size_time, double cell_size_space)
-{
-    return {
-        static_cast<CellDimType>(word[0] / cell_size_time),
-        static_cast<CellDimType>(word[1] / cell_size_space),
-        static_cast<CellDimType>(word[2] / cell_size_space),
-        static_cast<CellDimType>(word[3] / cell_size_space)
-    };
-}
-
-static inline word_pose_t toWordPose(cell_pose_t const& cell, double cell_size_time, double cell_size_space)
-{
-    return {
-        static_cast<WordDimType>(cell[0] * cell_size_time),
-        static_cast<WordDimType>(cell[1] * cell_size_space),
-        static_cast<WordDimType>(cell[2] * cell_size_space),
-        static_cast<WordDimType>(cell[3] * cell_size_space)
-    };
-}
-
 static std::map<cell_pose_t, std::vector<int>>
-words_for_cell_poses(WordObservation const& wordObs, double cell_size_time, double cell_size_space)
+words_for_cell_poses(WordObservation const& wordObs, std::array<double, POSEDIM> cell_size)
 {
     using namespace std;
     map<cell_pose_t, vector<int>> words_by_cell_pose;
@@ -139,7 +139,7 @@ words_for_cell_poses(WordObservation const& wordObs, double cell_size_time, doub
         word_stamped_point[1] = static_cast<WordDimType>(word_point.x);
         word_stamped_point[2] = static_cast<WordDimType>(word_point.y);
         word_stamped_point[3] = static_cast<WordDimType>(word_point.z);
-        cell_pose_t cell_stamped_point = toCellPose(word_stamped_point, cell_size_time, cell_size_space);
+        cell_pose_t cell_stamped_point = toCellPose(word_stamped_point, cell_size);
 
         words_by_cell_pose[cell_stamped_point].push_back(wordObs.words[i]);
     }
@@ -193,7 +193,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
-    auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size_time, cell_size_space);
+    auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
         auto const& cell_words = entry.second;
@@ -241,13 +241,13 @@ void topic_model::broadcast_topics() const
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
+    global_surprise->cell_width = { cell_size.begin(), cell_size.end() };
     global_surprise->surprise.resize(current_cell_poses.size(), 0);
     global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = { cell_size_time, cell_size_space, cell_size_space, cell_size_space };
+    local_surprise->cell_width = { cell_size.begin(), cell_size.end() };
     local_surprise->surprise.resize(current_cell_poses.size(), 0);
     local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
@@ -266,7 +266,7 @@ void topic_model::broadcast_topics() const
 
     for (auto const& cell_pose : current_cell_poses) {
         auto const& cell = rost->get_cell(cell_pose);
-        auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
+        auto const word_pose = toWordPose(cell_pose, cell_size);
 
         vector<int> topics; //topic labels for each word in the cell
         double cell_log_likelihood; //cell's sum_w log(p(w | model) = log p(cell | model)
@@ -333,11 +333,11 @@ void topic_model::broadcast_topics() const
     if (publish_map) {
         for (auto const& cell_pose : rost->cell_pose) {
             auto const& cell = rost->get_cell(cell_pose);
-            auto const word_pose = toWordPose(cell_pose, cell_size_time, cell_size_space);
+            auto const word_pose = toWordPose(cell_pose, cell_size);
             auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
             if (ml_cell_topic == cell->nZ.cend()) {
-                topic_map->cell_topics.push_back(-1);
                 ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
+                continue;
             } else {
                 topic_map->cell_topics.push_back(int32_t(ml_cell_topic - cell->nZ.cbegin()));
             }

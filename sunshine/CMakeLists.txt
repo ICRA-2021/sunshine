@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   sunshine_msgs
   geometry_msgs
   tf2
+  tf2_ros
   tf
   )
 find_package(tf2_geometry_msgs REQUIRED)
@@ -121,7 +122,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_geometry_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -156,6 +157,7 @@ add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 add_executable(topic_model topic_model/topic_model.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
 add_executable(visualize3d visualize/visualize3d.cpp)
+add_executable(save_topic_map visualize/save_topic_map.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
 add_executable(test.image_walker test/image_walk.cpp)
@@ -164,6 +166,7 @@ add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
+add_dependencies(save_topic_map sunshine_msgs_generate_messages_cpp)
 add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
@@ -197,6 +200,9 @@ target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(save_topic_map ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})

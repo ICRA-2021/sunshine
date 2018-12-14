@@ -6,6 +6,9 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "pcl_ros/point_cloud.h"
 #include "pcl/io/pcd_io.h"
+//#include "tf/transform_listener.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 
 #include "visualwords/image_source.hpp"
 #include "visualwords/texton_words.hpp"
@@ -28,10 +31,16 @@ namespace sunshine{
   static bool transform_recvd; // TODO: smarter way of handling stale/missing poses
   static bool pc_recvd;
   static bool use_pc;
+  static bool use_tf;
   static bool publish_2d;
   static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
   static std::string frame_id = "";
-
+  static std::string world_frame_name = "";
+  static std::string sensor_frame_name = "";
+  //static tf::TransformListener *tf_listener;
+  static tf2_ros::TransformListener *tf_listener;
+  static tf2_ros::Buffer *tf_buffer;
+  
   void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg){
     // Callback to handle world to sensor transform
     if (!transform_recvd) transform_recvd = true;
@@ -41,15 +50,15 @@ namespace sunshine{
   }
 
   void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg){
-    if (!transform_recvd){
+    if (!transform_recvd && !use_tf){
       ROS_ERROR("No transformation received, ignoring point cloud");
       return;
     }
 
-    if (frame_id != msg->header.frame_id) {
-        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
-        return;
-    }
+//    if (frame_id != msg->header.frame_id) {
+//        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
+//        return;
+//    }
 
     if (!pc_recvd) {
       pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
@@ -62,7 +71,8 @@ namespace sunshine{
   }
   
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
-    if (!transform_recvd){
+    
+    if (!transform_recvd && !use_tf){
       ROS_ERROR("No transformation received, observations will not be published");
       return;
     }
@@ -80,10 +90,32 @@ namespace sunshine{
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
     sz->header.frame_id = frame_id;
-    sz->observation_transform = latest_transform;
     sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
 
+    //tf2_ros::Buffer buffer;
+    //tf2_ros::TransformListener tfl(buffer);
+    if (use_tf){
+      try{
+      	//tf2::StampedTransform transform;
+	geometry_msgs::TransformStamped transform_msg;
+	ROS_INFO(world_frame_name.c_str());
+	ROS_INFO(sensor_frame_name.c_str());
+	transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
+	//tf2::transformStampedTFToMsg(transform, transform_msg);
+	sz->observation_transform = transform_msg;
+      } catch (tf2::TransformException ex){
+	ROS_ERROR("%s",ex.what());
+	//ros::Duration(1.0).sleep();
+	return;
+      } catch (tf2::LookupException ex){
+	ROS_ERROR("%s",ex.what());
+	return;
+      }
+    } else {
+      sz->observation_transform = latest_transform;
+    }
+    
     if (!use_pc || sunshine::publish_2d) {
       sz->word_pose.reserve(z.word_pose.size());
       sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
@@ -125,7 +157,7 @@ int main(int argc, char** argv){
   // Setup ROS node
   ros::init(argc, argv, "word_extractor");
   ros::NodeHandle nhp("~");
-  ros::NodeHandle nh("");
+  //ros::NodeHandle nh("");
 
   char* data_root_c;
   data_root_c = getenv("ROSTPATH");
@@ -136,9 +168,9 @@ int main(int argc, char** argv){
   }
 
   std::string vocabulary_filename, texton_vocab_filename, image_topic_name,
-    feature_descriptor_name, pc_topic_name, transform_topic_name;
+    feature_descriptor_name, pc_topic_name, transform_topic_name, world_frame_name, sensor_frame_name;
   int num_surf, num_orb, color_cell_size, texton_cell_size;
-  bool use_surf, use_hue, use_intensity, use_orb, use_texton;
+  bool use_surf, use_hue, use_intensity, use_orb, use_texton, use_tf;
   double img_scale;
 
   // Parse parameters
@@ -170,8 +202,18 @@ int main(int argc, char** argv){
 
   nhp.param<string>("feature_descriptor",feature_descriptor_name, "ORB");
 
+  nhp.param<bool>("use_tf", sunshine::use_tf, false);
+  nhp.param<string>("world_frame", sunshine::world_frame_name, "world");
+  nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "sensor");
+
   vector<string> feature_detector_names;
   vector<int> feature_sizes;
+  
+
+  //if(use_tf){
+  sunshine::tf_buffer = new tf2_ros::Buffer();
+  tf2_ros::TransformListener tf2_listener(*sunshine::tf_buffer);
+  //}
 
   if(use_surf){
     feature_detector_names.push_back("SURF");

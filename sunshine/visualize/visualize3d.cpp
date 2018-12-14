@@ -16,7 +16,7 @@ class Visualize3d {
     std::map<double, WordType> hueMapForward;
     ros::Publisher pcPub, ppxPub;
     ros::Subscriber obsSub;
-    double ppx_display_factor;
+    double ppx_display_factor, z_offset;
 
 public:
     Visualize3d(ros::NodeHandle& nh);
@@ -49,6 +49,11 @@ public:
     double perplexity_display_factor() const
     {
         return ppx_display_factor;
+    }
+
+    double get_z_offset() const
+    {
+        return z_offset;
     }
 };
 
@@ -111,19 +116,21 @@ public:
         Point p;
         p.x = topicMap.cell_poses[idx * 3];
         p.y = topicMap.cell_poses[idx * 3 + 1];
-        p.z = topicMap.cell_poses[idx * 3 + 2] + 0.1;
+        p.z = topicMap.cell_poses[idx * 3 + 2] + cls->get_z_offset();
         p.color = cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1));
         return p;
     }
 };
 
 class PerplexityPoints {
+    Visualize3d* cls;
     TopicMap const& topicMap;
     double const max_ppx;
 
 public:
-    PerplexityPoints(TopicMapConstPtr topicMap)
-        : topicMap(*topicMap)
+    PerplexityPoints(Visualize3d* cls, TopicMapConstPtr topicMap)
+        : cls(cls)
+        , topicMap(*topicMap)
         , max_ppx((size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 0)
     {
     }
@@ -138,7 +145,7 @@ public:
         Point p;
         p.x = topicMap.cell_poses[idx * 3];
         p.y = topicMap.cell_poses[idx * 3 + 1];
-        p.z = topicMap.cell_poses[idx * 3 + 2] + 0.1;
+        p.z = topicMap.cell_poses[idx * 3 + 2] + cls->get_z_offset();
         uint8_t const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);
         p.color = { relativePpx, relativePpx, 0, 0 };
         return p;
@@ -151,6 +158,8 @@ Visualize3d::Visualize3d(ros::NodeHandle& nh)
     auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
     auto const input_type = nh.param<std::string>("input_type", "TopicMap");
     auto const ppx_topic = nh.param<std::string>("ppx_topic", "/ppx_cloud");
+    auto const world_frame = nh.param<std::string>("world_frame", "map");
+    z_offset = nh.param<double>("z_offset", 0.1);
     ppx_display_factor = nh.param<double>("ppx_display_factor", 0.5);
 
     pcPub = nh.advertise<PointCloud2>(output_topic, 1);
@@ -159,19 +168,19 @@ Visualize3d::Visualize3d(ros::NodeHandle& nh)
     }
 
     if (input_type == "WordObservation") {
-        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this](WordObservationConstPtr const& msg) {
-            auto pc = toPointCloud<WordObservationPoints>(WordObservationPoints(this, msg));
+        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this, world_frame](WordObservationConstPtr const& msg) {
+            auto pc = toPointCloud<WordObservationPoints>(WordObservationPoints(this, msg), world_frame);
             pcPub.publish(pc);
         });
     } else if (input_type == "TopicMap") {
-        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic](sunshine_msgs::TopicMapConstPtr const& msg) {
+        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic, world_frame](sunshine_msgs::TopicMapConstPtr const& msg) {
             if (ppx_topic == output_topic) {
-                auto pc = toPointCloud(TopicMapPoints<true>(this, msg));
+                auto pc = toPointCloud(TopicMapPoints<true>(this, msg), world_frame);
                 pcPub.publish(pc);
             } else {
-                auto topicPc = toPointCloud(TopicMapPoints<false>(this, msg));
+                auto topicPc = toPointCloud(TopicMapPoints<false>(this, msg), world_frame);
                 pcPub.publish(topicPc);
-                auto ppxPc = toPointCloud(PerplexityPoints(msg));
+                auto ppxPc = toPointCloud(PerplexityPoints(this, msg), world_frame);
                 ppxPub.publish(ppxPc);
             }
         });
