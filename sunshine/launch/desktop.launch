@@ -56,9 +56,12 @@
     <param name="use_hue" value="$(arg hue)"/>
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>
+    <param name="publish_2d_words" value="true"/>
     <param name="use_surf" value="$(arg surf)"/>
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
+    <param name="use_pc" value="false" />
+    <param name="use_tf" value="false" />
   </node>
 
   <!-- Launch topic model -->
