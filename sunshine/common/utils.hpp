@@ -32,27 +32,28 @@ struct cvType<uint16_t> {
 };
 
 /**
- * @brief toMat Converts two parallel vectors, of 2D poses (xy-coordinates) and 1D values, respectively, to a cv::Mat object.
- * @param idxes 2D poses of the form [x1,y1,...,xN,yN] (size of 2*N)
- * @param values Scalar values corresponding to each pose of the form [z1,...,zN] (size of N)
- * @return cv::Mat where mat.at<MatValueType>(yI, xI) = zI
+ * @brief toMat Converts two parallel vectors, of 3D integer xyz-coordinates and 1D values, respectively, to a dense matrix representation.
+ * @param idxes 3D integer poses of the form [x1,y1,z1,...,xN,yN,zN] (size of 2*N)
+ * @param values Scalar values corresponding to each pose of the form [f1,...,fN] (size of N)
+ * @return cv::Mat where mat.at<MatValueType>(yI, xI) = fI
  */
 template <typename IdxType, typename ValueType, typename MatValueType = ValueType>
 cv::Mat toMat(std::vector<IdxType> const& idxes, std::vector<ValueType> const& values)
 {
-    assert(idxes.size() == values.size() * 2);
+    assert(idxes.size() == (values.size() * 3) || idxes.size() == (values.size() * 2));
+    auto const poseDim = static_cast<int>(values.size() / idxes.size());
 
     // Compute the required size of the matrix based on the largest (x,y) coordinate
     IdxType max_x = 0, max_y = 0;
     for (auto i = 0ul; i < values.size(); i++) {
-        assert(idxes[i * 2] >= 0 && idxes[i * 2 + 1] >= 0);
-        max_x = std::max(max_x, idxes[i * 2]);
-        max_y = std::max(max_y, idxes[i * 2 + 1]);
+        assert(idxes[i * poseDim] >= 0 && idxes[i * poseDim + 1] >= 0);
+        max_x = std::max(max_x, idxes[i * poseDim]);
+        max_y = std::max(max_y, idxes[i * poseDim + 1]);
     }
     cv::Mat mat(max_y + 1, max_x + 1, cvType<MatValueType>::value); // Don't forget to add 1 to each dimension (because 0-indexed)
 
     for (auto i = 0ul; i < values.size(); i++) {
-        mat.at<MatValueType>(idxes[i * 2 + 1], idxes[i * 2]) = values[i]; // mat.at(y,x) = z
+        mat.at<MatValueType>(idxes[i * poseDim + 1], idxes[i * poseDim]) = values[i]; // mat.at(y,x) = z
     }
     return mat;
 }

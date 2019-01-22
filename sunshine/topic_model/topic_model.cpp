@@ -242,13 +242,13 @@ void topic_model::broadcast_topics() const
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
     global_surprise->cell_width = { cell_size.begin(), cell_size.end() };
-    global_surprise->surprise.resize(current_cell_poses.size(), 0);
+    global_surprise->surprise.reserve(current_cell_poses.size());
     global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
     local_surprise->cell_width = { cell_size.begin(), cell_size.end() };
-    local_surprise->surprise.resize(current_cell_poses.size(), 0);
+    local_surprise->surprise.reserve(current_cell_poses.size());
     local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     TopicWeights::Ptr msg_topic_weights(new TopicWeights);
@@ -269,7 +269,7 @@ void topic_model::broadcast_topics() const
         auto const word_pose = toWordPose(cell_pose, cell_size);
 
         vector<int> topics; //topic labels for each word in the cell
-        double cell_log_likelihood; //cell's sum_w log(p(w | model) = log p(cell | model)
+        double cell_log_likelihood = 0; //cell's sum_w log(p(w | model) = log p(cell | model)
         double cell_ppx, neighborhood_ppx, global_ppx;
 
         if (topics_required || cell_ppx_required) {

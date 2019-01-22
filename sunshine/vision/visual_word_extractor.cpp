@@ -33,6 +33,7 @@ static bool pc_recvd;
 static bool use_pc;
 static bool use_tf;
 static bool publish_2d;
+static bool publish_3d;
 static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
 static std::string frame_id = "";
 static std::string world_frame_name = "";
@@ -120,16 +121,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         sz->observation_transform = latest_transform;
     }
 
-    if (!use_pc || sunshine::publish_2d) {
+    if (sunshine::publish_2d) {
         sz->word_pose.reserve(z.word_pose.size());
         sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
 
-        if (!use_pc) {
-            sunshine::words_pub.publish(sz);
-            return;
-        } else {
-            sunshine::words_2d_pub.publish(sz);
-        }
+        sunshine::words_2d_pub.publish(sz);
     }
 
     if (use_pc && !pc_recvd) {
@@ -137,23 +133,29 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         return;
     }
 
-    size_t const poseDim = (use_pc) ? 3 : 2;
-    if (use_pc) {
-        auto const& cloud = *pc;
+    if (sunshine::publish_3d) {
+        size_t const poseDim = 3;
         sz->word_pose.clear();
         sz->word_pose.resize(num_words * poseDim);
         for (size_t i = 0; i < num_words; ++i) {
             int u, v;
             u = z.word_pose[i * 2];
             v = z.word_pose[i * 2 + 1];
-            assert(u <= cloud.width && v <= cloud.height);
-            auto const pcPose = cloud.at(u, v).getArray3fMap();
-            sz->word_pose[i * poseDim + 0] = static_cast<double>(pcPose.x());
-            sz->word_pose[i * poseDim + 1] = static_cast<double>(pcPose.y());
-            sz->word_pose[i * poseDim + 2] = static_cast<double>(pcPose.z());
+            if (use_pc) {
+                auto const& cloud = *pc;
+                assert(u <= cloud.width && v <= cloud.height);
+                auto const pcPose = cloud.at(u, v).getArray3fMap();
+                sz->word_pose[i * poseDim + 0] = static_cast<double>(pcPose.x());
+                sz->word_pose[i * poseDim + 1] = static_cast<double>(pcPose.y());
+                sz->word_pose[i * poseDim + 2] = static_cast<double>(pcPose.z());
+            } else {
+                sz->word_pose[i * poseDim + 0] = static_cast<double>(u);
+                sz->word_pose[i * poseDim + 1] = static_cast<double>(v);
+                sz->word_pose[i * poseDim + 2] = 0.0;
+            }
         }
+        words_pub.publish(sz);
     }
-    words_pub.publish(sz);
 }
 }
 
@@ -202,6 +204,7 @@ int main(int argc, char** argv)
     nhp.param<string>("pc", pc_topic_name, "/point_cloud");
     nhp.param<bool>("use_pc", sunshine::use_pc, true);
     nhp.param<bool>("publish_2d_words", sunshine::publish_2d, false);
+    nhp.param<bool>("publish_3d_words", sunshine::publish_3d, true);
 
     nhp.param<double>("rate", rate, 0);
 
@@ -255,6 +258,7 @@ int main(int argc, char** argv)
     sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
     sunshine::words_2d_pub = nhp.advertise<sunshine_msgs::WordObservation>("words_2d", 1);
 
+    sunshine::latest_transform.transform.rotation.w = 1; // Default no-op rotation
     sunshine::transform_recvd = false;
     sunshine::pc_recvd = false;
 
