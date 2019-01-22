@@ -1,13 +1,13 @@
 <launch>
   <param name="/use_sim_time" value="true"/>
   <!-- depth_image_proc arguments -->
-  <arg name="rgb_camera_info" value="/rgb/camera_info"/>
-  <arg name="image_topic" default="/rgb/image_rect_color" /> <!--Rectified color image-->
-  <arg name="depth_cloud_topic" default="/point_cloud/cloud_registered" />
+  <arg name="rgb_camera_info" value="/bluerov/sensors/zed/left/camera_info"/>
+  <arg name="image_topic" default="/bluerov/sensors/zed/left/image_rect_color" /> <!--Rectified color image-->
+  <arg name="depth_cloud_topic" default="/bluerov/sensors/zed/point_cloud/cloud_registered" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="/camera_world_transform" />
-  <arg name="world_frame_name" default="world_home"/>
+  <arg name="world_frame_name" default="map"/>
   <arg name="sensor_frame_name" default="zed_left_camera_frame"/>
   <arg name="use_tf" default="true"/>
   <arg name="scale" default="1.0" />
