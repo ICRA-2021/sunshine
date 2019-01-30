@@ -6,7 +6,9 @@
   <arg name="depth_cloud_topic" default="/bluerov/sensors/zed/point_cloud/cloud_registered" />
 
   <!-- Vision arguments -->
-  <arg name="transform_topic" default="/camera_world_transform" />
+  <arg name="transform_topic" default="" />
+  <arg name="world_frame" default="bluerov_zed_map" />
+  <arg name="sensor_frame" default="zed_camera_center" />
   <arg name="scale" default="1.0" />
   <arg name="rate" default="4" />
   <arg name="hue" default="true" />
@@ -28,6 +30,7 @@
   <arg name="num_threads" default="4" />
   <arg name="cell_space" default="0.1" />
   <arg name="cell_time" default="3600" />
+  <arg name="cell_size" default="" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -64,8 +67,11 @@
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
     <param name="transform" value="$(arg transform_topic)"/>
+    <param name="sensor_frame" value="$(arg sensor_frame)" />
+    <param name="world_frame" value="$(arg world_frame)" />
     <param name="pc" value="$(arg depth_cloud_topic)" />
     <param name="use_pc" value="$(arg use_pc)" />
+    <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
   </node>
 
@@ -79,6 +85,7 @@
     <param name="tau" type="double" value="$(arg tau)" />
     <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
     <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
     <param name="cell_space" type="double" value="$(arg cell_space)" />
     <param name="cell_time" type="double" value="$(arg cell_time)" />
     <param name="G_time" type="int" value="$(arg G_time)" />
@@ -107,6 +114,7 @@
     <param name="output_topic" type="string" value="/topic_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
+    <param name="world_frame" type="string" value="$(arg world_frame)" />
   </node>
    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/bluerov.rviz" />
 </launch>
