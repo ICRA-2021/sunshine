@@ -22,7 +22,7 @@
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_width" default="32" />
+  <arg name="cell_space" default="32" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -60,6 +60,8 @@
     <param name="use_surf" value="$(arg surf)"/>
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
+    <param name="use_tf" value="false" />
+    <param name="use_pc" value="false" />
   </node>
 
   <!-- Launch topic model -->
@@ -72,7 +74,7 @@
     <param name="tau" type="double" value="$(arg tau)" />
     <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
     <param name="num_threads" type="int" value="$(arg num_threads)" />
-    <param name="cell_width" type="int" value="$(arg cell_width)" />
+    <param name="cell_space" type="int" value="$(arg cell_space)" />
     <param name="G_time" type="int" value="$(arg G_time)" />
     <param name="G_space" type="int" value="$(arg G_space)" />
     <param name="polled_refine" value="$(arg polled_refine)" />
@@ -89,5 +91,6 @@
     <param name="show_words" type="bool" value="$(arg show_words)" />
     <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
+    <param name="scale" type="double" value="0.5" />
    </node>
 </launch>
