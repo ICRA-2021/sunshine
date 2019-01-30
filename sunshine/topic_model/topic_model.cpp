@@ -44,7 +44,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     double cell_size_space, cell_size_time;
     nh->param<int>("K", K, 100); // number of topics
     nh->param<int>("V", V, 1500); // vocabulary size
-    nh->param<bool>("hierarchical", is_hierarchical, true);
+    nh->param<bool>("hierarchical", is_hierarchical, false);
     nh->param<int>("num_levels", num_levels, 3);
     nh->param<double>("alpha", k_alpha, 0.1);
     nh->param<double>("beta", k_beta, 1.0);
@@ -103,6 +103,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
 
     cell_pose_t G{ { G_time, G_space, G_space, G_space } };
     if (is_hierarchical) {
+        ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
         rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(
                     static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
 
@@ -195,6 +196,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     //if we are receiving observations from the next time step, then spit out
     //topics for the current time step.
     if (last_time >= 0 && (last_time != observation_time)) {
+        ROS_DEBUG("Received newer word observations - broadcasting observations for time %d", last_time);
         broadcast_topics();
         size_t refine_count = rost->get_refine_count();
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
@@ -203,6 +205,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
+    ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
@@ -210,6 +213,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
     }
+    ROS_DEBUG("Refining %u cells", current_cell_poses.size());
 
     lastWordsAdded = chrono::steady_clock::now();
 }

@@ -252,12 +252,13 @@ int main(int argc, char** argv)
     image_transport::ImageTransport it(nhp);
     image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
-    ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
-    ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
+    if (sunshine::use_tf) ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
+    if (sunshine::use_pc) ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
 
     sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
     sunshine::words_2d_pub = nhp.advertise<sunshine_msgs::WordObservation>("words_2d", 1);
 
+    sunshine::latest_transform = {};
     sunshine::latest_transform.transform.rotation.w = 1; // Default no-op rotation
     sunshine::transform_recvd = false;
     sunshine::pc_recvd = false;

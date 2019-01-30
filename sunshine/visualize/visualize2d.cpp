@@ -20,6 +20,7 @@ using namespace std;
 using namespace sunshine;
 
 static map<unsigned, cv::Mat> image_cache;
+static int cache_size;
 static bool show_topics, show_perplexity, show_words, show_equalized;
 static string image_topic_name, words_topic_name, topic_topic_name, ppx_topic_name; //todo: rename topic model...
 
@@ -99,7 +100,7 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
 
-  if (image_cache.size() > 30){
+  if (image_cache.size() > cache_size){
     image_cache.erase(image_cache.begin());
   }
   
@@ -112,6 +113,7 @@ int main(int argc, char** argv){
   ros::NodeHandle nhp("~");
   ros::NodeHandle nh("");
 
+  nhp.param<int>("cache_size", cache_size, 100);
   nhp.param<bool>("show_topics", show_topics, true);
   nhp.param<bool>("show_words", show_words, true);
   nhp.param<bool>("show_perplexity", show_perplexity, false);
