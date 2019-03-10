@@ -38,7 +38,6 @@ static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
 static std::string frame_id = "";
 static std::string world_frame_name = "";
 static std::string sensor_frame_name = "";
-//static tf::TransformListener *tf_listener;
 static tf2_ros::TransformListener* tf_listener;
 static tf2_ros::Buffer* tf_buffer;
 
@@ -54,16 +53,6 @@ void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg)
 
 void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
-    if (use_tf && !transform_recvd) {
-        ROS_ERROR("No transformation received, ignoring point cloud");
-        return;
-    }
-
-    //    if (frame_id != msg->header.frame_id) {
-    //        ROS_ERROR("Point cloud frame id '%s' does not match transform frame '%s'. Ignoring point cloud.", msg->header.frame_id.c_str(), frame_id.c_str());
-    //        return;
-    //    }
-
     if (!pc_recvd) {
         pc.reset(new pcl::PointCloud<pcl::PointXYZ>());
         pc_recvd = true;
@@ -76,12 +65,6 @@ void pcCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
-
-    if (use_tf && !transform_recvd) {
-        ROS_ERROR("No transformation received, observations will not be published");
-        return;
-    }
-
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = img_ptr->image;
 
@@ -98,34 +81,39 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
 
-    //tf2_ros::Buffer buffer;
-    //tf2_ros::TransformListener tfl(buffer);
-    if (use_tf) {
-        try {
-            //tf2::StampedTransform transform;
-            geometry_msgs::TransformStamped transform_msg;
-            ROS_INFO(world_frame_name.c_str());
-            ROS_INFO(sensor_frame_name.c_str());
-            transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
-            //tf2::transformStampedTFToMsg(transform, transform_msg);
-            sz->observation_transform = transform_msg;
-        } catch (tf2::TransformException ex) {
-            ROS_ERROR("%s", ex.what());
-            //ros::Duration(1.0).sleep();
-            return;
-        } catch (tf2::LookupException ex) {
-            ROS_ERROR("%s", ex.what());
-            return;
-        }
-    } else {
-        sz->observation_transform = latest_transform;
-    }
-
     if (sunshine::publish_2d) {
         sz->word_pose.reserve(z.word_pose.size());
         sz->word_pose.insert(sz->word_pose.cbegin(), z.word_pose.cbegin(), z.word_pose.cend());
 
         sunshine::words_2d_pub.publish(sz);
+    }
+
+    //tf2_ros::Buffer buffer;
+    //tf2_ros::TransformListener tfl(buffer);
+    if (use_tf) {
+        if (transform_recvd) {
+            assert(frame_id == sensor_frame_name);
+            sz->observation_transform = latest_transform;
+        } else {
+            try {
+                //tf2::StampedTransform transform;
+                geometry_msgs::TransformStamped transform_msg;
+                ROS_INFO(world_frame_name.c_str());
+                ROS_INFO(sensor_frame_name.c_str());
+                transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
+                //tf2::transformStampedTFToMsg(transform, transform_msg);
+                sz->observation_transform = transform_msg;
+            } catch (tf2::TransformException ex) {
+                ROS_ERROR("No transform received: %s", ex.what());
+                //ros::Duration(1.0).sleep();
+                return;
+            } catch (tf2::LookupException ex) {
+                ROS_ERROR("No transform found: %s", ex.what());
+                return;
+            }
+        }
+    } else {
+        sz->observation_transform = latest_transform;
     }
 
     if (use_pc && !pc_recvd) {
@@ -177,7 +165,7 @@ int main(int argc, char** argv)
     std::string vocabulary_filename, texton_vocab_filename, image_topic_name,
         feature_descriptor_name, pc_topic_name, transform_topic_name, world_frame_name, sensor_frame_name;
     int num_surf, num_orb, color_cell_size, texton_cell_size;
-    bool use_surf, use_hue, use_intensity, use_orb, use_texton, use_tf;
+    bool use_surf, use_hue, use_intensity, use_orb, use_texton;
     double img_scale;
 
     // Parse parameters
@@ -200,7 +188,7 @@ int main(int argc, char** argv)
 
     nhp.param<double>("scale", img_scale, 1.0);
     nhp.param<string>("image", image_topic_name, "/camera/image_raw");
-    nhp.param<string>("transform", transform_topic_name, "/camera_world_transform");
+    nhp.param<string>("transform", transform_topic_name, "");
     nhp.param<string>("pc", pc_topic_name, "/point_cloud");
     nhp.param<bool>("use_pc", sunshine::use_pc, true);
     nhp.param<bool>("publish_2d_words", sunshine::publish_2d, false);
@@ -217,10 +205,10 @@ int main(int argc, char** argv)
     vector<string> feature_detector_names;
     vector<int> feature_sizes;
 
-    //if(use_tf){
-    sunshine::tf_buffer = new tf2_ros::Buffer();
-    tf2_ros::TransformListener tf2_listener(*sunshine::tf_buffer);
-    //}
+    if (sunshine::use_tf) {
+        sunshine::tf_buffer = new tf2_ros::Buffer();
+        sunshine::tf_listener = new tf2_ros::TransformListener(*sunshine::tf_buffer);
+    }
 
     if (use_surf) {
         feature_detector_names.push_back("SURF");
@@ -252,12 +240,19 @@ int main(int argc, char** argv)
     image_transport::ImageTransport it(nhp);
     image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
 
-    ros::Subscriber transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
-    ros::Subscriber depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
+    ros::Subscriber transformCallback;
+    if (sunshine::use_tf && !transform_topic_name.empty()) {
+        transformCallback = nhp.subscribe<geometry_msgs::TransformStamped>(transform_topic_name, 1, sunshine::transformCallback);
+    }
+    ros::Subscriber depthCallback;
+    if (sunshine::use_pc) {
+        depthCallback = nhp.subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, sunshine::pcCallback);
+    }
 
     sunshine::words_pub = nhp.advertise<sunshine_msgs::WordObservation>("words", 1);
     sunshine::words_2d_pub = nhp.advertise<sunshine_msgs::WordObservation>("words_2d", 1);
 
+    sunshine::latest_transform = {};
     sunshine::latest_transform.transform.rotation.w = 1; // Default no-op rotation
     sunshine::transform_recvd = false;
     sunshine::pc_recvd = false;

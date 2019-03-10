@@ -20,6 +20,8 @@ using namespace std;
 using namespace sunshine;
 
 static map<unsigned, cv::Mat> image_cache;
+float scale;
+static int cache_size;
 static bool show_topics, show_perplexity, show_words, show_equalized;
 static string image_topic_name, words_topic_name, topic_topic_name, ppx_topic_name; //todo: rename topic model...
 
@@ -47,8 +49,9 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::cvtColor(img_grey,img_grey_3c,CV_GRAY2BGR);
 
   WordObservation zz = msgToWordObservation(z);
-  
+
   cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
+  cv::resize(out_img, out_img, cv::Size(), scale, scale, cv::INTER_LINEAR);
   cv::imshow("Words", out_img);
   cv::waitKey(5); 
 }
@@ -66,6 +69,7 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   WordObservation zz = msgToWordObservation(z);
   
   cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
+  cv::resize(out_img, out_img, cv::Size(), scale, scale, cv::INTER_LINEAR);
   cv::imshow("Topics", out_img);
   cv::waitKey(5); 
 }
@@ -90,6 +94,7 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   cv::resize(ppx_img_color, ppx_img_full, img.size());
   cv::addWeighted(img, 0.5, ppx_img_full, 0.9, 0.0, ppx_img_full);
 
+  cv::resize(ppx_img_full, ppx_img_full, cv::Size(), scale, scale, cv::INTER_LINEAR);
   cv::imshow("Perplexity", ppx_img_full);
   cv::waitKey(5); 
 }
@@ -99,7 +104,7 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
 
-  if (image_cache.size() > 30){
+  if (image_cache.size() > cache_size){
     image_cache.erase(image_cache.begin());
   }
   
@@ -112,6 +117,8 @@ int main(int argc, char** argv){
   ros::NodeHandle nhp("~");
   ros::NodeHandle nh("");
 
+  nhp.param<float>("scale", scale, 1.0);
+  nhp.param<int>("cache_size", cache_size, 100);
   nhp.param<bool>("show_topics", show_topics, true);
   nhp.param<bool>("show_words", show_words, true);
   nhp.param<bool>("show_perplexity", show_perplexity, false);

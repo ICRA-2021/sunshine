@@ -5,6 +5,7 @@
 #include <memory>
 #include <ros/ros.h>
 #include <rost/rost.hpp>
+#include <rost/hlda.hpp>
 #include <sunshine_msgs/WordObservation.h>
 
 #define POSEDIM 4
@@ -16,7 +17,7 @@ typedef int32_t CellDimType;
 typedef std::array<CellDimType, POSEDIM> cell_pose_t;
 typedef std::array<WordDimType, POSEDIM> word_pose_t;
 typedef neighbors<cell_pose_t> neighbors_t;
-typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+typedef SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
 
 class topic_model {
     static std::vector<std::string> const VALID_MAP_PPX_TYPES;

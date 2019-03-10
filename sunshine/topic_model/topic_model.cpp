@@ -39,12 +39,16 @@ topic_model::topic_model(ros::NodeHandle* nh)
     : nh(nh)
 {
     std::string cell_size_string;
+    bool is_hierarchical;
+    int num_levels;
     double cell_size_space, cell_size_time;
     nh->param<int>("K", K, 100); // number of topics
     nh->param<int>("V", V, 1500); // vocabulary size
+    nh->param<bool>("hierarchical", is_hierarchical, false);
+    nh->param<int>("num_levels", num_levels, 3);
     nh->param<double>("alpha", k_alpha, 0.1);
     nh->param<double>("beta", k_beta, 1.0);
-    nh->param<double>("gamma", k_gamma, 0);
+    nh->param<double>("gamma", k_gamma, 0.0001);
     nh->param<double>("tau", k_tau, 0.5); // beta(1,tau) is used to pick cells for global refinement
     nh->param<double>("p_refine_rate_local", p_refine_rate_local, 0.5); // probability of refining last observation
     nh->param<double>("p_refine_rate_global", p_refine_rate_global, 0.5);
@@ -76,7 +80,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
             if (next == cell_size_string.npos) {
                 throw std::invalid_argument("Cell size string '" + cell_size_string + "' is invalid!");
             }
-            cell_size[i-1] = std::stod(cell_size_string.substr(idx, next));
+            cell_size[i - 1] = std::stod(cell_size_string.substr(idx, next));
             idx = next + 1;
         }
     } else {
@@ -98,12 +102,19 @@ topic_model::topic_model(ros::NodeHandle* nh)
     word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
 
     cell_pose_t G{ { G_time, G_space, G_space, G_space } };
-    rost = std::make_unique<ROST_t>(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G));
+    if (is_hierarchical) {
+        ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
+        rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(
+                    static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
 
-    if (k_gamma > 0) {
-        ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
-        rost->gamma = k_gamma;
-        rost->enable_auto_topics_size(true);
+    } else {
+        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G));
+        if (k_gamma > 0) {
+            ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
+            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>*>(rost.get());
+            rost_concrete->gamma = k_gamma;
+            rost_concrete->enable_auto_topics_size(true);
+        }
     }
 
     if (polled_refine) { //refine when requested
@@ -185,6 +196,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     //if we are receiving observations from the next time step, then spit out
     //topics for the current time step.
     if (last_time >= 0 && (last_time != observation_time)) {
+        ROS_DEBUG("Received newer word observations - broadcasting observations for time %d", last_time);
         broadcast_topics();
         size_t refine_count = rost->get_refine_count();
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
@@ -193,6 +205,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
+    ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
@@ -200,6 +213,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
     }
+    ROS_DEBUG("Refining %u cells", current_cell_poses.size());
 
     lastWordsAdded = chrono::steady_clock::now();
 }
