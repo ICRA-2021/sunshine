@@ -1,4 +1,4 @@
-#include "utils.hpp"
+#include "image_utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <iostream>
@@ -10,44 +10,6 @@
 
 using namespace sunshine;
 typedef double_t DepthType;
-
-cv::Mat getVisibleRegion(cv::Mat const& image, double cx, double cy, int width, int height)
-{
-    cv::Rect roi;
-    roi.x = static_cast<int>(std::round(cx - width / 2.));
-    roi.y = static_cast<int>(std::round(cy - height / 2.));
-    roi.width = width;
-    roi.height = height;
-    return image(roi);
-}
-
-cv::Mat scaleImage(cv::Mat const& image, double scale)
-{
-    cv::Mat scaled(std::ceil(image.rows * scale), std::ceil(image.cols * scale), image.type());
-    cv::resize(image, scaled, scaled.size(), 0, 0, cv::INTER_CUBIC);
-    return scaled;
-}
-
-void copyImageColorToPointCloud(cv::Mat const& image, sensor_msgs::PointCloud2& pointCloud)
-{
-    auto const& colorField = std::find_if(pointCloud.fields.begin(), pointCloud.fields.end(), [](decltype(pointCloud.fields)::value_type const& field) {
-        return field.name == "rgb";
-    });
-    if (colorField == pointCloud.fields.end()) {
-        throw std::invalid_argument("Cannot find color field in point cloud.");
-    }
-    assert(static_cast<uint64_t>(image.rows * image.cols) == pointCloud.width * pointCloud.height);
-    uint8_t* dataPtr = pointCloud.data.data() + colorField->offset;
-    size_t dataStep = pointCloud.point_step;
-    for (auto row = 0; row < image.rows; row++) {
-        for (auto col = 0; col < image.cols; col++) {
-            auto const color = image.at<cv::Vec3b>(row, col);
-            for (auto i = 0u; i < 3; i++)
-                *(dataPtr + i) = color.val[i];
-            dataPtr += dataStep;
-        }
-    }
-}
 
 int main(int argc, char** argv)
 {
@@ -102,7 +64,6 @@ int main(int argc, char** argv)
     double cx = width / 2.;
     double cy = height / 2.;
     double track = (col_major) ? cx : cy;
-    int const iwidth = std::ceil(width * scale), iheight = std::ceil(height * scale);
 
     std_msgs::Header header;
     header.stamp = ros::Time::now();
@@ -127,56 +88,15 @@ int main(int argc, char** argv)
 
     // Publish depth image topic
     bool const publishDepthImage = (fov > 0 || altitude > 0);
-    cv::Mat depthImage(iheight, iwidth, cvType<DepthType>::value);
-    sensor_msgs::PointCloud2 depthCloud;
+    sensor_msgs::PointCloud2Ptr depthCloud;
     ros::Publisher depthCloudPub;
     image_transport::Publisher depthImagePub;
+    std::unique_ptr<sunshine::ImageScanner> image_scanner;
     if (publishDepthImage) {
         ROS_INFO("Publishing depth image.");
-        sensor_msgs::PointField basePointField;
-        basePointField.datatype = basePointField.FLOAT32;
-        basePointField.count = 1;
-
-        auto offset = 0u;
-        for (auto const& field : { "x", "y", "z" }) {
-            sensor_msgs::PointField pointField = basePointField;
-            pointField.name = field;
-            pointField.offset = offset;
-            depthCloud.fields.push_back(pointField);
-            offset += sizeof(float);
-        }
-
-        sensor_msgs::PointField colorField;
-        colorField.datatype = colorField.UINT32;
-        colorField.count = 1;
-        colorField.offset = offset;
-        colorField.name = "rgb";
-        depthCloud.fields.push_back(colorField);
-
-        depthCloud.header.frame_id = frame_id;
-        depthCloud.width = uint32_t(iwidth);
-        depthCloud.height = uint32_t(iheight);
-        depthCloud.is_dense = true;
-        depthCloud.point_step = sizeof(float) * 3 + sizeof(uint32_t);
-        depthCloud.row_step = depthCloud.point_step * depthCloud.width;
-        depthCloud.data = std::vector<uint8_t>(depthCloud.row_step * depthCloud.height);
-        float* depthCloudIterator = reinterpret_cast<float*>(&(depthCloud.data.data()[0]));
-
-        depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
-        depthImagePub = it.advertise(depth_image_topic, 1);
-        auto const extentX = (width - 1) / 2., extentY = (height - 1) / 2.;
-        for (auto row = 0; row < iheight; row++) {
-            for (auto col = 0; col < iwidth; col++) {
-                double const x = col / scale, y = row / scale;
-                double const depth = std::pow(std::pow(y - extentY, 2) + std::pow(x - extentX, 2) + std::pow(altitude, 2), 1. / 2.) * pixel_scale;
-                depthImage.at<DepthType>(row, col) = static_cast<DepthType>(depth);
-                *(depthCloudIterator++) = static_cast<float>((x - extentX) * pixel_scale);
-                *(depthCloudIterator++) = static_cast<float>((y - extentY) * pixel_scale);
-                *(depthCloudIterator++) = static_cast<float>(altitude * pixel_scale);
-                static_assert(sizeof(float) == sizeof(uint32_t), "Following code assumes that sizeof(float) == sizeof(uint32_t)!");
-                depthCloudIterator++; // skip color
-            }
-        }
+        image_scanner = std::make_unique<sunshine::ImageScanner3D<>>(image, width, height, getFlatHeightMap(image.cols, image.rows, 0.), scale, cx, cy, altitude, pixel_scale);
+    } else {
+        image_scanner = std::make_unique<sunshine::ImageScanner>(image, width, height, scale, cx, cy);
     }
 
     enum class Direction {
@@ -189,10 +109,10 @@ int main(int argc, char** argv)
     Direction dir = Direction::RIGHT;
 
     auto& primary_axis = (col_major) ? cy : cx;
-    auto const primary_axis_max = ((col_major) ? image.rows : image.cols);
+    auto const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
     auto const primary_window_extent = ((col_major) ? height : width) / 2.;
     auto& secondary_axis = (col_major) ? cx : cy;
-    auto const secondary_axis_max = ((col_major) ? image.cols : image.rows);
+    auto const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
     auto const secondary_window_extent = ((col_major) ? width : height) / 2.;
     auto const step_size = speed / fps;
 
@@ -233,13 +153,15 @@ int main(int argc, char** argv)
     while (nh.ok()) {
         header.stamp = ros::Time::now();
         poseCallback();
-        auto const& visibleRegion = scaleImage(getVisibleRegion(image, cx, cy, width, height), scale);
+        image_scanner->moveTo(cx, cy);
+        auto const& visibleRegion = image_scanner->getCurrentView();
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", visibleRegion).toImageMsg();
         if (publishDepthImage) {
-            copyImageColorToPointCloud(visibleRegion, depthCloud);
-            depthCloud.header = header;
-            depthCloudPub.publish(depthCloud);
-            depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, depthImage).toImageMsg());
+            sunshine::ImageScanner3D<>* image_scanner_3d = dynamic_cast<sunshine::ImageScanner3D<>*>(image_scanner.get());
+            depthCloud = image_scanner_3d->getCurrentPointCloud();
+            depthCloud->header = header;
+            depthCloudPub.publish(*depthCloud);
+            depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1, image_scanner_3d->getCurrentDepthView()).toImageMsg());
         }
         imagePub.publish(msg);
 

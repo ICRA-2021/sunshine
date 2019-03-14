@@ -111,16 +111,16 @@ ARGB inline HSV_TO_ARGB(HSV const& hsv, double alpha = 1)
     }
 }
 
-struct Point {
-    double x, y, z;
-    ARGB color;
-};
-
-template <typename PointContainer>
-sensor_msgs::PointCloud2Ptr toPointCloud(PointContainer const& points, std::string frame_id = "/map")
+/**
+ * @brief createPointCloud
+ * @param width
+ * @param height
+ * @param colorFieldName
+ * @return
+ * @warning Note that "rgba" is actually stored as ARGB (the PointCloud2 docs refers to the field as "unfortunately named")
+ */
+sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, std::string colorFieldName = "rgba")
 {
-    auto const count = points.size();
-    uint32_t const height = 1, width = uint32_t(count);
     sensor_msgs::PointCloud2Ptr pc(new sensor_msgs::PointCloud2());
     sensor_msgs::PointField basePointField;
     basePointField.datatype = basePointField.FLOAT32;
@@ -128,39 +128,58 @@ sensor_msgs::PointCloud2Ptr toPointCloud(PointContainer const& points, std::stri
 
     auto offset = 0u;
     for (auto const& field : { "x", "y", "z" }) {
-        sensor_msgs::PointField pointField = basePointField;
+        sensor_msgs::PointField pointField(basePointField);
         pointField.name = field;
         pointField.offset = offset;
         pc->fields.push_back(pointField);
+        pc->point_step += sizeof(float);
         offset += sizeof(float);
     }
 
-    sensor_msgs::PointField colorField;
-    colorField.datatype = colorField.UINT32;
-    colorField.count = 1;
-    colorField.offset = offset;
-    offset += sizeof(uint32_t);
-    colorField.name = "rgba"; // It's actually ARGB (documentation refers to it as "unfortunately named")
-    pc->fields.push_back(colorField);
+    if (!colorFieldName.empty()) {
+        sensor_msgs::PointField colorField;
+        colorField.datatype = colorField.UINT32;
+        colorField.count = 1;
+        colorField.offset = offset;
+        colorField.name = colorFieldName;
+        pc->fields.push_back(colorField);
+        pc->point_step += sizeof(uint32_t);
+    }
 
-    union PointCloudElement {
-        uint8_t bytes[sizeof(float) * 3 + sizeof(uint32_t)]; // to enforce size
-        struct {
-            float x;
-            float y;
-            float z;
-            uint8_t argb[4];
-        } data;
-    };
-    assert(offset == sizeof(PointCloudElement));
+    pc->width = width;
+    pc->height = height;
+    pc->is_dense = true;
+    pc->row_step = pc->point_step * pc->width;
+    pc->data = std::vector<uint8_t>(pc->row_step * pc->height);
+    return pc;
+}
+
+struct Point {
+    double x, y, z;
+    ARGB color;
+};
+
+union ARGBPointCloudElement {
+    uint8_t bytes[sizeof(float) * 3 + sizeof(uint32_t)]; // to enforce size
+    struct {
+        float x;
+        float y;
+        float z;
+        uint8_t argb[4]; // see note about rgba vs argb
+    } data;
+};
+
+template <typename PointContainer>
+sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::string frame_id = "/map")
+{
+    auto const count = points.size();
+    uint32_t const height = 1, width = uint32_t(count);
+    sensor_msgs::PointCloud2Ptr pc = createPointCloud(width, height, "rgba"); // Note that "rgba" is actually stored as ARGB (the documentation refers to the field as "unfortunately named")
+
+    assert(pc->point_step == sizeof(ARGBPointCloudElement));
 
     pc->header.frame_id = frame_id;
-    pc->width = uint32_t(width);
-    pc->height = uint32_t(height);
-    pc->point_step = sizeof(PointCloudElement);
-    pc->row_step = pc->point_step * uint32_t(width);
-    pc->data = std::vector<uint8_t>(pc->row_step * size_t(height));
-    PointCloudElement* pcIterator = reinterpret_cast<PointCloudElement*>(pc->data.data());
+    ARGBPointCloudElement* pcIterator = reinterpret_cast<ARGBPointCloudElement*>(pc->data.data());
 
     for (decltype(points.size()) i = 0; i < count; i++) {
         Point const& point = points[i];
