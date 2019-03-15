@@ -18,9 +18,9 @@ cv::Mat scaleImage(cv::Mat const& image, double const& scale, uint32_t const& in
 }
 
 class ImageScanner {
+protected:
     cv::Mat const image;
     double const scale_factor;
-protected:
     double const half_frame_width, half_frame_height;
     double x, y;
 private:
@@ -35,6 +35,8 @@ private:
     cv::Rect getViewRect() const
     {
         if (!isValidPosition()) {
+            uint32_t const lx = std::lround((x - half_frame_width) / scale_factor), ly = std::lround((y - half_frame_height) / scale_factor);
+            uint32_t const scaled_width = std::lround(getFrameWidth() / scale_factor), scaled_height = std::lround(getFrameHeight() / scale_factor);
             throw std::domain_error("Cannot create valid view from position " + std::to_string(x) + "," + std::to_string(y));
         }
         cv::Rect roi;
@@ -42,6 +44,7 @@ private:
         roi.y = static_cast<int>(std::lround((y - half_frame_height) / scale_factor));
         roi.width = getFrameWidth() / scale_factor;
         roi.height = getFrameHeight() / scale_factor;
+        std::cout << roi.x << roi.y << roi.width << roi.height << std::endl;
         return roi;
     }
 
@@ -84,24 +87,39 @@ public:
         return getScaledImageView(image);
     }
 
-    void move(double const dx, double const dy)
-    {
-        this->x += dx;
-        this->y += dy;
-    }
-
-    void moveTo(double const x, double const y)
+    virtual void moveTo(double const x, double const y)
     {
         this->x = x;
         this->y = y;
     }
 
-    double getMaxX() const {
-        return image.cols * scale_factor;
+    void move(double const dx, double const dy)
+    {
+        this->moveTo(this->x + dx, this->y + dy);
     }
 
-    double getMaxY() const {
-        return image.rows * scale_factor;
+    virtual double getMinX() const {
+        return half_frame_width;
+    }
+
+    virtual double getMinY() const {
+        return half_frame_height;
+    }
+
+    virtual double getMaxX() const {
+        return image.cols * scale_factor - 1;
+    }
+
+    virtual double getMaxY() const {
+        return image.rows * scale_factor - 1;
+    }
+
+    virtual double getX() const {
+        return x;
+    }
+
+    virtual double getY() const {
+        return y;
     }
 };
 
@@ -126,13 +144,45 @@ protected:
     cv::Mat const heightMap;
     DepthType const z;
     double const pixel_scale;
+    sensor_msgs::PointCloud2Ptr pc;
 
 public:
-    ImageScanner3D(cv::Mat image, uint32_t frame_width, uint32_t frame_height, cv::Mat heightMap, double scale = 1., double start_x = 0, double start_y = 0, double start_z = 1., double pixel_scale = 1)
-        : ImageScanner(image, frame_width, frame_height, scale, start_x, start_y)
+
+    virtual void moveTo(double x, double y) override {
+        this->x = x / pixel_scale;
+        this->y = y / pixel_scale;
+    }
+
+    virtual double getMinX() const override {
+        return half_frame_width * pixel_scale;
+    }
+
+    virtual double getMinY() const override {
+        return half_frame_height * pixel_scale;
+    }
+
+    virtual double getMaxX() const override {
+        return (image.cols * scale_factor - 1) * pixel_scale;
+    }
+
+    virtual double getMaxY() const override {
+        return (image.rows * scale_factor - 1) * pixel_scale;
+    }
+
+    virtual double getX() const override {
+        return x * pixel_scale;
+    }
+
+    virtual double getY() const override {
+        return y * pixel_scale;
+    }
+
+    ImageScanner3D(cv::Mat image, uint32_t frame_width, uint32_t frame_height, cv::Mat heightMap, double scale = 1., double start_z = 1., double pixel_scale = 1)
+        : ImageScanner(image, frame_width, frame_height, scale, (frame_width / 2.), (frame_height / 2.))
         , heightMap((scale == 1.) ? heightMap : scaleImage(heightMap, scale))
         , z(start_z)
         , pixel_scale(pixel_scale)
+        , pc(createPointCloud(getFrameWidth(), getFrameHeight(), "rgb"))
     {
         assert(heightMap.type() == sunshine::cvType<DepthType>::value);
     }
@@ -143,29 +193,27 @@ public:
         for (auto row = 0; row < getFrameHeight(); row++) {
             for (auto col = 0; col < getFrameWidth(); col++) {
                 assert(z >= heightMap.at<DepthType>(row, col));
-                DepthType const depth_sq = std::pow(col - half_frame_height, 2) + std::pow(row - half_frame_width, 2) + std::pow((z - depthMap.at<DepthType>(row, col)) / ((pixel_scale != 1) ? pixel_scale : 1), 2);
+                DepthType const depth_sq = std::pow(col - half_frame_height, 2) + std::pow(row - half_frame_width, 2)
+                        + std::pow((z - depthMap.at<DepthType>(row, col)) / ((pixel_scale != 1) ? pixel_scale : 1), 2);
                 depthMap.at<DepthType>(row, col) = std::sqrt(depth_sq) * ((pixel_scale != 1) ? pixel_scale : 1);
             }
         }
         return depthMap;
     }
 
-    sensor_msgs::PointCloud2Ptr getCurrentPointCloud(bool use_color = true) const
+    sensor_msgs::PointCloud2Ptr getCurrentPointCloud() const
     {
         cv::Mat const currentView = getCurrentView();
         cv::Mat const heightView = this->getScaledImageView(heightMap);
-        auto pc = createPointCloud(getFrameWidth(), getFrameHeight(), (use_color) ? "rgb" : "");
 
         RGBPointCloudElement* pcIterator = reinterpret_cast<RGBPointCloudElement*>(pc->data.data());
         for (auto row = 0; row < getFrameHeight(); row++) {
             for (auto col = 0; col < getFrameWidth(); col++) {
-                pcIterator->data.x = static_cast<float>((x - half_frame_width + col) * ((pixel_scale != 1) ? pixel_scale : 1));
-                pcIterator->data.y = static_cast<float>((y - half_frame_height + row) * ((pixel_scale != 1) ? pixel_scale : 1));
-                pcIterator->data.z = static_cast<float>(heightView.at<DepthType>(row, col));
-                if (use_color) {
-                    auto const color = currentView.at<cv::Vec3b>(row, col);
-                    for (auto i = 0; i < 3; i++) pcIterator->data.rgb[i] = color[i];
-                }
+                pcIterator->data.x = static_cast<float>((col - half_frame_width) * pixel_scale);
+                pcIterator->data.y = static_cast<float>(-(row - half_frame_height) * pixel_scale);
+                pcIterator->data.z = static_cast<float>(z - heightView.at<DepthType>(row, col));
+                auto const color = currentView.at<cv::Vec3b>(row, col);
+                for (auto i = 0; i < 3; i++) pcIterator->data.rgb[i] = color[i];
                 pcIterator++;
             }
         }

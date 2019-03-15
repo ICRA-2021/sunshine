@@ -6,9 +6,9 @@
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_image_topic" default="/camera/depth" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="60" />
+  <arg name="speed" default="2" />
   <arg name="fps" default="4" />
-  <arg name="height" default="120" />
+  <arg name="height" default="1.2" />
   <arg name="overlap" default="0" />
   <arg name="pixel_scale" default="0.01" />
   <arg name="transform_topic" default="/robot_tf" />

@@ -17,7 +17,7 @@ int main(int argc, char** argv)
 
     ros::NodeHandle nh("~");
     auto const fps = nh.param<double>("fps", 30);
-    auto const speed = nh.param<double>("speed", 30);
+    auto const speed = nh.param<double>("speed", 1);
     auto const altitude = nh.param<double>("height", -1);
     auto const fov = nh.param<double>("fov", -1);
     auto const overlap = nh.param<int>("overlap", 0);
@@ -61,26 +61,10 @@ int main(int argc, char** argv)
         throw std::invalid_argument("Overlap is too large!");
     }
 
-    double cx = width / 2.;
-    double cy = height / 2.;
-    double track = (col_major) ? cx : cy;
 
     std_msgs::Header header;
     header.stamp = ros::Time::now();
     header.frame_id = frame_id;
-
-    auto tfPublisher = nh.advertise<geometry_msgs::TransformStamped>(transform_topic, 1);
-    auto const poseCallback = [&]() {
-        tf2::Quaternion q;
-        q.setRPY(0, M_PI, M_PI);
-        tfPublisher.publish(broadcastTranform(frame_id,
-            tf2::Vector3(cx, -cy, (altitude >= 0) ? altitude : 0) * pixel_scale,
-            q,
-            "map",
-            header.stamp));
-    };
-    poseCallback();
-    ros::spinOnce();
 
     // Publish image topic
     image_transport::ImageTransport it(nh);
@@ -94,10 +78,29 @@ int main(int argc, char** argv)
     std::unique_ptr<sunshine::ImageScanner> image_scanner;
     if (publishDepthImage) {
         ROS_INFO("Publishing depth image.");
-        image_scanner = std::make_unique<sunshine::ImageScanner3D<>>(image, width, height, getFlatHeightMap(image.cols, image.rows, 0.), scale, cx, cy, altitude, pixel_scale);
+        depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
+        depthImagePub = it.advertise(depth_image_topic, 1);
+        image_scanner = std::make_unique<sunshine::ImageScanner3D<>>(image, width, height, getFlatHeightMap(image.cols, image.rows, 0.), scale, altitude, pixel_scale);
     } else {
-        image_scanner = std::make_unique<sunshine::ImageScanner>(image, width, height, scale, cx, cy);
+        image_scanner = std::make_unique<sunshine::ImageScanner>(image, width, height, scale);
     }
+
+    double cx = image_scanner->getX();
+    double cy = image_scanner->getY();
+    double track = (col_major) ? cx : cy;
+
+    auto tfPublisher = nh.advertise<geometry_msgs::TransformStamped>(transform_topic, 1);
+    auto const poseCallback = [&]() {
+        tf2::Quaternion q;
+        q.setRPY(0, M_PI, 0);
+        tfPublisher.publish(broadcastTranform(frame_id,
+            tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude >= 0) ? altitude : 0),
+            q,
+            "map",
+            header.stamp));
+    };
+    poseCallback();
+    ros::spinOnce();
 
     enum class Direction {
         DOWN = -2,
@@ -110,10 +113,10 @@ int main(int argc, char** argv)
 
     auto& primary_axis = (col_major) ? cy : cx;
     auto const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
-    auto const primary_window_extent = ((col_major) ? height : width) / 2.;
+    auto const primary_window_extent = (col_major) ? image_scanner->getMinY() : image_scanner->getMinX();
     auto& secondary_axis = (col_major) ? cx : cy;
     auto const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
-    auto const secondary_window_extent = ((col_major) ? width : height) / 2.;
+    auto const secondary_window_extent = (col_major) ? image_scanner->getMinX() : image_scanner->getMinY();
     auto const step_size = speed / fps;
 
     auto const advanceTrack = [&]() {
