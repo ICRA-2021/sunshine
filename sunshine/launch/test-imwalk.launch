@@ -56,8 +56,7 @@
   <arg name="ppx_display_factor" default="0.75" />
   
   <!-- Launch image walker -->
-  <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" >
-    <param name="image_topic" type="string" value="$(arg image_topic)"/>
+  <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" output="screen" >
     <param name="size" type="string" value="$(arg size)"/>
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)"/>
     <param name="scale" type="double" value="$(arg walk_scale)"/>
@@ -66,10 +65,10 @@
     <param name="overlap" type="double" value="$(arg overlap)" />
     <param name="height" type="double" value="$(arg height)" />
     <param name="col_major" type="bool" value="false" />
-    <param name="fov" type="double" value="-1" />
     <param name="pixel_scale" type="double" value="$(arg pixel_scale)" />
-    <param name="transform_topic" type="string" value="$(arg transform_topic)" />
     <param name="frame_id" type="string" value="$(arg camera_frame)" />
+    <param name="image_topic" type="string" value="$(arg image_topic)"/>
+    <param name="transform_topic" type="string" value="$(arg transform_topic)" />
     <param name="depth_cloud_topic" type="string" value="$(arg depth_cloud_topic)" />
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)" />
   </node>
