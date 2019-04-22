@@ -6,9 +6,9 @@
   <arg name="depth_cloud_topic" default="/bluerov/sensors/zed/point_cloud/cloud_registered" />
 
   <!-- Vision arguments -->
-  <arg name="transform_topic" default="/camera_world_transform" />
-  <arg name="world_frame_name" default="map"/>
-  <arg name="sensor_frame_name" default="zed_left_camera_frame"/>
+  <arg name="transform_topic" default="" />
+  <arg name="world_frame_name" default="bluerov_zed_map"/>
+  <arg name="sensor_frame_name" default="zed_camera_center"/>
   <arg name="use_tf" default="true"/>
   <arg name="scale" default="1.0" />
   <arg name="rate" default="4" />
@@ -20,10 +20,10 @@
   <arg name="use_pc" default="true" />
   
   <!-- Topic model arguments -->
-  <arg name="K" default="100" />
+  <arg name="K" default="20" />
   <arg name="V" default="16180" />
-  <arg name="alpha" default="0.1" />
-  <arg name="beta" default="1.0" />
+  <arg name="alpha" default="0.033" />
+  <arg name="beta" default="0.2" />
   <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
