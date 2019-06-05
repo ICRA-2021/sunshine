@@ -50,9 +50,13 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 
   WordObservation zz = msgToWordObservation(z);
 
-  cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
-  cv::resize(out_img, out_img, cv::Size(), scale, scale, cv::INTER_LINEAR);
-  cv::imshow("Words", out_img);
+  if (zz.words.size() > 0) {
+    cv::Mat out_img = draw_keypoints(zz, img_grey_3c, 5);
+    cv::resize(out_img, out_img, cv::Size(), scale, scale, cv::INTER_LINEAR);
+    cv::imshow("Words", out_img);
+  } else {
+    cv::imshow("Words", img_grey_3c);
+  }
   cv::waitKey(5); 
 }
 

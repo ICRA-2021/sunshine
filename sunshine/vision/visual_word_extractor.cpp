@@ -1,4 +1,5 @@
 #include "cv_bridge/cv_bridge.h"
+#include "opencv2/core.hpp"
 #include "image_transport/image_transport.h"
 #include "ros/ros.h"
 #include "sensor_msgs/image_encodings.h"
@@ -34,6 +35,9 @@ static bool use_pc;
 static bool use_tf;
 static bool publish_2d;
 static bool publish_3d;
+static bool use_clahe;
+static double seq_duration;
+static uint32_t seq_start;
 static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
 static std::string frame_id = "";
 static std::string world_frame_name = "";
@@ -67,13 +71,46 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = img_ptr->image;
+    if (sunshine::use_clahe) {
+//        cv::imshow("Original", img);
+//        cv::waitKey(5);
+        // Adapted from https://stackoverflow.com/a/24341809
+
+        cv::Mat lab_image;
+        cv::cvtColor(img, lab_image, CV_BGR2Lab);
+
+        // Extract the L channel
+        std::vector<cv::Mat> lab_planes(3);
+        cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
+
+        // apply the CLAHE algorithm to the L channel
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2);
+        cv::Mat dst;
+        clahe->apply(lab_planes[0], dst);
+
+        // Merge the the color planes back into an Lab image
+        dst.copyTo(lab_planes[0]);
+        cv::merge(lab_planes, lab_image);
+
+        // convert back to RGB
+        cv::Mat image_clahe;
+        cv::cvtColor(lab_image, img, CV_Lab2BGR);
+        cv::imshow("CLAHE", img);
+        cv::waitKey(5);
+    }
 
     WordObservation const z = multi_bow(img);
     size_t const num_words = z.words.size();
 
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
     sz->source = z.source;
-    sz->seq = msg->header.seq;
+    if (sunshine::seq_start == 0) {
+        sunshine::seq_start = msg->header.stamp.sec;
+    }
+    sz->seq = (sunshine::seq_duration == 0) ? msg->header.seq
+                                            : static_cast<uint32_t>((msg->header.stamp.sec - sunshine::seq_start
+                                                                        + msg->header.stamp.nsec / 1E9)
+                                                  / sunshine::seq_duration);
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
@@ -171,6 +208,8 @@ int main(int argc, char** argv)
     // Parse parameters
     double rate; //looping rate
 
+    nhp.param<bool>("use_clahe", sunshine::use_clahe, true);
+
     nhp.param<bool>("use_texton", use_texton, true);
     nhp.param<int>("num_texton", texton_cell_size, 64);
     nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/libvisualwords/data/texton.vocabulary.baraka.1000.csv");
@@ -201,6 +240,9 @@ int main(int argc, char** argv)
     nhp.param<bool>("use_tf", sunshine::use_tf, false);
     nhp.param<string>("world_frame", sunshine::world_frame_name, "world");
     nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "sensor");
+
+    nhp.param<double>("seq_duration", sunshine::seq_duration, 0);
+    sunshine::seq_start = 0;
 
     vector<string> feature_detector_names;
     vector<int> feature_sizes;
