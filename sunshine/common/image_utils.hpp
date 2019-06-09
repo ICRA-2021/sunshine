@@ -208,7 +208,7 @@ namespace sunshine {
         ImageScanner3D(const cv::Mat &image, uint32_t frame_width_px, uint32_t frame_height_px, cv::Mat heightMap,
                        double scale = 1., double start_z = 1., double pixel_scale = 1)
                 : ImageScanner(image, frame_width_px, frame_height_px, scale),
-                  heightMap(scaleImage(heightMap, scale)),
+                  heightMap(scaleImage(heightMap, 1.)),
                   z(start_z),
                   pixel_scale(pixel_scale),
                   pc(createPointCloud(getFrameWidth(), getFrameHeight(), "rgb"))
@@ -217,8 +217,9 @@ namespace sunshine {
             assert(heightMap.size == image.size);
 
             auto *pcIterator = reinterpret_cast<RGBPointCloudElement *>(pc->data.data());
-            for (auto row = 0; row < getFrameHeight(); row++) {
-                for (auto col = 0; col < getFrameWidth(); col++) {
+            uint32_t const height = getFrameHeight(), width = getFrameWidth();
+            for (auto row = 0; row < height; row++) {
+                for (auto col = 0; col < width; col++) {
                     pcIterator->data.x = static_cast<float>((col - half_frame_width) * pixel_scale);
                     pcIterator->data.y = static_cast<float>((row - half_frame_height) * pixel_scale);
                     pcIterator++;

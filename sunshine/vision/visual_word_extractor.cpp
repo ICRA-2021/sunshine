@@ -238,8 +238,8 @@ int main(int argc, char** argv)
     nhp.param<string>("feature_descriptor", feature_descriptor_name, "ORB");
 
     nhp.param<bool>("use_tf", sunshine::use_tf, false);
-    nhp.param<string>("world_frame", sunshine::world_frame_name, "world");
-    nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "sensor");
+    nhp.param<string>("world_frame", sunshine::world_frame_name, "map");
+    nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "base_link");
 
     nhp.param<double>("seq_duration", sunshine::seq_duration, 0);
     sunshine::seq_start = 0;
