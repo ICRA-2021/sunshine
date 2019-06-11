@@ -170,7 +170,7 @@ union ARGBPointCloudElement {
 };
 
 template <typename PointContainer>
-sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::string frame_id = "/map")
+sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::string frame_id = "map")
 {
     auto const count = points.size();
     uint32_t const height = 1, width = uint32_t(count);

@@ -1,19 +1,6 @@
 <launch>
-  <!-- Image Walk arguments -->
-  <arg name="size" default="240x240" />
-  <arg name="walk_scale" default="1" />
-  <arg name="test_image" />
-  <arg name="image_topic" default="/camera/image_raw" />
-  <arg name="depth_image_topic" default="/camera/depth" />
-  <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="60" />
-  <arg name="fps" default="4" />
-  <arg name="height" default="120" />
-  <arg name="overlap" default="0" />
-  <arg name="pixel_scale" default="0.01" />
-  <arg name="transform_topic" default="/robot_tf" />
-  <arg name="camera_frame" default="base_link" />
 
+  <arg name="image_topic" default="/camera/image_raw" />
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
   <arg name="rate" default="4" />
@@ -22,7 +9,10 @@
   <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
-  <arg name="use_pc" default="true" />
+  <arg name="use_pc" default="false" />
+  <arg name="use_tf" default="false" />
+  <arg name="depth_cloud_topic" default="" />
+  <arg name="transform_topic" default="" />
   
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
@@ -33,7 +23,7 @@
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="$(arg pixel_scale)" />
+  <arg name="cell_space" default="32" />
   <arg name="cell_time" default="3600" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
@@ -48,33 +38,12 @@
   <arg name="map_topic" default="/rost/topic_map" />
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
-  <arg name="show_topics" default="false" />
+  <arg name="show_topics" default="true" />
   <arg name="2d_words_topic" default="/rost_vision/words_2d" />
   <arg name="show_words" default="true" />
-  <arg name="show_perplexity" default="false" />
+  <arg name="show_perplexity" default="true" />
   <arg name="show_equalized" default="true" />
   <arg name="ppx_display_factor" default="0.75" />
-  
-  <!-- Launch image walker -->
-  <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" >
-    <param name="image_topic" type="string" value="$(arg image_topic)"/>
-    <param name="size" type="string" value="$(arg size)"/>
-    <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)"/>
-    <param name="scale" type="double" value="$(arg walk_scale)"/>
-    <param name="fps" type="double" value="$(arg fps)" />
-    <param name="speed" type="double" value="$(arg speed)" />
-    <param name="overlap" type="double" value="$(arg overlap)" />
-    <param name="height" type="double" value="$(arg height)" />
-    <param name="col_major" type="bool" value="false" />
-    <param name="fov" type="double" value="-1" />
-    <param name="pixel_scale" type="double" value="$(arg pixel_scale)" />
-    <param name="transform_topic" type="string" value="$(arg transform_topic)" />
-    <param name="frame_id" type="string" value="$(arg camera_frame)" />
-    <param name="depth_cloud_topic" type="string" value="$(arg depth_cloud_topic)" />
-    <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)" />
-  </node>
-
-  <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
 
   <!-- Launch word extractor -->
   <node pkg="sunshine" type="visual_word_extractor" name="rost_vision">
@@ -92,6 +61,7 @@
     <param name="transform" value="$(arg transform_topic)"/>
     <param name="pc" value="$(arg depth_cloud_topic)" />
     <param name="use_pc" value="$(arg use_pc)" />
+    <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
   </node>
   
@@ -119,20 +89,14 @@
   </node>
 
   <node pkg="sunshine" type="visualize" name="word_visualizer">
+    <param name="ppx_topic" type="string" value="/rost/scene_perplexity" />
     <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
-    <param name="show_topics" type="bool" value="false" />
+    <param name="topics_topic" type="string" value="/rost/topics" />
+    <param name="show_topics" type="bool" value="$(arg show_topics)" />
     <param name="show_words" type="bool" value="$(arg show_words)" />
-    <param name="show_perplexity" type="bool" value="false" />
+    <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
-
-  <node pkg="sunshine" type="visualize3d" name="visualizer">
-    <param name="input_topic" type="string" value="$(arg map_topic)" />
-    <param name="input_type" type="string" value="$(arg map_type)" />
-    <param name="output_topic" type="string" value="/topic_cloud" />
-    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
-    <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
-  </node>
   
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
 </launch>

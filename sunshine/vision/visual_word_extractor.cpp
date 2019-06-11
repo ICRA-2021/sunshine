@@ -1,4 +1,5 @@
 #include "cv_bridge/cv_bridge.h"
+#include "opencv2/core.hpp"
 #include "image_transport/image_transport.h"
 #include "ros/ros.h"
 #include "sensor_msgs/image_encodings.h"
@@ -34,6 +35,10 @@ static bool use_pc;
 static bool use_tf;
 static bool publish_2d;
 static bool publish_3d;
+static bool use_clahe;
+static double rate;
+static double seq_duration;
+static uint32_t seq_start;
 static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
 static std::string frame_id = "";
 static std::string world_frame_name = "";
@@ -67,13 +72,46 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = img_ptr->image;
+    if (sunshine::use_clahe) {
+//        cv::imshow("Original", img);
+//        cv::waitKey(5);
+        // Adapted from https://stackoverflow.com/a/24341809
+
+        cv::Mat lab_image;
+        cv::cvtColor(img, lab_image, CV_BGR2Lab);
+
+        // Extract the L channel
+        std::vector<cv::Mat> lab_planes(3);
+        cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
+
+        // apply the CLAHE algorithm to the L channel
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2);
+        cv::Mat dst;
+        clahe->apply(lab_planes[0], dst);
+
+        // Merge the the color planes back into an Lab image
+        dst.copyTo(lab_planes[0]);
+        cv::merge(lab_planes, lab_image);
+
+        // convert back to RGB
+        cv::Mat image_clahe;
+        cv::cvtColor(lab_image, img, CV_Lab2BGR);
+        cv::imshow("CLAHE", img);
+        cv::waitKey(5);
+    }
 
     WordObservation const z = multi_bow(img);
     size_t const num_words = z.words.size();
 
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
     sz->source = z.source;
-    sz->seq = msg->header.seq;
+    if (sunshine::seq_start == 0) {
+        sunshine::seq_start = msg->header.stamp.sec;
+    }
+    sz->seq = (sunshine::seq_duration == 0) ? msg->header.seq
+                                            : static_cast<uint32_t>((msg->header.stamp.sec - sunshine::seq_start
+                                                                        + msg->header.stamp.nsec / 1E9)
+                                                  / sunshine::seq_duration);
     sz->vocabulary_begin = z.vocabulary_begin;
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
@@ -88,40 +126,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         sunshine::words_2d_pub.publish(sz);
     }
 
-    //tf2_ros::Buffer buffer;
-    //tf2_ros::TransformListener tfl(buffer);
-    if (use_tf) {
-        if (transform_recvd) {
-            assert(frame_id == sensor_frame_name);
-            sz->observation_transform = latest_transform;
-        } else {
-            try {
-                //tf2::StampedTransform transform;
-                geometry_msgs::TransformStamped transform_msg;
-                ROS_INFO(world_frame_name.c_str());
-                ROS_INFO(sensor_frame_name.c_str());
-                transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
-                //tf2::transformStampedTFToMsg(transform, transform_msg);
-                sz->observation_transform = transform_msg;
-            } catch (tf2::TransformException ex) {
-                ROS_ERROR("No transform received: %s", ex.what());
-                //ros::Duration(1.0).sleep();
-                return;
-            } catch (tf2::LookupException ex) {
-                ROS_ERROR("No transform found: %s", ex.what());
-                return;
-            }
-        }
-    } else {
-        sz->observation_transform = latest_transform;
-    }
-
-    if (use_pc && !pc_recvd) {
-        ROS_ERROR("No point cloud received, observations will not be published");
-        return;
-    }
-
     if (sunshine::publish_3d) {
+        if (use_pc && !pc_recvd) {
+            ROS_ERROR("No point cloud received, observations will not be published");
+            return;
+        }
+
         size_t const poseDim = 3;
         sz->word_pose.clear();
         sz->word_pose.resize(num_words * poseDim);
@@ -142,6 +152,29 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
                 sz->word_pose[i * poseDim + 2] = 0.0;
             }
         }
+
+        if (use_tf) {
+            if (transform_recvd) {
+                assert(frame_id == sensor_frame_name);
+                sz->observation_transform = latest_transform;
+            } else {
+                try {
+                    geometry_msgs::TransformStamped transform_msg;
+                    transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, msg->header.stamp, ros::Duration(0.5/sunshine::rate));
+                    sz->observation_transform = transform_msg;
+                } catch (tf2::TransformException ex) {
+                    ROS_ERROR("No transform received: %s", ex.what());
+                    //ros::Duration(1.0).sleep();
+                    return;
+                } catch (tf2::LookupException ex) {
+                    ROS_ERROR("No transform found: %s", ex.what());
+                    return;
+                }
+            }
+        } else {
+            sz->observation_transform = latest_transform;
+        }
+
         words_pub.publish(sz);
     }
 }
@@ -168,8 +201,8 @@ int main(int argc, char** argv)
     bool use_surf, use_hue, use_intensity, use_orb, use_texton;
     double img_scale;
 
-    // Parse parameters
-    double rate; //looping rate
+    // parse parameters
+    nhp.param<bool>("use_clahe", sunshine::use_clahe, true);
 
     nhp.param<bool>("use_texton", use_texton, true);
     nhp.param<int>("num_texton", texton_cell_size, 64);
@@ -194,13 +227,16 @@ int main(int argc, char** argv)
     nhp.param<bool>("publish_2d_words", sunshine::publish_2d, false);
     nhp.param<bool>("publish_3d_words", sunshine::publish_3d, true);
 
-    nhp.param<double>("rate", rate, 0);
+    nhp.param<double>("rate", sunshine::rate, 0);
 
     nhp.param<string>("feature_descriptor", feature_descriptor_name, "ORB");
 
     nhp.param<bool>("use_tf", sunshine::use_tf, false);
-    nhp.param<string>("world_frame", sunshine::world_frame_name, "world");
-    nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "sensor");
+    nhp.param<string>("world_frame", sunshine::world_frame_name, "map");
+    nhp.param<string>("sensor_frame", sunshine::sensor_frame_name, "base_link");
+
+    nhp.param<double>("seq_duration", sunshine::seq_duration, 0);
+    sunshine::seq_start = 0;
 
     vector<string> feature_detector_names;
     vector<int> feature_sizes;
@@ -238,7 +274,7 @@ int main(int argc, char** argv)
     }
 
     image_transport::ImageTransport it(nhp);
-    image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
+    image_transport::Subscriber sub = it.subscribe(image_topic_name, 3, sunshine::imageCallback);
 
     ros::Subscriber transformCallback;
     if (sunshine::use_tf && !transform_topic_name.empty()) {
@@ -257,10 +293,10 @@ int main(int argc, char** argv)
     sunshine::transform_recvd = false;
     sunshine::pc_recvd = false;
 
-    if (rate <= 0)
+    if (sunshine::rate <= 0)
         ros::spin();
     else {
-        ros::Rate loop_rate(rate);
+        ros::Rate loop_rate(sunshine::rate);
         while (ros::ok()) {
             ros::spinOnce();
             loop_rate.sleep();

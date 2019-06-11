@@ -13,6 +13,7 @@
   <arg name="surf" default="false" />
   <arg name="use_pc" default="false" />
   <arg name="use_tf" default="false" />
+  <arg name="seq_duration" default="0" />
   
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
@@ -62,6 +63,7 @@
     <param name="image" value="$(arg image_topic)"/>
     <param name="use_pc" value="$(arg use_pc)" />
     <param name="publish_2d_words" value="true" />
+    <param name="seq_duration" value="$(arg seq_duration)" />
   </node>
 
   <!-- Launch topic model -->
@@ -87,6 +89,7 @@
   </node>
 
   <node pkg="sunshine" type="visualize" name="word_visualizer">
+    <param name="scale" type="double" value="$(arg scale)" />
     <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
     <param name="topics_topic" type="string" value="/rost/topics" />
     <param name="image" type="string" value="$(arg image_topic)"/>

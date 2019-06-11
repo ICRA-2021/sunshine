@@ -1,22 +1,22 @@
 <launch>
   <!-- Image Walk arguments -->
-  <arg name="size" default="240x240" />
-  <arg name="walk_scale" default="1" />
+  <arg name="size" default="180x180" />
+  <arg name="walk_scale" default="0.1" />
   <arg name="test_image" />
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_image_topic" default="/camera/depth" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="speed" default="2" />
-  <arg name="fps" default="4" />
+  <arg name="speed" default="6" />
+  <arg name="fps" default="1" />
   <arg name="height" default="1.2" />
-  <arg name="overlap" default="0" />
-  <arg name="pixel_scale" default="0.01" />
+  <arg name="overlap" default="4.5" />
+  <arg name="pixel_scale" default="0.1" />
   <arg name="transform_topic" default="/robot_tf" />
   <arg name="camera_frame" default="base_link" />
 
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
-  <arg name="rate" default="4" />
+  <arg name="rate" default="0.5" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
   <arg name="texton" default="true" />
@@ -25,15 +25,15 @@
   <arg name="use_pc" default="true" />
   
   <!-- Topic model arguments -->
-  <arg name="K" default="100" />
+  <arg name="K" default="8" />
   <arg name="V" default="16180" />
   <arg name="alpha" default="0.1" />
-  <arg name="beta" default="1.0" />
+  <arg name="beta" default="0.01" />
   <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="$(arg pixel_scale)" />
+  <arg name="cell_space" default="0.8" />
   <arg name="cell_time" default="3600" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
