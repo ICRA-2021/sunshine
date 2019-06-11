@@ -36,6 +36,7 @@ static bool use_tf;
 static bool publish_2d;
 static bool publish_3d;
 static bool use_clahe;
+static double rate;
 static double seq_duration;
 static uint32_t seq_start;
 static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
@@ -125,40 +126,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         sunshine::words_2d_pub.publish(sz);
     }
 
-    //tf2_ros::Buffer buffer;
-    //tf2_ros::TransformListener tfl(buffer);
-    if (use_tf) {
-        if (transform_recvd) {
-            assert(frame_id == sensor_frame_name);
-            sz->observation_transform = latest_transform;
-        } else {
-            try {
-                //tf2::StampedTransform transform;
-                geometry_msgs::TransformStamped transform_msg;
-                ROS_INFO(world_frame_name.c_str());
-                ROS_INFO(sensor_frame_name.c_str());
-                transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, ros::Time(0));
-                //tf2::transformStampedTFToMsg(transform, transform_msg);
-                sz->observation_transform = transform_msg;
-            } catch (tf2::TransformException ex) {
-                ROS_ERROR("No transform received: %s", ex.what());
-                //ros::Duration(1.0).sleep();
-                return;
-            } catch (tf2::LookupException ex) {
-                ROS_ERROR("No transform found: %s", ex.what());
-                return;
-            }
-        }
-    } else {
-        sz->observation_transform = latest_transform;
-    }
-
-    if (use_pc && !pc_recvd) {
-        ROS_ERROR("No point cloud received, observations will not be published");
-        return;
-    }
-
     if (sunshine::publish_3d) {
+        if (use_pc && !pc_recvd) {
+            ROS_ERROR("No point cloud received, observations will not be published");
+            return;
+        }
+
         size_t const poseDim = 3;
         sz->word_pose.clear();
         sz->word_pose.resize(num_words * poseDim);
@@ -179,6 +152,29 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
                 sz->word_pose[i * poseDim + 2] = 0.0;
             }
         }
+
+        if (use_tf) {
+            if (transform_recvd) {
+                assert(frame_id == sensor_frame_name);
+                sz->observation_transform = latest_transform;
+            } else {
+                try {
+                    geometry_msgs::TransformStamped transform_msg;
+                    transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, msg->header.stamp, ros::Duration(0.5/sunshine::rate));
+                    sz->observation_transform = transform_msg;
+                } catch (tf2::TransformException ex) {
+                    ROS_ERROR("No transform received: %s", ex.what());
+                    //ros::Duration(1.0).sleep();
+                    return;
+                } catch (tf2::LookupException ex) {
+                    ROS_ERROR("No transform found: %s", ex.what());
+                    return;
+                }
+            }
+        } else {
+            sz->observation_transform = latest_transform;
+        }
+
         words_pub.publish(sz);
     }
 }
@@ -205,9 +201,7 @@ int main(int argc, char** argv)
     bool use_surf, use_hue, use_intensity, use_orb, use_texton;
     double img_scale;
 
-    // Parse parameters
-    double rate; //looping rate
-
+    // parse parameters
     nhp.param<bool>("use_clahe", sunshine::use_clahe, true);
 
     nhp.param<bool>("use_texton", use_texton, true);
@@ -233,7 +227,7 @@ int main(int argc, char** argv)
     nhp.param<bool>("publish_2d_words", sunshine::publish_2d, false);
     nhp.param<bool>("publish_3d_words", sunshine::publish_3d, true);
 
-    nhp.param<double>("rate", rate, 0);
+    nhp.param<double>("rate", sunshine::rate, 0);
 
     nhp.param<string>("feature_descriptor", feature_descriptor_name, "ORB");
 
@@ -280,7 +274,7 @@ int main(int argc, char** argv)
     }
 
     image_transport::ImageTransport it(nhp);
-    image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, sunshine::imageCallback);
+    image_transport::Subscriber sub = it.subscribe(image_topic_name, 3, sunshine::imageCallback);
 
     ros::Subscriber transformCallback;
     if (sunshine::use_tf && !transform_topic_name.empty()) {
@@ -299,10 +293,10 @@ int main(int argc, char** argv)
     sunshine::transform_recvd = false;
     sunshine::pc_recvd = false;
 
-    if (rate <= 0)
+    if (sunshine::rate <= 0)
         ros::spin();
     else {
-        ros::Rate loop_rate(rate);
+        ros::Rate loop_rate(sunshine::rate);
         while (ros::ok()) {
             ros::spinOnce();
             loop_rate.sleep();

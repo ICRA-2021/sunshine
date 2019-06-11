@@ -7,8 +7,93 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_listener.h>
 
 using namespace sunshine;
+
+class MovePattern {
+public:
+    virtual ~MovePattern() = default;
+    virtual void move() = 0;
+    virtual double getX() const = 0;
+    virtual double getY() const = 0;
+};
+
+class BoustrophedonicPattern : public MovePattern {
+public:
+    enum class Direction {
+        DOWN = -2, LEFT = -1, RIGHT = 1, UP = 2, NONE = 0
+    };
+
+private:
+    sunshine::ImageScanner* image_scanner;
+    bool col_major;
+    double x;
+    double y;
+    double const step_size;
+    double const overlap;
+    Direction dir;
+
+    double& primary_axis = (col_major) ? y : x, secondary_axis = (col_major) ? x : y;
+    double& track = (col_major) ? x : y;
+    double const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
+    double const primary_window_extent = (col_major) ? image_scanner->getMinY() : image_scanner->getMinX();
+    double const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
+    double const secondary_window_extent = (col_major) ? image_scanner->getMinX() : image_scanner->getMinY();
+
+    void advance_track() {
+        if (track >= secondary_axis_max - secondary_window_extent) {
+            dir = Direction::NONE;
+            return;
+        }
+        dir = Direction::DOWN;
+        track += std::min(2 * secondary_window_extent - overlap, secondary_axis_max - secondary_window_extent - track);
+    }
+
+public:
+    BoustrophedonicPattern(sunshine::ImageScanner* image_scanner, double initial_x, double initial_y, bool col_major, double step_size, double overlap, Direction dir = Direction::RIGHT)
+        : image_scanner(image_scanner)
+        , col_major(col_major)
+        , x(initial_x)
+        , y(initial_y)
+        , step_size(step_size)
+        , overlap(overlap)
+        , dir(dir) {
+    }
+
+    ~BoustrophedonicPattern() = default;
+
+    void move() {
+        if (dir == Direction::RIGHT) {
+            if (primary_axis >= primary_axis_max - primary_window_extent) {
+                advance_track();
+            } else {
+                primary_axis += std::min(step_size, primary_axis_max - primary_window_extent - primary_axis);
+            }
+        } else if (dir == Direction::LEFT) {
+            if (primary_axis <= primary_window_extent) {
+                advance_track();
+            } else {
+                primary_axis -= std::min(step_size, primary_axis - primary_window_extent);
+            }
+        }
+
+        if (dir == Direction::DOWN) {
+            // Advance towards the new track
+            secondary_axis += std::min(step_size, track - secondary_axis);
+            if (secondary_axis >= track) {
+                dir = (primary_axis <= primary_window_extent) ? Direction::RIGHT : Direction::LEFT;
+            }
+        }
+    }
+
+    double getX() const {
+        return x;
+    }
+    double getY() const {
+        return y;
+    }
+};
 
 int main(int argc, char **argv)
 {
@@ -30,6 +115,8 @@ int main(int argc, char **argv)
     auto const transform_topic = nh.param<std::string>("transform_topic", "/tf");
     auto const frame_id = nh.param<std::string>("frame_id", "base_link");
     auto const pixel_scale = nh.param<double>("pixel_scale", 0.01);
+    auto const pattern_name = nh.param<std::string>("move_pattern", "lawnmower");
+    bool const follow_mode = pattern_name.empty() || pattern_name == "follow";
 
     cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
     cv::waitKey(30);
@@ -81,7 +168,6 @@ int main(int argc, char **argv)
 
     double cx = image_scanner->getMinX();
     double cy = image_scanner->getMinY();
-    double track = (col_major) ? cx : cy;
 
     auto const poseCallback = [&]() {
         tf2::Quaternion q;
@@ -90,66 +176,55 @@ int main(int argc, char **argv)
                           tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude > 0) ? altitude : 0), q,
                           "map", header.stamp);
     };
-    if (publishDepthImage) {
+    if (!follow_mode) {
         poseCallback();
         ros::spinOnce();
     }
 
-    enum class Direction {
-        DOWN = -2, LEFT = -1, RIGHT = 1, UP = 2, NONE = 0
-    };
-    Direction dir = Direction::RIGHT;
-
-    auto &primary_axis = (col_major) ? cy : cx;
-    auto const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
-    auto const primary_window_extent = (col_major) ? image_scanner->getMinY() : image_scanner->getMinX();
-    auto &secondary_axis = (col_major) ? cx : cy;
-    auto const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
-    auto const secondary_window_extent = (col_major) ? image_scanner->getMinX() : image_scanner->getMinY();
-    auto const step_size = speed / fps;
-
-    auto const advanceTrack = [&]() {
-        if (track >= secondary_axis_max - secondary_window_extent) {
-            dir = Direction::NONE;
-            return;
-        }
-        dir = Direction::DOWN;
-        track += std::min(2 * secondary_window_extent - overlap, secondary_axis_max - secondary_window_extent - track);
-    };
-
-    auto const lawnmowerMove = [&](double const step_size) {
-        if (dir == Direction::RIGHT) {
-            if (primary_axis >= primary_axis_max - primary_window_extent) {
-                advanceTrack();
-            } else {
-                primary_axis += std::min(step_size, primary_axis_max - primary_window_extent - primary_axis);
-            }
-        } else if (dir == Direction::LEFT) {
-            if (primary_axis <= primary_window_extent) {
-                advanceTrack();
-            } else {
-                primary_axis -= std::min(step_size, primary_axis - primary_window_extent);
-            }
-        }
-
-        if (dir == Direction::DOWN) {
-            // Advance towards the new track
-            secondary_axis += std::min(step_size, track - secondary_axis);
-            if (secondary_axis >= track) {
-                dir = (primary_axis <= primary_window_extent) ? Direction::RIGHT : Direction::LEFT;
-            }
-        }
-    };
+    std::unique_ptr<MovePattern> movePattern;
+    std::unique_ptr<tf2_ros::Buffer> tf_buffer;
+    std::unique_ptr<tf2_ros::TransformListener> tf_listener;
+    if (follow_mode) {
+        tf_buffer = std::make_unique<tf2_ros::Buffer>();
+        tf_listener = std::make_unique<tf2_ros::TransformListener>(*tf_buffer);
+    } else if (pattern_name == "lawnmower") {
+        movePattern = std::make_unique<BoustrophedonicPattern>(image_scanner.get(), cx, cy, col_major, speed / fps, overlap);
+    }
 
     ros::Rate rate(fps);
-    uint64_t warmup = 8;
+    uint64_t const warmup = 8;
     for (uint64_t numFrames = 0; nh.ok(); numFrames++) {
-        header.stamp = ros::Time::now();
+        // Update robot pose
+        if (follow_mode) {
+            try {
+                auto const& transform_msg = tf_buffer->lookupTransform("map", frame_id, ros::Time(0));
+                cx = transform_msg.transform.translation.x;
+                cy = -transform_msg.transform.translation.y;
+                header.stamp = transform_msg.header.stamp;
+            } catch (tf2::LookupException ex) {
+                ROS_WARN_THROTTLE(1, "Failed to find tranform from %s to %s", frame_id.c_str(), "map");
+            }
+        } else {
+            static_assert(warmup >= 1, "Warmup should be at least 1 or initial frame will be missing.");
+            if (numFrames > warmup) {
+                movePattern->move();
+            }
+            cx = movePattern->getX();
+            cy = movePattern->getY();
+
+            // publish update pose (since we control it)
+            poseCallback();
+            ros::spinOnce();
+
+            // update header timestamp for published images
+            header.stamp = ros::Time::now();
+        }
+
+        // Publish images
         image_scanner->moveTo(cx, cy);
         auto const &visibleRegion = image_scanner->getCurrentView();
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", visibleRegion).toImageMsg();
         if (publishDepthImage) {
-            poseCallback();
             auto *image_scanner_3d = dynamic_cast<sunshine::ImageScanner3D<> *>(image_scanner.get());
             depthCloud = image_scanner_3d->getCurrentPointCloud();
             depthCloud->header = header;
@@ -161,9 +236,5 @@ int main(int argc, char **argv)
 
         ros::spinOnce();
         rate.sleep();
-
-        if (numFrames > warmup) {
-            lawnmowerMove(step_size);
-        }
     }
 }
