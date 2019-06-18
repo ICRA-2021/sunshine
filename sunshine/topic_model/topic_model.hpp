@@ -42,6 +42,7 @@ class topic_model {
 
     std::vector<CellDimType> observation_times; //list of all time seq ids observed thus far.
     std::vector<cell_pose_t> current_cell_poses, last_poses;
+    std::string current_source;
     sunshine_msgs::WordObservation topicObs;
 
     std::atomic<bool> stopWork;
