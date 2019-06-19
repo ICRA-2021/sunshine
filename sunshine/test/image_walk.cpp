@@ -157,6 +157,7 @@ int main(int argc, char** argv)
     ros::Subscriber follow_sub;
     if (!follow_topic.empty()) {
         follow_sub = nh.subscribe<sensor_msgs::Image>(follow_topic, 1, [&](sensor_msgs::ImageConstPtr img) {
+            ROS_DEBUG("Followed image received.");
             if (frame_id.empty()) {
                 header = img->header;
             } else {
@@ -189,15 +190,15 @@ int main(int argc, char** argv)
     double cx = image_scanner->getMinX();
     double cy = image_scanner->getMinY();
 
-    auto const poseCallback = [&]() {
+    auto const poseCallback = [&](ros::Time const stamp) {
         tf2::Quaternion q;
         q.setRPY(0, M_PI, M_PI);
         broadcastTranform(frame_id,
             tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude > 0) ? altitude : 0), q,
-            "map", header.stamp);
+            "map", stamp);
     };
     if (!follow_mode) {
-        poseCallback();
+        poseCallback(ros::Time::now());
         ros::spinOnce();
     }
 
@@ -214,20 +215,25 @@ int main(int argc, char** argv)
     ros::Rate rate(fps);
     uint64_t const warmup = 8;
     for (uint64_t numFrames = 0; nh.ok(); numFrames++) {
+        std_msgs::Header this_header = header;
         // Update robot pose
         if (follow_mode) {
             try {
                 geometry_msgs::TransformStamped transform_msg;
                 if (follow_topic.empty()) {
-                    transform_msg = tf_buffer->lookupTransform("map", frame_id, ros::Time(0));
-                    header.stamp = transform_msg.header.stamp;
+                    transform_msg = tf_buffer->lookupTransform("map",
+                        frame_id,
+                        ros::Time(0),
+                        ros::Duration(1. / fps));
+                    this_header.stamp = transform_msg.header.stamp;
                 } else {
-                    transform_msg = tf_buffer->lookupTransform("map", header.frame_id, ros::Time(header.stamp));
+                    assert(this_header.frame_id == frame_id);
+                    transform_msg = tf_buffer->lookupTransform("map", this_header.frame_id, this_header.stamp, ros::Duration(1. / fps));
                 }
                 cx = transform_msg.transform.translation.x;
                 cy = -transform_msg.transform.translation.y;
-            } catch (tf2::LookupException ex) {
-                ROS_WARN_THROTTLE(1, "Failed to find tranform from %s to %s", frame_id.c_str(), "map");
+            } catch (tf2::TransformException ex) {
+                ROS_WARN_THROTTLE(1, "Failed to find tranform from %s to %s at time %f", frame_id.c_str(), "map", this_header.stamp.toSec());
             }
         } else {
             static_assert(warmup >= 1, "Warmup should be at least 1 or initial frame will be missing.");
@@ -238,23 +244,23 @@ int main(int argc, char** argv)
             cy = movePattern->getY();
 
             // publish update pose (since we control it)
-            poseCallback();
+            poseCallback(ros::Time::now());
             ros::spinOnce();
 
             // update header timestamp for published images
-            header.stamp = ros::Time::now();
+            this_header.stamp = ros::Time::now();
         }
 
         // Publish images
         image_scanner->moveTo(cx, cy);
         auto const& visibleRegion = image_scanner->getCurrentView();
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", visibleRegion).toImageMsg();
+        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(this_header, "bgr8", visibleRegion).toImageMsg();
         if (publishDepthImage) {
             auto* image_scanner_3d = dynamic_cast<sunshine::ImageScanner3D<>*>(image_scanner.get());
             depthCloud = image_scanner_3d->getCurrentPointCloud();
-            depthCloud->header = header;
+            depthCloud->header = this_header;
             depthCloudPub.publish(*depthCloud);
-            depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1,
+            depthImagePub.publish(cv_bridge::CvImage(this_header, sensor_msgs::image_encodings::TYPE_32FC1,
                 image_scanner_3d->getCurrentDepthView())
                                       .toImageMsg());
         }

@@ -246,9 +246,9 @@ void topic_model::broadcast_topics() const
     topic_map->vocabulary_begin = 0;
     topic_map->vocabulary_size = static_cast<int32_t>(K);
     topic_map->ppx_type = map_ppx_type;
-    topic_map->cell_topics.reserve(current_cell_poses.size());
-    topic_map->cell_ppx.reserve(current_cell_poses.size());
-    topic_map->cell_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
+    topic_map->cell_topics.reserve(rost->cell_pose.size());
+    topic_map->cell_ppx.reserve(rost->cell_pose.size());
+    topic_map->cell_poses.reserve(rost->cell_pose.size() * (POSEDIM - 1));
     topic_map->cell_width = { cell_size.begin() + 1, cell_size.end() };
     topic_map->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
     topic_map->observation_transform.header.stamp = ros::Time::now();
