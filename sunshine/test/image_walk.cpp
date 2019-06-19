@@ -22,7 +22,11 @@ public:
 class BoustrophedonicPattern : public MovePattern {
 public:
     enum class Direction {
-        DOWN = -2, LEFT = -1, RIGHT = 1, UP = 2, NONE = 0
+        DOWN = -2,
+        LEFT = -1,
+        RIGHT = 1,
+        UP = 2,
+        NONE = 0
     };
 
 private:
@@ -34,14 +38,15 @@ private:
     double const overlap;
     Direction dir;
 
-    double& primary_axis = (col_major) ? y : x, secondary_axis = (col_major) ? x : y;
+    double &primary_axis = (col_major) ? y : x, secondary_axis = (col_major) ? x : y;
     double& track = (col_major) ? x : y;
     double const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
     double const primary_window_extent = (col_major) ? image_scanner->getMinY() : image_scanner->getMinX();
     double const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
     double const secondary_window_extent = (col_major) ? image_scanner->getMinX() : image_scanner->getMinY();
 
-    void advance_track() {
+    void advance_track()
+    {
         if (track >= secondary_axis_max - secondary_window_extent) {
             dir = Direction::NONE;
             return;
@@ -58,12 +63,14 @@ public:
         , y(initial_y)
         , step_size(step_size)
         , overlap(overlap)
-        , dir(dir) {
+        , dir(dir)
+    {
     }
 
     ~BoustrophedonicPattern() = default;
 
-    void move() {
+    void move()
+    {
         if (dir == Direction::RIGHT) {
             if (primary_axis >= primary_axis_max - primary_window_extent) {
                 advance_track();
@@ -87,15 +94,17 @@ public:
         }
     }
 
-    double getX() const {
+    double getX() const
+    {
         return x;
     }
-    double getY() const {
+    double getY() const
+    {
         return y;
     }
 };
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     ros::init(argc, argv, "image_walker");
     std::string const image_filename = (argc > 1) ? argv[1] : "";
@@ -117,6 +126,7 @@ int main(int argc, char **argv)
     auto const pixel_scale = nh.param<double>("pixel_scale", 0.01);
     auto const pattern_name = nh.param<std::string>("move_pattern", "lawnmower");
     bool const follow_mode = pattern_name.empty() || pattern_name == "follow";
+    auto const follow_topic = nh.param<std::string>("follow_topic", "");
 
     cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
     cv::waitKey(30);
@@ -140,10 +150,20 @@ int main(int argc, char **argv)
         throw std::invalid_argument("Overlap is too large!");
     }
 
-
     std_msgs::Header header;
     header.stamp = ros::Time::now();
     header.frame_id = frame_id;
+
+    ros::Subscriber follow_sub;
+    if (!follow_topic.empty()) {
+        follow_sub = nh.subscribe<sensor_msgs::Image>(follow_topic, 1, [&](sensor_msgs::ImageConstPtr img) {
+            if (frame_id.empty()) {
+                header = img->header;
+            } else {
+                header.stamp = img->header.stamp;
+                header.seq = img->header.seq;
+            } });
+    }
 
     // Publish image topic
     image_transport::ImageTransport it(nh);
@@ -160,8 +180,8 @@ int main(int argc, char **argv)
         depthCloudPub = nh.advertise<sensor_msgs::PointCloud2>(depth_cloud_topic, 1);
         depthImagePub = it.advertise(depth_image_topic, 1);
         image_scanner = std::make_unique<sunshine::ImageScanner3D<>>(image, width, height,
-                                                                     getFlatHeightMap(image.cols, image.rows, 0.),
-                                                                     scale, altitude, pixel_scale);
+            getFlatHeightMap(image.cols, image.rows, 0.),
+            scale, altitude, pixel_scale);
     } else {
         image_scanner = std::make_unique<sunshine::ImageScanner>(image, width, height, scale);
     }
@@ -173,8 +193,8 @@ int main(int argc, char **argv)
         tf2::Quaternion q;
         q.setRPY(0, M_PI, M_PI);
         broadcastTranform(frame_id,
-                          tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude > 0) ? altitude : 0), q,
-                          "map", header.stamp);
+            tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude > 0) ? altitude : 0), q,
+            "map", header.stamp);
     };
     if (!follow_mode) {
         poseCallback();
@@ -197,10 +217,15 @@ int main(int argc, char **argv)
         // Update robot pose
         if (follow_mode) {
             try {
-                auto const& transform_msg = tf_buffer->lookupTransform("map", frame_id, ros::Time(0));
+                geometry_msgs::TransformStamped transform_msg;
+                if (follow_topic.empty()) {
+                    transform_msg = tf_buffer->lookupTransform("map", frame_id, ros::Time(0));
+                    header.stamp = transform_msg.header.stamp;
+                } else {
+                    transform_msg = tf_buffer->lookupTransform("map", header.frame_id, ros::Time(header.stamp));
+                }
                 cx = transform_msg.transform.translation.x;
                 cy = -transform_msg.transform.translation.y;
-                header.stamp = transform_msg.header.stamp;
             } catch (tf2::LookupException ex) {
                 ROS_WARN_THROTTLE(1, "Failed to find tranform from %s to %s", frame_id.c_str(), "map");
             }
@@ -222,15 +247,16 @@ int main(int argc, char **argv)
 
         // Publish images
         image_scanner->moveTo(cx, cy);
-        auto const &visibleRegion = image_scanner->getCurrentView();
+        auto const& visibleRegion = image_scanner->getCurrentView();
         sensor_msgs::ImagePtr msg = cv_bridge::CvImage(header, "bgr8", visibleRegion).toImageMsg();
         if (publishDepthImage) {
-            auto *image_scanner_3d = dynamic_cast<sunshine::ImageScanner3D<> *>(image_scanner.get());
+            auto* image_scanner_3d = dynamic_cast<sunshine::ImageScanner3D<>*>(image_scanner.get());
             depthCloud = image_scanner_3d->getCurrentPointCloud();
             depthCloud->header = header;
             depthCloudPub.publish(*depthCloud);
             depthImagePub.publish(cv_bridge::CvImage(header, sensor_msgs::image_encodings::TYPE_32FC1,
-                                                     image_scanner_3d->getCurrentDepthView()).toImageMsg());
+                image_scanner_3d->getCurrentDepthView())
+                                      .toImageMsg());
         }
         imagePub.publish(msg);
 

@@ -107,7 +107,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     size_t const num_words = z.words.size();
 
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
-    sz->source = z.source;
+    sz->source = /** std::to_string(msg->header.seq) + "-" + **/
+        std::to_string(msg->header.stamp.toNSec());
     if (sunshine::seq_start == 0) {
         sunshine::seq_start = msg->header.stamp.sec;
     }
