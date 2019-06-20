@@ -38,8 +38,9 @@ private:
     double const overlap;
     Direction dir;
 
-    double &primary_axis = (col_major) ? y : x, secondary_axis = (col_major) ? x : y;
-    double& track = (col_major) ? x : y;
+    double& primary_axis = (col_major) ? y : x;
+    double& secondary_axis = (col_major) ? x : y;
+    double track = (col_major) ? x : y;
     double const primary_axis_max = ((col_major) ? image_scanner->getMaxY() : image_scanner->getMaxX());
     double const primary_window_extent = (col_major) ? image_scanner->getMinY() : image_scanner->getMinX();
     double const secondary_axis_max = ((col_major) ? image_scanner->getMaxX() : image_scanner->getMaxY());
@@ -53,6 +54,7 @@ private:
         }
         dir = Direction::DOWN;
         track += std::min(2 * secondary_window_extent - overlap, secondary_axis_max - secondary_window_extent - track);
+//        ROS_WARN(("New track: " + std::to_string(track)).c_str());
     }
 
 public:
@@ -87,7 +89,9 @@ public:
 
         if (dir == Direction::DOWN) {
             // Advance towards the new track
+//            ROS_WARN(("Secondary axis before: " + std::to_string(secondary_axis)).c_str());
             secondary_axis += std::min(step_size, track - secondary_axis);
+//            ROS_WARN(("Secondary axis after:  " + std::to_string(secondary_axis)).c_str());
             if (secondary_axis >= track) {
                 dir = (primary_axis <= primary_window_extent) ? Direction::RIGHT : Direction::LEFT;
             }
@@ -194,8 +198,9 @@ int main(int argc, char** argv)
         tf2::Quaternion q;
         q.setRPY(0, M_PI, M_PI);
         broadcastTranform(frame_id,
-            tf2::Vector3(image_scanner->getX(), -image_scanner->getY(), (altitude > 0) ? altitude : 0), q,
+            tf2::Vector3(cx, -cy, (altitude > 0) ? altitude : 0), q,
             "map", stamp);
+//        std::cout << "Published position at " << image_scanner->getX() << "," << -image_scanner->getY() << std::endl;
     };
     if (!follow_mode) {
         poseCallback(ros::Time::now());
@@ -212,7 +217,8 @@ int main(int argc, char** argv)
         movePattern = std::make_unique<BoustrophedonicPattern>(image_scanner.get(), cx, cy, col_major, speed / fps, overlap);
     }
 
-    ros::Rate rate(fps);
+    auto const& callbackQueue = ros::getGlobalCallbackQueue();
+    ros::Rate rate(fps * 2);
     uint64_t const warmup = 8;
     for (uint64_t numFrames = 0; nh.ok(); numFrames++) {
         std_msgs::Header this_header = header;
@@ -243,13 +249,16 @@ int main(int argc, char** argv)
             cx = movePattern->getX();
             cy = movePattern->getY();
 
-            // publish update pose (since we control it)
-            poseCallback(ros::Time::now());
-            ros::spinOnce();
+//            ROS_WARN(("New location:" + std::to_string(cx) + "," + std::to_string(cy)).c_str());
 
             // update header timestamp for published images
             this_header.stamp = ros::Time::now();
+            // publish update pose (since we control it)
+            poseCallback(this_header.stamp);
+            callbackQueue->callAvailable();
+            assert(callbackQueue->empty());
         }
+        rate.sleep();
 
         // Publish images
         image_scanner->moveTo(cx, cy);
@@ -266,7 +275,8 @@ int main(int argc, char** argv)
         }
         imagePub.publish(msg);
 
-        ros::spinOnce();
+        callbackQueue->callAvailable();
+        assert(callbackQueue->empty());
         rate.sleep();
     }
 }

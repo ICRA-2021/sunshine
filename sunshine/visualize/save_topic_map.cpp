@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         for (size_t i = 0; i < N; i++, poseIter++) {
             Point const point(std::round((poseIter->x - minX) / pixel_scale),
                 std::round((poseIter->y - minY) / pixel_scale));
-            assert(points.insert({point.x, point.y}).second);
+            assert(points.insert({ point.x, point.y }).second);
             topicMapImg.at<double>(point) = msg->cell_topics[i] + 1;
             ppxMapImg.at<double>(point) = msg->cell_ppx[i];
         }
