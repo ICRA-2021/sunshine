@@ -3,7 +3,7 @@ Header header
 uint32 seq
 
 #what kind of observations?
-string source
+#string source
 
 #type of perplexity calculated
 string ppx_type
@@ -15,8 +15,11 @@ geometry_msgs/TransformStamped observation_transform
 #list of topics observed
 int32[] cell_topics
 
-#local position of each topic in the global frame
+#position of each cell in the global frame
 float64[] cell_poses
+
+#size of each cell, dimensions ordered the same as the cell pose
+float64[] cell_width
 
 #perplexity of each cell
 float64[] cell_ppx

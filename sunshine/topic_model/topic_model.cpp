@@ -105,7 +105,7 @@ topic_model::topic_model(ros::NodeHandle* nh)
     if (is_hierarchical) {
         ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
         rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(
-                    static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
+            static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
 
     } else {
         rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G));
@@ -202,6 +202,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
         current_cell_poses.clear();
+        current_source.clear();
     }
     last_time = observation_time;
 
@@ -212,6 +213,9 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         auto const& cell_words = entry.second;
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
+        ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
+            "Words received from different source with same observation time!");
+        current_source = wordObs->source;
     }
     ROS_DEBUG("Refining %u cells", current_cell_poses.size());
 
@@ -230,7 +234,7 @@ void topic_model::broadcast_topics() const
     auto const time = last_time;
 
     WordObservation::Ptr topicObs(new WordObservation);
-    topicObs->source = "topics";
+    topicObs->source = current_source;
     topicObs->vocabulary_begin = 0;
     topicObs->vocabulary_size = static_cast<int32_t>(K);
     topicObs->seq = static_cast<uint32_t>(time);
@@ -239,13 +243,13 @@ void topic_model::broadcast_topics() const
 
     TopicMap::Ptr topic_map(new TopicMap);
     topic_map->seq = static_cast<uint32_t>(time);
-    topic_map->source = "topics";
     topic_map->vocabulary_begin = 0;
     topic_map->vocabulary_size = static_cast<int32_t>(K);
     topic_map->ppx_type = map_ppx_type;
-    topic_map->cell_topics.reserve(current_cell_poses.size());
-    topic_map->cell_ppx.reserve(current_cell_poses.size());
-    topic_map->cell_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
+    topic_map->cell_topics.reserve(rost->cell_pose.size());
+    topic_map->cell_ppx.reserve(rost->cell_pose.size());
+    topic_map->cell_poses.reserve(rost->cell_pose.size() * (POSEDIM - 1));
+    topic_map->cell_width = { cell_size.begin() + 1, cell_size.end() };
     topic_map->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
     topic_map->observation_transform.header.stamp = ros::Time::now();
 
@@ -255,13 +259,13 @@ void topic_model::broadcast_topics() const
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = { cell_size.begin(), cell_size.end() };
+    global_surprise->cell_width = { cell_size.begin() + 1, cell_size.end() };
     global_surprise->surprise.reserve(current_cell_poses.size());
     global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = { cell_size.begin(), cell_size.end() };
+    local_surprise->cell_width = { cell_size.begin() + 1, cell_size.end() };
     local_surprise->surprise.reserve(current_cell_poses.size());
     local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 

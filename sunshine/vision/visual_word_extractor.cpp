@@ -1,6 +1,6 @@
 #include "cv_bridge/cv_bridge.h"
-#include "opencv2/core.hpp"
 #include "image_transport/image_transport.h"
+#include "opencv2/core.hpp"
 #include "ros/ros.h"
 #include "sensor_msgs/image_encodings.h"
 
@@ -36,6 +36,7 @@ static bool use_tf;
 static bool publish_2d;
 static bool publish_3d;
 static bool use_clahe;
+static bool show_clahe;
 static double rate;
 static double seq_duration;
 static uint32_t seq_start;
@@ -49,8 +50,10 @@ static tf2_ros::Buffer* tf_buffer;
 void transformCallback(const geometry_msgs::TransformStampedConstPtr& msg)
 {
     // Callback to handle world to sensor transform
-    if (!transform_recvd)
+    if (!transform_recvd) {
+        ROS_WARN("Using a dedicated transform topic is inferior to looking up tf2 transforms!");
         transform_recvd = true;
+    }
 
     latest_transform = *msg;
     frame_id = msg->child_frame_id;
@@ -73,8 +76,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat img = img_ptr->image;
     if (sunshine::use_clahe) {
-//        cv::imshow("Original", img);
-//        cv::waitKey(5);
         // Adapted from https://stackoverflow.com/a/24341809
 
         cv::Mat lab_image;
@@ -82,7 +83,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
         // Extract the L channel
         std::vector<cv::Mat> lab_planes(3);
-        cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
+        cv::split(lab_image, lab_planes); // now we have the L image in lab_planes[0]
 
         // apply the CLAHE algorithm to the L channel
         cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2);
@@ -96,15 +97,18 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         // convert back to RGB
         cv::Mat image_clahe;
         cv::cvtColor(lab_image, img, CV_Lab2BGR);
-        cv::imshow("CLAHE", img);
-        cv::waitKey(5);
+        if (show_clahe) {
+            cv::imshow("CLAHE", img);
+            cv::waitKey(5);
+        }
     }
 
     WordObservation const z = multi_bow(img);
     size_t const num_words = z.words.size();
 
     sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
-    sz->source = z.source;
+    sz->source = /** std::to_string(msg->header.seq) + "-" + **/
+        std::to_string(msg->header.stamp.toNSec());
     if (sunshine::seq_start == 0) {
         sunshine::seq_start = msg->header.stamp.sec;
     }
@@ -160,7 +164,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             } else {
                 try {
                     geometry_msgs::TransformStamped transform_msg;
-                    transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, msg->header.stamp, ros::Duration(0.5/sunshine::rate));
+                    transform_msg = tf_buffer->lookupTransform(world_frame_name, sensor_frame_name, msg->header.stamp, ros::Duration(0.5 / sunshine::rate));
                     sz->observation_transform = transform_msg;
                 } catch (tf2::TransformException ex) {
                     ROS_ERROR("No transform received: %s", ex.what());
@@ -203,6 +207,7 @@ int main(int argc, char** argv)
 
     // parse parameters
     nhp.param<bool>("use_clahe", sunshine::use_clahe, true);
+    nhp.param<bool>("show_clahe", sunshine::show_clahe, false);
 
     nhp.param<bool>("use_texton", use_texton, true);
     nhp.param<int>("num_texton", texton_cell_size, 64);

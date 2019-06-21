@@ -3,19 +3,20 @@
   <arg name="size" default="180x180" />
   <arg name="walk_scale" default="0.1" />
   <arg name="test_image" />
-  <arg name="image_topic" default="/camera/image_raw" />
-  <arg name="depth_image_topic" default="/camera/depth" />
-  <arg name="depth_cloud_topic" default="/camera/points" />
+  <arg name="image_topic" default="camera/image_raw" />
+  <arg name="depth_image_topic" default="camera/depth" />
+  <arg name="depth_cloud_topic" default="camera/points" />
   <arg name="speed" default="6" />
   <arg name="fps" default="1" />
   <arg name="height" default="1.2" />
   <arg name="overlap" default="4.5" />
   <arg name="pixel_scale" default="0.1" />
-  <arg name="transform_topic" default="/robot_tf" />
+  <arg name="transform_topic" default="robot_tf" />
   <arg name="camera_frame" default="base_link" />
+  <arg name="follow_topic" default="" />
   
   <!-- Launch image walker -->
-  <node pkg="sunshine" type="test.image_walker" name="image_walker" args="$(arg test_image)" output="screen" >
+  <node pkg="sunshine" type="test.image_walker" name="image_follower" args="$(arg test_image)" output="screen" >
     <param name="size" type="string" value="$(arg size)"/>
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)"/>
     <param name="scale" type="double" value="$(arg walk_scale)"/>
@@ -30,6 +31,7 @@
     <param name="transform_topic" type="string" value="$(arg transform_topic)" />
     <param name="depth_cloud_topic" type="string" value="$(arg depth_cloud_topic)" />
     <param name="depth_image_topic" type="string" value="$(arg depth_image_topic)" />
-    <param name="move_pattern" type="string" value="" />
+    <param name="move_pattern" type="string" value="follow" />
+    <param name="follow_topic" type="string" value="$(arg follow_topic)" />
   </node>
 </launch>
