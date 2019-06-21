@@ -14,6 +14,8 @@
   <arg name="transform_topic" default="/robot_tf" />
   <arg name="camera_frame" default="base_link" />
 
+  <arg name="rviz_config" default="$(find sunshine)/rviz/imwalker.rviz" />
+
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
   <arg name="rate" default="0.5" />
@@ -136,5 +138,5 @@
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
   </node>
   
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/imwalker.rviz" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(arg rviz_config)" />
 </launch>
