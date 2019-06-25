@@ -161,6 +161,7 @@ add_executable(save_topic_map visualize/save_topic_map.cpp)
 add_executable(save_point_cloud_2d visualize/save_point_cloud_2d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
+add_executable(test.pc_publisher test/pc_publisher.cpp)
 add_executable(test.image_walker test/image_walk.cpp)
 add_executable(test.sunshine_eval test/sunshine_eval.cpp)
 
@@ -172,6 +173,7 @@ add_dependencies(save_topic_map sunshine_msgs_generate_messages_cpp)
 add_dependencies(save_point_cloud_2d sunshine_msgs_generate_messages_cpp)
 add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.pc_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
 
@@ -213,6 +215,9 @@ target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(test.pc_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.pc_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
