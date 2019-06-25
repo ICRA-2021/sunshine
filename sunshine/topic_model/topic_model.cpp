@@ -207,14 +207,14 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     last_time = observation_time;
 
     ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
+    ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
+                   "Words received from different source with same observation time!");
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
         auto const& cell_words = entry.second;
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
-        ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
-            "Words received from different source with same observation time!");
         current_source = wordObs->source;
     }
     ROS_DEBUG("Refining %u cells", current_cell_poses.size());

@@ -119,7 +119,7 @@ ARGB inline HSV_TO_ARGB(HSV const& hsv, double alpha = 1)
  * @return
  * @warning Note that "rgba" is actually stored as ARGB (the PointCloud2 docs refers to the field as "unfortunately named")
  */
-sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, std::string colorFieldName = "rgba")
+sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, std::string colorFieldName = "rgba", std_msgs::Header const& header = {})
 {
     sensor_msgs::PointCloud2Ptr pc(new sensor_msgs::PointCloud2());
     sensor_msgs::PointField basePointField;
@@ -151,6 +151,7 @@ sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, st
     pc->is_dense = true;
     pc->row_step = pc->point_step * pc->width;
     pc->data = std::vector<uint8_t>(pc->row_step * pc->height);
+    pc->header = header;
     return pc;
 }
 
