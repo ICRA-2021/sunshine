@@ -4,19 +4,20 @@
   <!-- depth_image_proc arguments -->
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="depth_cloud_topic" default="/camera/points" />
-  <arg name="pc_frame" default="base_link" />
+  <arg name="pc_frame" default="sentry_camera" />
   <arg name="pc_depth" default="0.0" />
   <arg name="pc_width" default="1.0" />
   <arg name="pc_height" default="1.5" />
   <arg name="pc_fovx" default="54.4" />
   <arg name="pc_fovy" default="37.9" />
-  <arg name="sentry_focal_distance" default="35" />
   <arg name="sentry_alt_ref" default="/sentry/sensors/dvl300/dvl" />
+  <arg name="zero_z" default="true" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
   <arg name="world_frame_name" default="odom_dr"/>
-  <arg name="sensor_frame_name" default="$(arg pc_frame)"/>
+  <arg name="sensor_frame_name" default="$(arg pc_frame)" unless="$(arg zero_z)" />
+  <arg name="sensor_frame_name" default="$(arg world_frame_name)" if="$(arg zero_z)" />
   <arg name="use_tf" default="true"/>
   <arg name="scale" default="1.0" />
   <arg name="rate" default="4" />
@@ -39,7 +40,7 @@
   <arg name="num_threads" default="4" />
   <arg name="cell_space" default="0.1" />
   <arg name="cell_time" default="3600" />
-  <arg name="cell_size" default="3600x0.4x0.4x50" />
+  <arg name="cell_size" default="300x0.4x0.4x50" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -61,6 +62,7 @@
   <arg name="z_offset" default="0.1" />
 
   <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 base_link dvl300_link 100"/> 
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="0 0 -0.829 -1.57079633 0 3.14159265 base_link sentry_camera 100"/>
 
   <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen">
     <param name="image_topic" type="string" value="$(arg image_topic)" />
@@ -69,10 +71,11 @@
     <param name="width" type="double" value="$(arg pc_width)" />
     <param name="height" type="double" value="$(arg pc_height)" />
     <param name="frame_id" type="string" value="$(arg pc_frame)" />
+    <param name="map_frame_id" type="string" value="$(arg world_frame_name)" />
     <param name="fov_x" type="double" value="$(arg pc_fovx)" />
     <param name="fov_y" type="double" value="$(arg pc_fovy)" />
-    <param name="focal_distance_mm" type="double" value="$(arg sentry_focal_distance)" />
     <param name="altitude_ref" type="string" value="$(arg sentry_alt_ref)" />
+    <param name="zero_z" type="bool" value="$(arg zero_z)" />
   </node>
 
   <!-- Launch word extractor -->
@@ -139,5 +142,6 @@
     <param name="z_offset" type="double" value="$(arg z_offset)" />
   </node>
 
-  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sentry.rviz" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sentry.rviz" unless="$(arg zero_z)" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sentry-zeroz.rviz" if="$(arg zero_z)" />
 </launch>
