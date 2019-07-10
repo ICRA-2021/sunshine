@@ -39,8 +39,8 @@
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
   <arg name="cell_space" default="0.1" />
-  <arg name="cell_time" default="3600" />
-  <arg name="cell_size" default="300x0.4x0.4x50" />
+  <arg name="cell_time" default="5" />
+  <arg name="cell_size" default="5x0.4x0.4x50" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
