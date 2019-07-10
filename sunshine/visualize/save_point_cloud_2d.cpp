@@ -101,13 +101,15 @@ int main(int argc, char** argv)
     assert(argc >= 3);
     ros::init(argc, argv, "save_topic_map");
     ros::NodeHandle nh("~");
+    auto const minWidth = nh.param<double>("minWidth", 0.);
+    auto const minHeight = nh.param<double>("minHeight", 0.);
     std::string const input_topic(argv[1]);
     std::string const output_file(argv[2]);
     double cell_size = (argc >= 4) ? std::stod(argv[3]) : 1;
     ROS_INFO("Cell size: %f", cell_size);
     bool done = false;
 
-    auto obsSub = nh.subscribe<sensor_msgs::PointCloud2>(input_topic, 1, [&done, output_file, cell_size](sensor_msgs::PointCloud2ConstPtr msg) {
+    auto obsSub = nh.subscribe<sensor_msgs::PointCloud2>(input_topic, 1, [&done, output_file, cell_size, minWidth, minHeight](sensor_msgs::PointCloud2ConstPtr msg) {
         uint32_t const pointStep = msg->point_step;
         uint8_t const* const end = &(*msg->data.end());
 
@@ -158,6 +160,9 @@ int main(int argc, char** argv)
             }
         }
         ROS_INFO("X in [%f, %f], Y in [%f, %f]", minX, maxX, minY, maxY);
+
+        maxX = max(maxX, minX + minWidth);
+        maxY = max(maxY, minY + minHeight);
 
         uint32_t const N = static_cast<uint32_t>(msg->data.size() / msg->point_step);
         int32_t const numRows = static_cast<int32_t>(std::round((maxY - minY) / cell_size)) + 1;

@@ -2,7 +2,6 @@
 #define UTILS_HPP
 
 #include <opencv2/core.hpp>
-#include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -29,6 +28,14 @@ struct cvType<uint8_t> {
 template <>
 struct cvType<uint16_t> {
     static int const value = CV_16U;
+};
+template<>
+struct cvType<cv::Vec4b> {
+    static int const value = CV_8UC4;
+};
+template<>
+struct cvType<cv::Vec3b> {
+    static int const value = CV_8UC3;
 };
 
 /**
