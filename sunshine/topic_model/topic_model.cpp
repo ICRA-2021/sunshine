@@ -1,10 +1,12 @@
 #include "topic_model.hpp"
 
 #include "utils.hpp"
+#include <fstream>
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
 #include <sunshine_msgs/LocalSurprise.h>
 #include <sunshine_msgs/Perplexity.h>
+#include <sunshine_msgs/SaveObservationModel.h>
 #include <sunshine_msgs/TopicMap.h>
 #include <sunshine_msgs/TopicWeights.h>
 #include <tf2/LinearMath/Vector3.h>
@@ -125,6 +127,25 @@ topic_model::topic_model(ros::NodeHandle* nh)
         stopWork = false;
         workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
     }
+
+    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> save_topics_csv =
+        [this](sunshine_msgs::SaveObservationModelRequest& req, sunshine_msgs::SaveObservationModelResponse&) {
+            std::ofstream writer(req.filename);
+            bool first = true;
+            for (auto const& entry : this->get_topics_by_time()) {
+                if (!first) {
+                    writer << "\n";
+                }
+                writer << std::to_string(entry.first);
+                for (auto const& count : entry.second) {
+                    writer << "," + std::to_string(count);
+                }
+                first = false;
+            }
+            writer.close();
+            return true;
+        };
+    this->topic_server = nh->advertiseService<>("save_topics_csv", save_topics_csv);
 }
 
 topic_model::~topic_model()
@@ -133,6 +154,22 @@ topic_model::~topic_model()
     for (auto t : workers) { //wait for them to stop
         t->join();
     }
+}
+
+std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time() const
+{
+    auto const& poses_by_time = rost->get_poses_by_time();
+    std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
+    for (auto const& entry : poses_by_time) {
+        std::vector<int> topics(static_cast<size_t>(K), 0);
+        for (auto const& pose : entry.second) {
+            for (auto const& topic : rost->get_topics_for_pose(pose)) {
+                topics[static_cast<size_t>(topic)] += 1;
+            }
+        }
+        topics_by_time.insert({ entry.first, topics });
+    }
+    return topics_by_time;
 }
 
 static std::map<cell_pose_t, std::vector<int>>
@@ -208,7 +245,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
 
     ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
     ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
-                   "Words received from different source with same observation time!");
+        "Words received from different source with same observation time!");
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
     for (auto const& entry : words_by_cell_pose) {
         auto const& cell_pose = entry.first;
