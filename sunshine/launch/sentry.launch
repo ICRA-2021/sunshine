@@ -12,12 +12,13 @@
   <arg name="pc_fovy" default="37.9" />
   <arg name="sentry_alt_ref" default="/sentry/sensors/dvl300/dvl" />
   <arg name="zero_z" default="true" />
+  <arg name="zero_z_frame" default="zeroz_sensor_frame" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
   <arg name="world_frame_name" default="odom_dr"/>
   <arg name="sensor_frame_name" default="$(arg pc_frame)" unless="$(arg zero_z)" />
-  <arg name="sensor_frame_name" default="$(arg world_frame_name)" if="$(arg zero_z)" />
+  <arg name="sensor_frame_name" default="$(arg zero_z_frame)" if="$(arg zero_z)" />
   <arg name="use_tf" default="true"/>
   <arg name="scale" default="1.0" />
   <arg name="rate" default="4" />
@@ -76,6 +77,7 @@
     <param name="fov_y" type="double" value="$(arg pc_fovy)" />
     <param name="altitude_ref" type="string" value="$(arg sentry_alt_ref)" />
     <param name="zero_z" type="bool" value="$(arg zero_z)" />
+    <param name="zeroz_frame_id" type="string" value="$(arg zero_z_frame)" />
   </node>
 
   <!-- Launch word extractor -->
@@ -137,8 +139,9 @@
     <param name="input_type" type="string" value="$(arg map_type)" />
     <param name="output_topic" type="string" value="/topic_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
-    <param name="output_frame" type="string" value="$(arg world_frame_name)"/>
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
+    <param name="output_frame" type="string" value="$(arg world_frame_name)" />
+    <!-- <param name="output_frame" type="string" value="$(arg zero_z_frame)" if="$(arg zero_z)" /> -->
     <param name="z_offset" type="double" value="$(arg z_offset)" />
   </node>
 

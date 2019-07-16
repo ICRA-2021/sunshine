@@ -112,6 +112,8 @@ Visualization Manager:
           Value: true
         sentry_camera:
           Value: true
+        zeroz_sensor_frame:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -128,6 +130,8 @@ Visualization Manager:
               {}
             sentry_camera:
               {}
+          zeroz_sensor_frame:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -188,25 +192,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 34.89462661743164
+      Distance: 22.197494506835938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.655742645263672
-        Y: -4.5912089347839355
-        Z: 1855.061279296875
+        X: 0
+        Y: 0
+        Z: 0
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.1297967433929443
-      Target Frame: base_link
+      Pitch: 1.4547955989837646
+      Target Frame: zeroz_sensor_frame
       Value: Orbit (rviz)
-      Yaw: 1.3404163122177124
+      Yaw: 2.325418472290039
     Saved: ~
 Window Geometry:
   Displays:

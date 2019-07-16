@@ -9,6 +9,7 @@
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_broadcaster.h>
 //#endif
 #include <ros/ros.h>
 
@@ -27,11 +28,13 @@ int main(int argc, char** argv)
     auto const altRef = nh.param<std::string>("altitude_ref", "");
     auto const frame_id = nh.param<std::string>("frame_id", "");
     auto const map_frame_id = nh.param<std::string>("map_frame_id", "");
+    auto const zeroz_frame_id = nh.param<std::string>("zeroz_frame_id", "zeroz_sensor_frame");
     ros::Subscriber altitude_sub;
     double altitude = fixed_altitude;
     bool altRefReceived = false;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener(tf_buffer);
+    tf2_ros::TransformBroadcaster tf_broadcaster;
     //#if __has_include(<ds_sensor_msgs/Dvl.h>)
     if (!altRef.empty()) {
         altitude_sub = nh.subscribe<ds_sensor_msgs::Dvl>(altRef, 1, [&](ds_sensor_msgs::DvlConstPtr msg) {
@@ -74,8 +77,13 @@ int main(int argc, char** argv)
         if (zero_z) {
             assert(!map_frame_id.empty());
             auto const vehicleTransform = tf_buffer.lookupTransform(map_frame_id, (frame_id.empty()) ? msg->header.frame_id : frame_id, ros::Time(msg->header.stamp), ros::Duration(1));
-            pc = sunshine::getFlatPointCloud(img->image, width, height, 0.0, msg->header, vehicleTransform.transform.translation.x, vehicleTransform.transform.translation.y);
-            pc->header.frame_id = map_frame_id;
+            auto fakeSensorTransform = vehicleTransform;
+            fakeSensorTransform.child_frame_id = zeroz_frame_id;
+            fakeSensorTransform.transform.translation.z = 0.0;
+            fakeSensorTransform.header.stamp = msg->header.stamp;
+            tf_broadcaster.sendTransform(fakeSensorTransform);
+            pc = sunshine::getFlatPointCloud(img->image, width, height, 0.0, msg->header);
+            pc->header.frame_id = zeroz_frame_id;
         } else {
             pc = sunshine::getFlatPointCloud(img->image, width, height, altitude, msg->header);
             if (!frame_id.empty()) {
