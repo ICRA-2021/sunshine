@@ -243,7 +243,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
-    ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
+    ROS_DEBUG("Adding %lu word observations from time %d", wordObs->words.size(), observation_time);
     ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
         "Words received from different source with same observation time!");
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
@@ -254,7 +254,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         current_cell_poses.push_back(cell_pose);
         current_source = wordObs->source;
     }
-    ROS_DEBUG("Refining %u cells", current_cell_poses.size());
+    ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
     lastWordsAdded = chrono::steady_clock::now();
 }

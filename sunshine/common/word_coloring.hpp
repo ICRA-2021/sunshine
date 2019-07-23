@@ -5,17 +5,18 @@
 #include <cstdlib>
 
 namespace sunshine {
+
 template <typename WordType>
 class WordColorMap {
     std::map<WordType, double> hueMapBackward;
     std::map<double, WordType> hueMapForward;
 
 public:
-    inline sunshine::ARGB colorForWord(WordType word, double saturation = 1, double value = 1, double alpha = 1)
+    inline RGBA colorForWord(WordType word, double saturation = 1, double value = 1, double alpha = 1)
     {
         auto const hueIter = hueMapBackward.find(word);
         if (hueIter != hueMapBackward.end()) {
-            return HSV_TO_ARGB({ hueIter->second, saturation, value });
+            return HSV_TO_RGBA({ hueIter->second, saturation, value });
         }
 
         double hue = double(rand()) * 360. / double(RAND_MAX);
@@ -33,7 +34,11 @@ public:
         hueMapForward.insert({ hue, word });
         hueMapBackward.insert({ word, hue });
 
-        return sunshine::HSV_TO_ARGB({ hue, saturation, value }, alpha);
+        return sunshine::HSV_TO_RGBA({ hue, saturation, value }, alpha);
+    }
+
+    inline size_t getNumColors() const {
+        return hueMapForward.size();
     }
 };
 }
