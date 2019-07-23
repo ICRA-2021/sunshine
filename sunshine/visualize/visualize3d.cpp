@@ -21,9 +21,9 @@ class Visualize3d {
 public:
     Visualize3d(ros::NodeHandle& nh);
 
-    inline ARGB argbColorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
+    inline RGBA colorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
     {
-        return static_cast<ARGB>(colorMap.colorForWord(word, saturation, value, alpha));
+        return colorMap.colorForWord(word, saturation, value, alpha);
     }
 
     double perplexity_display_factor() const
@@ -61,10 +61,10 @@ public:
         return wordObservations.words.size();
     }
 
-    ARGBPoint operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
         auto const& poses = wordObservations.word_pose;
-        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2], cls->argbColorForWord(wordObservations.words[idx]) };
+        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2], cls->colorForWord(wordObservations.words[idx]) };
     }
 };
 
@@ -87,11 +87,11 @@ public:
         return topicMap.cell_topics.size();
     }
 
-    ARGBPoint operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
         auto const& poses = topicMap.cell_poses;
         return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2] + cls->get_z_offset(),
-            cls->argbColorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1)) };
+            cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1)) };
     }
 };
 
@@ -113,7 +113,7 @@ public:
         return topicMap.cell_topics.size();
     }
 
-    ARGBPoint operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
         auto const& poses = topicMap.cell_poses;
         uint8_t const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);

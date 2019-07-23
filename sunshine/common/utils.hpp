@@ -93,7 +93,6 @@ inline void transformPose(geometry_msgs::Point& out, std::vector<T> const& poses
  * @param height
  * @param colorFieldName
  * @return
- * @warning Note that "rgba" is actually stored as ARGB (the PointCloud2 docs refers to the field as "unfortunately named")
  */
 sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, std::string colorFieldName = "rgba", std_msgs::Header const& header = {})
 {
@@ -131,18 +130,18 @@ sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, st
     return pc;
 }
 
-struct ARGBPoint {
+struct RGBAPoint {
     double x, y, z;
-    ARGB color;
+    RGBA color;
 };
 
-union ARGBPointCloudElement {
+union RGBAPointCloudElement {
     uint8_t bytes[sizeof(float) * 3 + sizeof(uint32_t)]; // to enforce size
     struct {
         float x;
         float y;
         float z;
-        std::array<uint8_t, 4> argb; // see note about rgba vs argb
+        std::array<uint8_t, 4> rgba;
     } data;
 };
 
@@ -151,21 +150,21 @@ sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::
 {
     auto const count = points.size();
     uint32_t const height = 1, width = uint32_t(count);
-    sensor_msgs::PointCloud2Ptr pc = createPointCloud(width, height, "rgba"); // Note that "rgba" is actually stored as ARGB (the documentation refers to the field as "unfortunately named")
+    sensor_msgs::PointCloud2Ptr pc = createPointCloud(width, height, "rgba");
 
-    if (pc->point_step != sizeof(ARGBPointCloudElement)) {
+    if (pc->point_step != sizeof(RGBAPointCloudElement)) {
         throw std::invalid_argument("Point cloud point_step suggests fields are not xyz[rgba]");
     }
 
     pc->header.frame_id = frame_id;
-    ARGBPointCloudElement* pcIterator = reinterpret_cast<ARGBPointCloudElement*>(pc->data.data());
+    RGBAPointCloudElement* pcIterator = reinterpret_cast<RGBAPointCloudElement*>(pc->data.data());
 
     for (decltype(points.size()) i = 0; i < count; i++) {
-        ARGBPoint const& point = points[i];
+        RGBAPoint const& point = points[i];
         pcIterator->data.x = static_cast<float>(point.x);
         pcIterator->data.y = static_cast<float>(point.y);
         pcIterator->data.z = static_cast<float>(point.z);
-        pcIterator->data.argb = static_cast<std::array<uint8_t, 4>>(point.color);
+        pcIterator->data.rgba = static_cast<std::array<uint8_t, 4>>(point.color);
         pcIterator++;
     }
     return pc;
