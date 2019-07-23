@@ -18,14 +18,9 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "save_topic_map");
     ros::NodeHandle nh("~");
-    double default_pixel_scale = 1;
-    try {
-        nh.getParam("/" + std::string(argv[1]) + "/cell_space", default_pixel_scale);
-    } catch (ros::InvalidNameException) {
-    }
-    auto const pixel_scale = nh.param<double>("pixel_scale", default_pixel_scale);
-    auto const input_topic = nh.param<std::string>("input_topic", "/" + std::string(argv[1]) + "/topic_map");
-    auto const output_prefix = nh.param<std::string>("output_prefix", std::string(argv[2]));
+    auto const pixel_scale = nh.param<double>("pixel_scale", 1);
+    auto const input_topic = nh.param<std::string>("input_topic", "/topic_map");
+    auto const output_prefix = nh.param<std::string>("output_prefix", "topic-map");
     auto const minWidth = nh.param<double>("min_width", 0.);
     auto const minHeight = nh.param<double>("min_height", 0.);
     auto const useColor = nh.param<bool>("use_color", false);
@@ -49,20 +44,21 @@ int main(int argc, char** argv)
         maxX = std::max(maxX, minX + minWidth);
         maxY = std::max(maxY, minY + minHeight);
 
-        int const numRows = (maxY - minY) / pixel_scale + 1;
-        int const numCols = (maxX - minX) / pixel_scale + 1;
+        int const numRows = static_cast<int>((maxY - minY) / pixel_scale + 1);
+        int const numCols = static_cast<int>((maxX - minX) / pixel_scale + 1);
         ROS_INFO("N: %lu, R: %d, C: %d", N, numRows, numCols);
-        ROS_INFO("Gaps: %lu", numRows * numCols - N);
-        //        assert(N == numRows * numCols);
+        ROS_INFO("Gaps: %lu", static_cast<unsigned long>(numRows) * static_cast<unsigned long>(numCols) - N);
 
         Mat topicMapImg(numRows, numCols, (useColor) ? sunshine::cvType<Vec4b>::value : sunshine::cvType<double>::value, Scalar(0));
-        Mat ppxMapImg  (numRows, numCols, (useColor) ? sunshine::cvType<Vec4b>::value : sunshine::cvType<double>::value, Scalar(0));
+        Mat ppxMapImg(numRows, numCols, sunshine::cvType<double>::value, Scalar(0));
         std::set<std::pair<int, int>> points;
         poseIter = reinterpret_cast<Pose const*>(msg->cell_poses.data());
         for (size_t i = 0; i < N; i++, poseIter++) {
-            Point const point(std::round((poseIter->x - minX) / pixel_scale),
-                std::round((maxY - poseIter->y) / pixel_scale));
-            assert(points.insert({ point.x, point.y }).second);
+            Point const point(static_cast<int>(std::round((poseIter->x - minX) / pixel_scale)),
+                static_cast<int>(std::round((maxY - poseIter->y) / pixel_scale)));
+            if (!points.insert({ point.x, point.y }).second) {
+                ROS_WARN("Duplicate cells found at (%d, %d)", point.x, point.y);
+            }
             if (useColor) {
                 auto const color = wordColorMap.colorForWord(msg->cell_topics[i]);
                 topicMapImg.at<Vec4b>(point) = { color.r, color.g, color.b, color.a };
@@ -72,7 +68,6 @@ int main(int argc, char** argv)
             ppxMapImg.at<double>(point) = msg->cell_ppx[i];
         }
         ROS_INFO("Colors: %lu", wordColorMap.getNumColors());
-        assert(points.size() == N);
 
         imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", topicMapImg);
         imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-ppx.png", ppxMapImg);
