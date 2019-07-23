@@ -12,6 +12,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 //#endif
 #include <ros/ros.h>
+#include <numeric>
 
 int main(int argc, char** argv)
 {
@@ -40,21 +41,21 @@ int main(int argc, char** argv)
         altitude_sub = nh.subscribe<ds_sensor_msgs::Dvl>(altRef, 1, [&](ds_sensor_msgs::DvlConstPtr msg) {
             auto const& beam_vecs = msg->beam_unit_vec;
             auto const& beam_ranges = msg->range;
-            try {
-                tf2::Vector3 seafloor_vec;
-                for (auto i = 0u; i < beam_vecs.size(); i++) {
-                    tf2::Vector3 beam_vec(beam_vecs[i].x, beam_vecs[i].y, beam_vecs[i].z);
-                    seafloor_vec += (beam_vec * beam_ranges[i]);
-                }
-                seafloor_vec /= beam_vecs.size();
-
-                altitude = -seafloor_vec.getZ();
-                ROS_DEBUG("Computed altitude from DVL: %f", altitude);
-                altRefReceived = true;
-            } catch (tf2::LookupException) {
-                ROS_ERROR("Failed to find transform from DVL frame!");
-                return;
+            tf2::Vector3 seafloor_vec;
+            std::vector<double> z_estimates(beam_vecs.size(), 0.0);
+            for (auto i = 0u; i < beam_vecs.size(); i++) {
+                tf2::Vector3 beam_vec(beam_vecs[i].x, beam_vecs[i].y, beam_vecs[i].z);
+                z_estimates[i] += (beam_vec * beam_ranges[i]).getZ();
             }
+
+            double const alt_estimate = std::accumulate(z_estimates.begin(), z_estimates.end(), 0.) / beam_vecs.size();
+            double const outlier = *std::max_element(z_estimates.begin(), z_estimates.end(), [=](double const& a, double const& b){
+                return std::abs(a - alt_estimate) < std::abs(b - alt_estimate);
+            });
+
+            altitude = ((alt_estimate * beam_vecs.size()) - outlier) / (beam_vecs.size() - 1);
+            ROS_DEBUG("Computed altitude from DVL: %f (removed outlier %f)", altitude, outlier);
+            altRefReceived = true;
         });
     }
     //#endif
@@ -76,14 +77,19 @@ int main(int argc, char** argv)
         sensor_msgs::PointCloud2Ptr pc;
         if (zero_z) {
             assert(!map_frame_id.empty());
-            auto const vehicleTransform = tf_buffer.lookupTransform(map_frame_id, (frame_id.empty()) ? msg->header.frame_id : frame_id, ros::Time(msg->header.stamp), ros::Duration(1));
-            auto fakeSensorTransform = vehicleTransform;
-            fakeSensorTransform.child_frame_id = zeroz_frame_id;
-            fakeSensorTransform.transform.translation.z = 0.0;
-            fakeSensorTransform.header.stamp = msg->header.stamp;
-            tf_broadcaster.sendTransform(fakeSensorTransform);
-            pc = sunshine::getFlatPointCloud(img->image, width, height, 0.0, msg->header);
-            pc->header.frame_id = zeroz_frame_id;
+            try {
+                auto const vehicleTransform = tf_buffer.lookupTransform(map_frame_id, (frame_id.empty()) ? msg->header.frame_id : frame_id, ros::Time(msg->header.stamp), ros::Duration(1));
+                auto fakeSensorTransform = vehicleTransform;
+                fakeSensorTransform.child_frame_id = zeroz_frame_id;
+                fakeSensorTransform.transform.translation.z = 0.0;
+                fakeSensorTransform.header.stamp = msg->header.stamp;
+                tf_broadcaster.sendTransform(fakeSensorTransform);
+                pc = sunshine::getFlatPointCloud(img->image, width, height, 0.0, msg->header);
+                pc->header.frame_id = zeroz_frame_id;
+            } catch (tf2::ExtrapolationException) {
+                ROS_ERROR("Failed to find transform from %s to %s!", map_frame_id.c_str(), (frame_id.empty()) ? msg->header.frame_id.c_str() : frame_id.c_str());
+                return;
+            }
         } else {
             pc = sunshine::getFlatPointCloud(img->image, width, height, altitude, msg->header);
             if (!frame_id.empty()) {
