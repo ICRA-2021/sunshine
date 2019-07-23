@@ -25,7 +25,7 @@ class topic_model {
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;
 
-    ros::ServiceServer topic_server;
+    ros::ServiceServer time_topic_server, cell_topic_server;
 
     std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
@@ -58,7 +58,8 @@ public:
     topic_model(ros::NodeHandle* nh);
     ~topic_model();
 
-    std::map<ROST_t::pose_dim_t, std::vector<int>> get_topics_by_time() const;
+    std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
+    std::map<cell_pose_t, std::vector<int>> get_topics_by_cell() const;
 };
 
 static inline cell_pose_t toCellPose(word_pose_t const& word, std::array<double, POSEDIM> cell_size)
