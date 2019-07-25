@@ -8,4 +8,4 @@ rostopic echo -n 1 /image_walker/finished
 rosrun sunshine save_topic_map _output_prefix:=bw_topics
 rosrun sunshine save_topic_map _output_prefix:=color_topics _use_color:=true
 rosservice sunshine save_topics_by_cell_csv "filename: '$PWD/topics.csv'"
-kill ros
+killall -9 roscore
