@@ -128,24 +128,50 @@ topic_model::topic_model(ros::NodeHandle* nh)
         workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
     }
 
-    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> save_topics_csv =
+    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> const save_topics_by_time_csv =
         [this](sunshine_msgs::SaveObservationModelRequest& req, sunshine_msgs::SaveObservationModelResponse&) {
             std::ofstream writer(req.filename);
-            bool first = true;
+            writer << "time";
+            for (auto k = 0; k < this->K; k++) {
+                writer << ",topic_" << std::to_string(k) << "_count";
+            }
             for (auto const& entry : this->get_topics_by_time()) {
-                if (!first) {
-                    writer << "\n";
-                }
+                writer << "\n";
                 writer << std::to_string(entry.first);
                 for (auto const& count : entry.second) {
                     writer << "," + std::to_string(count);
                 }
-                first = false;
             }
             writer.close();
             return true;
         };
-    this->topic_server = nh->advertiseService<>("save_topics_csv", save_topics_csv);
+
+    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> const save_topics_by_cell_csv =
+        [this](sunshine_msgs::SaveObservationModelRequest& req, sunshine_msgs::SaveObservationModelResponse&) {
+            std::ofstream writer(req.filename);
+            writer << "pose_dim_0";
+            for (auto i = 1; i < POSEDIM; i++) {
+                writer << ",pose_dim_" + std::to_string(i);
+            }
+            for (auto k = 0; k < this->K; k++) {
+                writer << ",topic_" << std::to_string(k) << "_count";
+            }
+            for (auto const& entry : this->get_topics_by_cell()) {
+                writer << "\n";
+                writer << std::to_string(entry.first[0]);
+                for (auto dim = 1u; dim < POSEDIM; dim++) {
+                    writer << "," + std::to_string(entry.first[dim]);
+                }
+                for (auto const& count : entry.second) {
+                    writer << "," + std::to_string(count);
+                }
+            }
+            writer.close();
+            return true;
+        };
+
+    this->time_topic_server = nh->advertiseService<>("save_topics_by_time_csv", save_topics_by_time_csv);
+    this->cell_topic_server = nh->advertiseService<>("save_topics_by_cell_csv", save_topics_by_cell_csv);
 }
 
 topic_model::~topic_model()
@@ -170,6 +196,17 @@ std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time()
         topics_by_time.insert({ entry.first, topics });
     }
     return topics_by_time;
+}
+
+std::map<cell_pose_t, std::vector<int>> topic_model::get_topics_by_cell() const
+{
+    auto const& poses = rost->cell_pose;
+    std::map<cell_pose_t, std::vector<int>> topics_by_cell;
+    for (auto const& pose : poses) {
+        auto const cell = rost->get_cell(pose);
+        topics_by_cell.insert({ pose, cell->nZ });
+    }
+    return topics_by_cell;
 }
 
 static std::map<cell_pose_t, std::vector<int>>
@@ -243,7 +280,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
     }
     last_time = observation_time;
 
-    ROS_DEBUG("Adding %u word observations from time %d", wordObs->words.size(), observation_time);
+    ROS_DEBUG("Adding %lu word observations from time %d", wordObs->words.size(), observation_time);
     ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
         "Words received from different source with same observation time!");
     auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
@@ -254,7 +291,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
         current_cell_poses.push_back(cell_pose);
         current_source = wordObs->source;
     }
-    ROS_DEBUG("Refining %u cells", current_cell_poses.size());
+    ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
     lastWordsAdded = chrono::steady_clock::now();
 }

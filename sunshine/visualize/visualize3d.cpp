@@ -21,7 +21,7 @@ class Visualize3d {
 public:
     Visualize3d(ros::NodeHandle& nh);
 
-    inline ARGB colorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
+    inline RGBA colorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
     {
         return colorMap.colorForWord(word, saturation, value, alpha);
     }
@@ -61,14 +61,10 @@ public:
         return wordObservations.words.size();
     }
 
-    Point operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
-        Point p;
-        p.x = wordObservations.word_pose[idx * 3];
-        p.y = wordObservations.word_pose[idx * 3 + 1];
-        p.z = wordObservations.word_pose[idx * 3 + 2];
-        p.color = cls->colorForWord(wordObservations.words[idx]);
-        return p;
+        auto const& poses = wordObservations.word_pose;
+        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2], cls->colorForWord(wordObservations.words[idx]) };
     }
 };
 
@@ -91,14 +87,11 @@ public:
         return topicMap.cell_topics.size();
     }
 
-    Point operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
-        Point p;
-        p.x = topicMap.cell_poses[idx * 3];
-        p.y = topicMap.cell_poses[idx * 3 + 1];
-        p.z = topicMap.cell_poses[idx * 3 + 2] + cls->get_z_offset();
-        p.color = cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1));
-        return p;
+        auto const& poses = topicMap.cell_poses;
+        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2] + cls->get_z_offset(),
+            cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1)) };
     }
 };
 
@@ -120,15 +113,11 @@ public:
         return topicMap.cell_topics.size();
     }
 
-    Point operator[](size_t idx) const
+    RGBAPoint operator[](size_t idx) const
     {
-        Point p;
-        p.x = topicMap.cell_poses[idx * 3];
-        p.y = topicMap.cell_poses[idx * 3 + 1];
-        p.z = topicMap.cell_poses[idx * 3 + 2] + cls->get_z_offset();
+        auto const& poses = topicMap.cell_poses;
         uint8_t const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);
-        p.color = { relativePpx, relativePpx, 0, 0 };
-        return p;
+        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2] + cls->get_z_offset(), { relativePpx, relativePpx, 0, 0 } };
     }
 };
 
