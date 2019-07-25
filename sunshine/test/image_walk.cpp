@@ -54,7 +54,7 @@ private:
         }
         dir = Direction::DOWN;
         track += std::min(2 * secondary_window_extent - overlap, secondary_axis_max - secondary_window_extent - track);
-//        ROS_WARN(("New track: " + std::to_string(track)).c_str());
+        //        ROS_WARN(("New track: " + std::to_string(track)).c_str());
     }
 
 public:
@@ -89,9 +89,9 @@ public:
 
         if (dir == Direction::DOWN) {
             // Advance towards the new track
-//            ROS_WARN(("Secondary axis before: " + std::to_string(secondary_axis)).c_str());
+            //            ROS_WARN(("Secondary axis before: " + std::to_string(secondary_axis)).c_str());
             secondary_axis += std::min(step_size, track - secondary_axis);
-//            ROS_WARN(("Secondary axis after:  " + std::to_string(secondary_axis)).c_str());
+            //            ROS_WARN(("Secondary axis after:  " + std::to_string(secondary_axis)).c_str());
             if (secondary_axis >= track) {
                 dir = (primary_axis <= primary_window_extent) ? Direction::RIGHT : Direction::LEFT;
             }
@@ -131,6 +131,7 @@ int main(int argc, char** argv)
     auto const pattern_name = nh.param<std::string>("move_pattern", "lawnmower");
     bool const follow_mode = pattern_name.empty() || pattern_name == "follow";
     auto const follow_topic = nh.param<std::string>("follow_topic", "");
+    auto const break_on_finish = nh.param<bool>("break_on_finish", false);
 
     cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
     cv::waitKey(30);
@@ -200,7 +201,7 @@ int main(int argc, char** argv)
         broadcastTranform(frame_id,
             tf2::Vector3(cx, -cy, (altitude > 0) ? altitude : 0), q,
             "map", stamp);
-//        std::cout << "Published position at " << image_scanner->getX() << "," << -image_scanner->getY() << std::endl;
+        //        std::cout << "Published position at " << image_scanner->getX() << "," << -image_scanner->getY() << std::endl;
     };
     if (!follow_mode) {
         poseCallback(ros::Time::now());
@@ -245,11 +246,12 @@ int main(int argc, char** argv)
             static_assert(warmup >= 1, "Warmup should be at least 1 or initial frame will be missing.");
             if (numFrames > warmup) {
                 movePattern->move();
+                if (break_on_finish && cx == movePattern->getX() && cy == movePattern->getY()) {
+                    break;
+                }
+                cx = movePattern->getX();
+                cy = movePattern->getY();
             }
-            cx = movePattern->getX();
-            cy = movePattern->getY();
-
-//            ROS_WARN(("New location:" + std::to_string(cx) + "," + std::to_string(cy)).c_str());
 
             // update header timestamp for published images
             this_header.stamp = ros::Time::now();
@@ -279,4 +281,10 @@ int main(int argc, char** argv)
         assert(callbackQueue->empty());
         rate.sleep();
     }
+
+    if (nh.ok() && break_on_finish) {
+        // Any code we want to execute when it's done the walk goes here
+    }
+
+    // Any cleanup code goes here
 }
