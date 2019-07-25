@@ -18,8 +18,15 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "save_topic_map");
     ros::NodeHandle nh("~");
-    auto const pixel_scale = nh.param<double>("pixel_scale", 1);
-    auto const input_topic = nh.param<std::string>("input_topic", "/topic_map");
+    auto const rost_namespace = nh.param<std::string>("topic_model_namespace", "rost");
+    double default_pixel_scale = 1;
+    try {
+        nh.getParam("/" + rost_namespace + "/cell_space", default_pixel_scale);
+    } catch (ros::Exception) {
+        // do nothing
+    }
+    auto const pixel_scale = nh.param<double>("pixel_scale", default_pixel_scale);
+    auto const input_topic = nh.param<std::string>("input_topic", "/" + rost_namespace + "/topic_map");
     auto const output_prefix = nh.param<std::string>("output_prefix", "topic-map");
     auto const minWidth = nh.param<double>("min_width", 0.);
     auto const minHeight = nh.param<double>("min_height", 0.);
