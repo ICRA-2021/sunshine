@@ -123,15 +123,17 @@ int main(int argc, char** argv)
     auto const scale = nh.param<double>("scale", 1);
     auto const image_name = nh.param<std::string>("image", image_filename);
     auto const image_topic = nh.param<std::string>("image_topic", "~/image");
-    auto const depth_cloud_topic = nh.param<std::string>("depth_cloud_topic", "~/cloud");
-    auto const depth_image_topic = nh.param<std::string>("depth_image_topic", "~/depth");
+    auto const depth_cloud_topic = nh.param<std::string>("depth_cloud_topic", "cloud");
+    auto const depth_image_topic = nh.param<std::string>("depth_image_topic", "depth");
     auto const transform_topic = nh.param<std::string>("transform_topic", "/tf");
     auto const frame_id = nh.param<std::string>("frame_id", "base_link");
     auto const pixel_scale = nh.param<double>("pixel_scale", 0.01);
     auto const pattern_name = nh.param<std::string>("move_pattern", "lawnmower");
     bool const follow_mode = pattern_name.empty() || pattern_name == "follow";
     auto const follow_topic = nh.param<std::string>("follow_topic", "");
-    auto const break_on_finish = nh.param<bool>("break_on_finish", false);
+    auto const break_on_finish = nh.param<bool>("break_on_finish", true);
+
+    ros::Publisher finished_pub = nh.advertise<std_msgs::Empty>("finished", 1);
 
     cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
     cv::waitKey(30);
@@ -282,9 +284,17 @@ int main(int argc, char** argv)
         rate.sleep();
     }
 
-    if (nh.ok() && break_on_finish) {
+    if (nh.ok()) {
         // Any code we want to execute when it's done the walk goes here
+        finished_pub.publish(std_msgs::Empty());
+        ros::spinOnce();
+        rate.sleep();
     }
 
     // Any cleanup code goes here
+
+    for (auto i = 0ul; i < warmup; i++) {
+        ros::spinOnce();
+        rate.sleep();
+    }
 }
