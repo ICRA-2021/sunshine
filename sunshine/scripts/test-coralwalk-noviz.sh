@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-if [ "$1" -eq "" ]; then
+if [ "$1" == "" ]; then
         echo "Error: you must supply a test image for test-coralwalk"
             exit 1
         fi
