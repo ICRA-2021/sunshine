@@ -64,7 +64,7 @@ int main(int argc, char** argv)
             Point const point(static_cast<int>(std::round((poseIter->x - minX) / pixel_scale)),
                 static_cast<int>(std::round((maxY - poseIter->y) / pixel_scale)));
             if (!points.insert({ point.x, point.y }).second) {
-                ROS_WARN("Duplicate cells found at (%d, %d)", point.x, point.y);
+                ROS_WARN_THROTTLE(1, "Duplicate cells found at (%d, %d)", point.x, point.y);
             }
             if (useColor) {
                 auto const color = wordColorMap.colorForWord(msg->cell_topics[i]);
