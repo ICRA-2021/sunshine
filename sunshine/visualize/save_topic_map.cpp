@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     ROS_INFO("Pixel scale: %f", pixel_scale);
     bool done = false;
 
-    ros::ServiceClient client = nh.serviceClient<SaveObservationModel>("save_topics_by_time_csv");
+    ros::ServiceClient client = nh.serviceClient<SaveObservationModel>("/" + rost_namespace + "/save_topics_by_time_csv");
 
     auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, &client, output_prefix, pixel_scale, minWidth, minHeight, useColor](sunshine_msgs::TopicMapConstPtr const& msg) {
         SaveObservationModel saveObservationModel;
@@ -46,7 +46,7 @@ int main(int argc, char** argv)
         if (client.call(saveObservationModel)) {
             ROS_INFO("Saved timeseries to %s", saveObservationModel.request.filename.c_str());
         } else {
-            ROS_ERROR("Failed to save topic timeseries!");
+            ROS_ERROR("Failed to save topic timeseries to %s!", saveObservationModel.request.filename.c_str());
         }
 
         size_t const N = msg->cell_topics.size();

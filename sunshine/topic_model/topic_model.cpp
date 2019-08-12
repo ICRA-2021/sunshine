@@ -135,7 +135,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
             for (auto k = 0; k < this->K; k++) {
                 writer << ",topic_" << std::to_string(k) << "_count";
             }
-            for (auto const& entry : this->get_topics_by_time()) {
+            auto const topics = this->get_topics_by_time();
+            for (auto const& entry : topics) {
                 writer << "\n";
                 writer << std::to_string(entry.first);
                 for (auto const& count : entry.second) {
@@ -156,7 +157,8 @@ topic_model::topic_model(ros::NodeHandle* nh)
             for (auto k = 0; k < this->K; k++) {
                 writer << ",topic_" << std::to_string(k) << "_count";
             }
-            for (auto const& entry : this->get_topics_by_cell()) {
+            auto const topics = this->get_topics_by_cell();
+            for (auto const& entry : topics) {
                 writer << "\n";
                 writer << std::to_string(entry.first[0]);
                 for (auto dim = 1u; dim < POSEDIM; dim++) {
@@ -184,7 +186,7 @@ topic_model::~topic_model()
 
 std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time() const
 {
-    auto const& poses_by_time = rost->get_poses_by_time();
+    auto const poses_by_time = rost->get_poses_by_time();
     std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
     for (auto const& entry : poses_by_time) {
         std::vector<int> topics(static_cast<size_t>(K), 0);
