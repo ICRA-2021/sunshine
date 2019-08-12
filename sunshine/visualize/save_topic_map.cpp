@@ -5,6 +5,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <ros/ros.h>
+#include <sunshine_msgs/SaveObservationModel.h>
 #include <sunshine_msgs/TopicMap.h>
 
 using namespace sunshine_msgs;
@@ -32,11 +33,22 @@ int main(int argc, char** argv)
     auto const minHeight = nh.param<double>("min_height", 0.);
     auto const useColor = nh.param<bool>("use_color", false);
     auto const continuous = nh.param<bool>("continuous", false);
+    auto const saveTopicTimeseries = nh.param<bool>("save_topic_timeseries", true);
     sunshine::WordColorMap<decltype(TopicMap::cell_topics)::value_type> wordColorMap;
     ROS_INFO("Pixel scale: %f", pixel_scale);
     bool done = false;
 
-    auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, output_prefix, pixel_scale, minWidth, minHeight, useColor](sunshine_msgs::TopicMapConstPtr const& msg) {
+    ros::ServiceClient client = nh.serviceClient<SaveObservationModel>("save_topics_by_time_csv");
+
+    auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, &client, output_prefix, pixel_scale, minWidth, minHeight, useColor](sunshine_msgs::TopicMapConstPtr const& msg) {
+        SaveObservationModel saveObservationModel;
+        saveObservationModel.request.filename = output_prefix + "-" + std::to_string(msg->seq) + "-timeseries.csv";
+        if (client.call(saveObservationModel)) {
+            ROS_INFO("Saved timeseries to %s", saveObservationModel.request.filename.c_str());
+        } else {
+            ROS_ERROR("Failed to save topic timeseries!");
+        }
+
         size_t const N = msg->cell_topics.size();
         static_assert(sizeof(Pose) == sizeof(double) * 3, "Pose struct has incorrect size.");
         Pose const* poseIter = reinterpret_cast<Pose const*>(msg->cell_poses.data());
@@ -78,6 +90,15 @@ int main(int argc, char** argv)
 
         imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", topicMapImg);
         imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-ppx.png", ppxMapImg);
+        std::ofstream colorWriter(output_prefix + "-" + std::to_string(msg->seq) + "-colors.csv");
+        for (auto const& entry : wordColorMap.getAllColors()) {
+            colorWriter << entry.first;
+            for (auto const& v : entry.second) {
+                colorWriter << "," << std::to_string(v);
+            }
+            colorWriter << "\n";
+        }
+        colorWriter.close();
 
         done = true;
         return;

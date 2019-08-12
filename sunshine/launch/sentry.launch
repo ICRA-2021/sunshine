@@ -31,17 +31,17 @@
   <arg name="seq_duration" default="3" />  
 
   <!-- Topic model arguments -->
-  <arg name="K" default="20" />
+  <arg name="K" default="10" />
   <arg name="V" default="16180" />
-  <arg name="alpha" default="0.033" />
-  <arg name="beta" default="0.2" />
+  <arg name="alpha" default="0.073" />
+  <arg name="beta" default="0.15" />
   <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="0.1" />
-  <arg name="cell_time" default="5" />
-  <arg name="cell_size" default="5x0.4x0.4x50" />
+  <arg name="cell_space" default="3" />
+  <arg name="cell_time" default="10" />
+  <arg name="cell_size" default="10x3x3x50" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
