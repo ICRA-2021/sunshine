@@ -1,53 +1,116 @@
 <launch>
+  <!-- Set this to true if running sunshine with a rosbag; false for real-time -->
   <param name="/use_sim_time" value="true"/>
 
-  <!-- depth_image_proc arguments -->
+  <!-- pc_publisher arguments. -->
+  <!-- This node is an interpreter that converts 2D images from a platform like
+       Sentry into the 3D point clouds expected by Sunshine. -->
+  <!-- Incoming topic -->
   <arg name="image_topic" default="/camera/image_raw" />
+  <!-- Outgoing topic. One point per pixel. -->
   <arg name="depth_cloud_topic" default="/camera/points" />
+  <!-- TF frame for point cloud, required because the image topic doesn't have a frame attached.-->
   <arg name="pc_frame" default="sentry_camera" />
+  <!-- Depth/Width/height: not used. Alternative way of projecting 2D to 3D
+       (assuming all images are fixed world-size) -->
   <arg name="pc_depth" default="0.0" />
-  <arg name="pc_width" default="1.0" />
+  <arg name="pc_width" default="1.0" /> <!-- (m) not used in Sentry's -->
   <arg name="pc_height" default="1.5" />
+  <!-- Camera FOV: Used to project pixels to 3D assuming that scene is flat.
+       (in coordination with altitude reference topic)-->
   <arg name="pc_fovx" default="54.4" />
   <arg name="pc_fovy" default="37.9" />
+  <!-- if this defined, use FOV for 2D to 3D conversion. If NOT defined, use width/height/depth -->
   <arg name="sentry_alt_ref" default="/sentry/sensors/dvl300/dvl" />
+  <!-- If true, force all camera images to have same z value.
+       If False, use depth data and altitude to pseudo-drape imagery -->
   <arg name="zero_z" default="true" />
+  <!-- (implementation detail; needs to be unique name) -->
   <arg name="zero_z_frame" default="zeroz_sensor_frame" />
 
-  <!-- Vision arguments -->
+  <!-- Vision (visual_word_extractor) arguments -->
+  <!-- As the name says, this node extracts visual words from images.
+       The important thing is that it subscribes to BOTH images and the
+       correspondingpoint clouds, so it can extract features and then map to
+       3D locations using the point clouds. -->
+  <!-- (Not required for Sentry) -->
   <arg name="transform_topic" default="" />
+  <!-- Words are binned based on their spatial location.
+       That needs to be done in a map-like frame, and Sentry bags already had
+       this info in odom_dr. -->
   <arg name="world_frame_name" default="odom_dr"/>
+  <!-- This enables Sunshine to change point cloud frames for compatability
+       with BlueROV. For sentry, this must match point clouds that are published,
+       so this 'if' replicates the logic in pc_publisher -->
   <arg name="sensor_frame_name" default="$(arg pc_frame)" unless="$(arg zero_z)" />
   <arg name="sensor_frame_name" default="$(arg zero_z_frame)" if="$(arg zero_z)" />
+  <!-- Whether to use tf lookup to get differences between frames. For compatibility
+       with other lab systems that aren't yet TF-ified. -->
   <arg name="use_tf" default="true"/>
+  <!-- Downsamples/upsamples image before extracting words. we may want to change this
+       for running on the robot; for testing, SJ created bag files with reduced size
+       images that downsampled to the equivalent of scale = 0.25 -->
   <arg name="scale" default="1.0" />
+  <!-- If positive, limits rate at which words are published.
+       If set to 0, rate is driven by input image frequency. Effectively
+       ignores/discards images.
+       NOTE: SJ has used rate=4 because topic model usually takes ~200ms to
+       assign reasonable topics and this is the knob available for rate-limiting;
+       For our use, could probably be 0 because it's not currently doing anything
+       (even when running accelerated bags, we don't hit 4Hz.) -->
   <arg name="rate" default="4" />
-  <arg name="hue" default="true" />
-  <arg name="intensity" default="true" />
-  <arg name="texton" default="true" />
-  <arg name="orb" default="true" />
-  <arg name="surf" default="false" />
+  <!-- Flags to enable/disable different word extractors.-->
+  <arg name="hue" default="true" /> <!-- (only one that looks at color) -->
+  <arg name="intensity" default="true" /> <!-- Produces 400 words, with each word representing patch of image. -->
+  <arg name="texton" default="true" /> <!-- Texture, looking at gradients-->
+  <arg name="orb" default="true" /> <!-- Improved version of SIFT, superior to SURF. There's a corner-detector underneath, so only get feature if sufficiently good match. -->
+  <arg name="surf" default="false" /> <!-- NOT used b/c orb is better-->
+  <!-- Sunshine supports operating on images without any localization information
+      (e.g. webcam, other stationary camera) -->
   <arg name="use_pc" default="true" />
-  <arg name="seq_duration" default="0" />  
+  <!-- "not technically an implementation detail, but ..."
+       SJ uses on some bag files, N/A for anybody else.-->
+  <arg name="seq_duration" default="0" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="10" />
-  <arg name="V" default="16180" />
-  <arg name="alpha" default="0.073" />
-  <arg name="beta" default="0.15" />
-  <arg name="gamma" default="0" />
-  <arg name="tau" default="0.5" />
+  <!-- Most of these definitions come straight from the papers ...-->
+  <!-- Hyperparameters! -->
+  <arg name="K" default="10" />    <!-- Number of topics -->
+  <arg name="V" default="16180" />   <!-- Vocabulary size / how many unique word IDs there are;  word extractor knows how big vocab is but doesn't publish it. So, have to tell topic model. NOTE: This changes if you change which extractors are running. Lowering it makes rost more computationally efficient (smaller matrices, reducing memory usage), but isn't required to run with fewer features. -->
+  <arg name="alpha" default="0.073" />   <!-- Controls peakiness of distribution of topics per cell (Dirichlet parameter). As approaches 0, will be very peaky since once one word is assigned to a topic rest of words will also be assigned to same topic (probability mass at the vertices). If 1, even distribution of probability mass. If arbitrarily large, every cell will have roughly equal distribution of all topics and probaility mass wil be concentrated at center of simplex. ... if 0.2, probability mass largely towards boundary of the simplex. Appropriate choice of this depends on relationsihp between spatial size of cell and expected size of feature of interest. If we go to larger cells, might make sense to have alpha closer to 1 because would have several things going on in same image. NB: appropriate selection depends on K. -->
+  <arg name="beta" default="0.15" />   <!-- Same as alpha, but for words to describe a topic (rather than topics to describe an image). If low, every topic is characterized by only a few words. If high, most words are represented in each topic. Like alpha, commonly tuned by grid search :-\ The metrics used for this are perplexity and log-likelihood... as well as qualitative observation -->
+  <arg name="gamma" default="0" />   <!-- Weight factor for topic growth. If positive, model starts with one topic and adds additional topics if the likelihood of adding new word to an existing topic is too low (if a bunch of words come in that are different from something seen before) and larger gamma means lower threshold for adding a topic. If 0, any word could be assigned to any topic (the same as infinity, since always capped at K topics). If used, reasonable values are 1e-6 to 1e-3. SJ doesn't use it for Sentry data because he set K based on inspection of data. Ideally when using a topic model you'd set K higher than you need and let gamma determine effective number of topics. (see literature on HDP - hierarchical dirichlet process)-->
+  <arg name="tau" default="0.5" />   <!-- (defined in ROST paper) Controls distribution of resources for refining cells and how much that it weighted towards newer cells. Every cell always gets one refine step when added, but some cells don't get good distribution until refined several times. SJ has never changed this. -->
+  <!--???? -->
   <arg name="p_refine_last_observation" default="0.5" />
+  <!-- Number of threads used by ROST. Will run this many cores at 100%. -->
   <arg name="num_threads" default="4" />
+  <!-- Cells are non-overlaping densely-packed volumes of space.
+       Words are assigned to a cell based on their 4D location, and topic
+       distributions are computed per-cell (but influenced by neighboring cells). -->
+  <!-- Spatial extent of each cell, in meters. (assumes cells are cubes) -->
   <arg name="cell_space" default="3" />
+  <!-- Temporal extent of cell, in seconds. Want low for Sentry because the localization is not sufficiently accurate over long time periods. -->
   <arg name="cell_time" default="4" />
+  <!-- Redundant parameter for defining non-cubic cells. time/x/y/z. If defined, overrides cell_space and cell_time. This has been made non-cubic so if the zero-z flag is turned off and two images are offset vertically, they will be grouped. This is useful for sentry. When zero-z turned on, this doesn't matter -->
   <arg name="cell_size" default="4x3x3x50" />
+  <!-- In each cell, topic assignment for each word is computed based on
+       assignments in that cell AND its neighbors. These parameters determine
+       that neighborhood size, in units of cells. (really, a smoothing parameter)
+       This matters surprisingly much; see yogi's publications. -->
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
+  <!-- DON'T TOUCH. Setting this to true means topic model only
+       refines in response to a service call. -->
   <arg name="polled_refine" default="false" />
+  <!-- Words are published ... -->
   <arg name="words_topic" default="/rost_vision/words" />
+  <!-- Minimum observation refine time, in ms, after overhead for adding observations to model. Gives warning if images arriving faster than this. SJ not sure if this will cause it to drop messages. Tricky because refine time is stochastic and determines on size of observation....also depends on hardware that this is being run on. SJ tuned on Coral data set by looking at output model quality. -->
   <arg name="min_obs_refine_time" default="200" />
+  <!-- How many word observations will be cached while processing the current one.
+       Warns when starts using the queue, starts dropping when queue is full.-->
   <arg name="word_obs_queue_size" default="1" />
+  <!-- Map perplexity type. Perplexity can be computed globally or based on neighborhood. If globally, it causes both rare and different-from-neighbors cells to stand out. If neighborhood, only different-from-neighbor cells stand out. Only affects publication. -->
   <arg name="map_ppx_type" default="global" />
 
   <!-- Visualization arguments -->
@@ -59,10 +122,11 @@
   <arg name="show_words" default="true" />
   <arg name="show_perplexity" default="false" />
   <arg name="show_equalized" default="true" />
-  <arg name="ppx_display_factor" default="0.75" />
-  <arg name="z_offset" default="0.1" />
+  <arg name="ppx_display_factor" default="0.75" /> <!-- alpha value for perplexity map -->
+  <arg name="z_offset" default="0.1" /> <!-- How far above cells to plot cell topic labels.-->
 
-  <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 base_link dvl300_link 100"/> 
+  <!-- Static transforms for Sentry. DVL was in Sentry data, Camera was obtained from Manyu. -->
+  <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 base_link dvl300_link 100"/>
   <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="-0.6306 0 -0.7815 -1.57079633 0 3.14159265 base_link sentry_camera 100"/>
 
   <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen">
@@ -128,9 +192,9 @@
 
   <node pkg="sunshine" type="visualize" name="word_visualizer">
     <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
-    <param name="show_topics" type="bool" value="false" />
+    <param name="show_topics" type="bool" value="$(arg show_topics)" />
     <param name="show_words" type="bool" value="$(arg show_words)" />
-    <param name="show_perplexity" type="bool" value="false" />
+    <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
 
