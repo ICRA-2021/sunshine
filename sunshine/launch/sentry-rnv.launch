@@ -65,7 +65,7 @@
   <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 sentry dvl300_link 100"/> 
   <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="-0.6306 0 -0.7815 -1.57079633 0 3.14159265 sentry sentry_camera 100"/>
 
-  <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen">
+  <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen" respawn="true">
     <param name="image_topic" type="string" value="$(arg image_topic)" />
     <param name="pc_topic" type="string" value="$(arg depth_cloud_topic)" />
     <param name="depth" type="double" value="$(arg pc_depth)" />
@@ -81,7 +81,7 @@
   </node>
 
   <!-- Launch word extractor -->
-  <node pkg="sunshine" type="visual_word_extractor" name="rost_vision">
+  <node pkg="sunshine" type="visual_word_extractor" name="rost_vision" respawn="true" >
     <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
     <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
     <param name="feature_descriptor" type="string" value="ORB"/>
@@ -104,7 +104,7 @@
   </node>
 
   <!-- Launch topic model -->
-  <node pkg="sunshine" type="topic_model" name="rost">
+  <node pkg="sunshine" type="topic_model" name="rost" respawn="true" >
     <param name="K" type="int" value="$(arg K)" />
     <param name="V" type="int" value="$(arg V)" />
     <param name="alpha" type="double" value="$(arg alpha)" />
