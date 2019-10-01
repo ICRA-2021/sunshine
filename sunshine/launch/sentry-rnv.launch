@@ -1,0 +1,150 @@
+<launch>
+  <param name="/use_sim_time" value="true"/>
+
+  <!-- depth_image_proc arguments -->
+  <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="depth_cloud_topic" default="/camera/points" />
+  <arg name="pc_frame" default="sentry_camera" />
+  <arg name="pc_depth" default="0.0" />
+  <arg name="pc_width" default="1.0" />
+  <arg name="pc_height" default="1.5" />
+  <arg name="pc_fovx" default="54.4" />
+  <arg name="pc_fovy" default="37.9" />
+  <arg name="sentry_alt_ref" default="/sentry/sensors/dvl300/dvl" />
+  <arg name="zero_z" default="true" />
+  <arg name="zero_z_frame" default="zeroz_sensor_frame" />
+
+  <!-- Vision arguments -->
+  <arg name="transform_topic" default="" />
+  <arg name="world_frame_name" default="map"/>
+  <arg name="sensor_frame_name" default="$(arg pc_frame)" unless="$(arg zero_z)" />
+  <arg name="sensor_frame_name" default="$(arg zero_z_frame)" if="$(arg zero_z)" />
+  <arg name="use_tf" default="true"/>
+  <arg name="scale" default="1.0" />
+  <arg name="rate" default="4" />
+  <arg name="hue" default="true" />
+  <arg name="intensity" default="true" />
+  <arg name="texton" default="true" />
+  <arg name="orb" default="true" />
+  <arg name="surf" default="false" />
+  <arg name="use_pc" default="true" />
+  <arg name="seq_duration" default="3" />  
+
+  <!-- Topic model arguments -->
+  <arg name="K" default="20" />
+  <arg name="V" default="16180" />
+  <arg name="alpha" default="0.033" />
+  <arg name="beta" default="0.2" />
+  <arg name="gamma" default="0" />
+  <arg name="tau" default="0.5" />
+  <arg name="p_refine_last_observation" default="0.5" />
+  <arg name="num_threads" default="4" />
+  <arg name="cell_space" default="0.1" />
+  <arg name="cell_time" default="5" />
+  <arg name="cell_size" default="5x0.4x0.4x50" />
+  <arg name="G_time" default="1" />
+  <arg name="G_space" default="1" />
+  <arg name="polled_refine" default="false" />
+  <arg name="words_topic" default="/rost_vision/words" />
+  <arg name="min_obs_refine_time" default="200" />
+  <arg name="word_obs_queue_size" default="1" />
+  <arg name="map_ppx_type" default="global" />
+
+  <!-- Visualization arguments -->
+  <arg name="map_topic" default="/rost/topic_map" />
+  <arg name="ppx_topic" default="/ppx_cloud" />
+  <arg name="map_type" default="TopicMap" />
+  <arg name="show_topics" default="false" />
+  <arg name="2d_words_topic" default="/rost_vision/words_2d" />
+  <arg name="show_words" default="true" />
+  <arg name="show_perplexity" default="false" />
+  <arg name="show_equalized" default="true" />
+  <arg name="ppx_display_factor" default="0.75" />
+  <arg name="z_offset" default="0.1" />
+
+  <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 sentry dvl300_link 100"/> 
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="-0.6306 0 -0.7815 -1.57079633 0 3.14159265 sentry sentry_camera 100"/>
+
+  <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen">
+    <param name="image_topic" type="string" value="$(arg image_topic)" />
+    <param name="pc_topic" type="string" value="$(arg depth_cloud_topic)" />
+    <param name="depth" type="double" value="$(arg pc_depth)" />
+    <param name="width" type="double" value="$(arg pc_width)" />
+    <param name="height" type="double" value="$(arg pc_height)" />
+    <param name="frame_id" type="string" value="$(arg pc_frame)" />
+    <param name="map_frame_id" type="string" value="$(arg world_frame_name)" />
+    <param name="fov_x" type="double" value="$(arg pc_fovx)" />
+    <param name="fov_y" type="double" value="$(arg pc_fovy)" />
+    <param name="altitude_ref" type="string" value="$(arg sentry_alt_ref)" />
+    <param name="zero_z" type="bool" value="$(arg zero_z)" />
+    <param name="zeroz_frame_id" type="string" value="$(arg zero_z_frame)" />
+  </node>
+
+  <!-- Launch word extractor -->
+  <node pkg="sunshine" type="visual_word_extractor" name="rost_vision">
+    <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
+    <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
+    <param name="feature_descriptor" type="string" value="ORB"/>
+    <param name="scale" type="double" value="$(arg scale)"/>
+    <param name="rate" type="double" value="$(arg rate)"/>
+    <param name="use_hue" value="$(arg hue)"/>
+    <param name="use_intensity" value="$(arg intensity)"/>
+    <param name="use_orb" value="$(arg orb)"/>
+    <param name="use_surf" value="$(arg surf)"/>
+    <param name="use_texton" value="$(arg texton)" />
+    <param name="image" value="$(arg image_topic)"/>
+    <param name="transform" value="$(arg transform_topic)"/>
+    <param name="pc" value="$(arg depth_cloud_topic)" />
+    <param name="use_pc" value="$(arg use_pc)" />
+    <param name="publish_2d_words" value="true" />
+    <param name="use_tf" value="$(arg use_tf)" type="bool"/>
+    <param name="world_frame" value="$(arg world_frame_name)"/>
+    <param name="sensor_frame" value="$(arg sensor_frame_name)"/>
+    <param name="seq_duration" value="$(arg seq_duration)" />
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="rost">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="publish_map" type="bool" value="true" />
+    <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
+  </node>
+
+  <node pkg="sunshine" type="visualize" name="word_visualizer">
+    <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
+    <param name="show_topics" type="bool" value="false" />
+    <param name="show_words" type="bool" value="$(arg show_words)" />
+    <param name="show_perplexity" type="bool" value="false" />
+    <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
+   </node>
+
+  <node pkg="sunshine" type="visualize3d" name="visualizer">
+    <param name="input_topic" type="string" value="$(arg map_topic)" />
+    <param name="input_type" type="string" value="$(arg map_type)" />
+    <param name="output_topic" type="string" value="/topic_cloud" />
+    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
+    <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
+    <param name="output_frame" type="string" value="$(arg world_frame_name)" />
+    <!-- <param name="output_frame" type="string" value="$(arg zero_z_frame)" if="$(arg zero_z)" /> -->
+    <param name="z_offset" type="double" value="$(arg z_offset)" />
+  </node>
+
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sentry.rviz" unless="$(arg zero_z)" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sentry-zeroz.rviz" if="$(arg zero_z)" />
+</launch>
