@@ -7,6 +7,7 @@
 #include <rost/hlda.hpp>
 #include <rost/rost.hpp>
 #include <sunshine_msgs/WordObservation.h>
+#include <sunshine_msgs/GetTopicSummary.h>
 
 #define POSEDIM 4
 
@@ -25,7 +26,7 @@ class topic_model {
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;
 
-    ros::ServiceServer time_topic_server, cell_topic_server;
+    ros::ServiceServer time_topic_server, cell_topic_server, topic_summary_server;
 
     std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;

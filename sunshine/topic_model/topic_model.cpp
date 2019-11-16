@@ -2,6 +2,7 @@
 
 #include "utils.hpp"
 #include <fstream>
+#include <exception>
 #include <opencv2/core.hpp>
 #include <rost/refinery.hpp>
 #include <sunshine_msgs/LocalSurprise.h>
@@ -23,9 +24,9 @@ using namespace sunshine_msgs;
 static std::string const CELL_PPX = "cell";
 static std::string const NEIGHBORHOOD_PPX = "neighborhood";
 static std::string const GLOBAL_PPX = "global";
-std::vector<std::string> const topic_model::VALID_MAP_PPX_TYPES = { CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX };
+std::vector<std::string> const topic_model::VALID_MAP_PPX_TYPES = {CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX};
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     ros::init(argc, argv, "topic_model");
     ros::NodeHandle nh("~");
@@ -37,7 +38,7 @@ int main(int argc, char** argv)
     spinner.spin();
 }
 
-topic_model::topic_model(ros::NodeHandle* nh)
+topic_model::topic_model(ros::NodeHandle *nh)
     : nh(nh)
 {
     std::string cell_size_string;
@@ -101,19 +102,21 @@ topic_model::topic_model(ros::NodeHandle* nh)
     topic_weights_pub = nh->advertise<TopicWeights>("topic_weight", 10);
     map_pub = nh->advertise<TopicMap>("topic_map", 1);
 
-    word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
+    word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback,
+                             this);
 
-    cell_pose_t G{ { G_time, G_space, G_space, G_space } };
+    cell_pose_t G{{G_time, G_space, G_space, G_space}};
     if (is_hierarchical) {
         ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
         rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(
             static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
 
     } else {
-        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G));
+        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>>(static_cast<size_t>(V), static_cast<size_t>(K),
+                                                                                             k_alpha, k_beta, neighbors_t(G));
         if (k_gamma > 0) {
             ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
-            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>>*>(rost.get());
+            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
             rost_concrete->gamma = k_gamma;
             rost_concrete->enable_auto_topics_size(true);
         }
@@ -128,18 +131,19 @@ topic_model::topic_model(ros::NodeHandle* nh)
         workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
     }
 
-    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> const save_topics_by_time_csv =
-        [this](sunshine_msgs::SaveObservationModelRequest& req, sunshine_msgs::SaveObservationModelResponse&) {
+    boost::function<bool(sunshine_msgs::SaveObservationModelRequest &,
+                         sunshine_msgs::SaveObservationModelResponse &)> const save_topics_by_time_csv =
+        [this](sunshine_msgs::SaveObservationModelRequest &req, sunshine_msgs::SaveObservationModelResponse &) {
             std::ofstream writer(req.filename);
             writer << "time";
             for (auto k = 0; k < this->K; k++) {
                 writer << ",topic_" << std::to_string(k) << "_count";
             }
             auto const topics = this->get_topics_by_time();
-            for (auto const& entry : topics) {
+            for (auto const &entry : topics) {
                 writer << "\n";
                 writer << std::to_string(entry.first);
-                for (auto const& count : entry.second) {
+                for (auto const &count : entry.second) {
                     writer << "," + std::to_string(count);
                 }
             }
@@ -147,8 +151,9 @@ topic_model::topic_model(ros::NodeHandle* nh)
             return true;
         };
 
-    boost::function<bool(sunshine_msgs::SaveObservationModelRequest&, sunshine_msgs::SaveObservationModelResponse&)> const save_topics_by_cell_csv =
-        [this](sunshine_msgs::SaveObservationModelRequest& req, sunshine_msgs::SaveObservationModelResponse&) {
+    boost::function<bool(sunshine_msgs::SaveObservationModelRequest &,
+                         sunshine_msgs::SaveObservationModelResponse &)> const save_topics_by_cell_csv =
+        [this](sunshine_msgs::SaveObservationModelRequest &req, sunshine_msgs::SaveObservationModelResponse &) {
             std::ofstream writer(req.filename);
             writer << "pose_dim_0";
             for (auto i = 1; i < POSEDIM; i++) {
@@ -158,13 +163,13 @@ topic_model::topic_model(ros::NodeHandle* nh)
                 writer << ",topic_" << std::to_string(k) << "_count";
             }
             auto const topics = this->get_topics_by_cell();
-            for (auto const& entry : topics) {
+            for (auto const &entry : topics) {
                 writer << "\n";
                 writer << std::to_string(entry.first[0]);
                 for (auto dim = 1u; dim < POSEDIM; dim++) {
                     writer << "," + std::to_string(entry.first[dim]);
                 }
-                for (auto const& count : entry.second) {
+                for (auto const &count : entry.second) {
                     writer << "," + std::to_string(count);
                 }
             }
@@ -172,14 +177,61 @@ topic_model::topic_model(ros::NodeHandle* nh)
             return true;
         };
 
+    boost::function<bool(sunshine_msgs::GetTopicSummaryRequest &,
+                         sunshine_msgs::GetTopicSummaryResponse &)> const generate_topic_summary =
+        [this](GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
+            response.num_topics = this->K;
+            response.last_seq = last_time;
+            response.header.stamp = ros::Time::now();
+            if (request.grouping == "cell") {
+                auto const topics = this->get_topics_by_cell();
+                response.num_observations = topics.size();
+                response.pose_fields = "t,x,y,z";
+                response.topic_counts.reserve(this->K * topics.size());
+                response.topic_pose.reserve(POSEDIM * topics.size());
+                for (auto const &entry : topics) {
+                    response.topic_pose.insert(response.topic_pose.end(), entry.first.begin(), entry.first.end());
+                    response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
+                }
+            } else if (request.grouping == "time") {
+                auto const topics = this->get_topics_by_time();
+                response.num_observations = topics.size();
+                response.pose_fields = "t";
+                response.topic_counts.reserve(this->K * topics.size());
+                response.topic_pose.reserve(topics.size());
+                for (auto const &entry : topics) {
+                    response.topic_pose.push_back(entry.first);
+                    response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
+                }
+            } else if (request.grouping == "global") {
+                auto const topics = this->rost->get_topic_weights();
+                response.num_observations = 1;
+                response.pose_fields = "";
+                assert(topics.size() == this->K);
+                response.topic_counts.reserve(topics.size());
+                response.topic_pose.reserve(0);
+                for (auto const &entry : topics) {
+                    response.topic_counts = topics;
+                }
+            } else if (request.grouping == "observation") {
+                ROS_ERROR("'observation' grouping is not yet implemented.");
+                return false;
+            } else {
+                ROS_ERROR("Unrecognized topic grouping: %s", request.grouping.c_str());
+                return false;
+            }
+            return true;
+        };
+
     this->time_topic_server = nh->advertiseService<>("save_topics_by_time_csv", save_topics_by_time_csv);
     this->cell_topic_server = nh->advertiseService<>("save_topics_by_cell_csv", save_topics_by_cell_csv);
+    this->topic_summary_server = nh->advertiseService<>("get_topic_summary", generate_topic_summary);
 }
 
 topic_model::~topic_model()
 {
     stopWork = true; //signal workers to stop
-    for (auto t : workers) { //wait for them to stop
+    for (auto const &t : workers) { //wait for them to stop
         t->join();
     }
 }
@@ -188,31 +240,36 @@ std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time()
 {
     auto const poses_by_time = rost->get_poses_by_time();
     std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
-    for (auto const& entry : poses_by_time) {
+    for (auto const &entry : poses_by_time) {
         std::vector<int> topics(static_cast<size_t>(K), 0);
-        for (auto const& pose : entry.second) {
-            for (auto const& topic : rost->get_topics_for_pose(pose)) {
+        for (auto const &pose : entry.second) {
+            for (auto const &topic : rost->get_topics_for_pose(pose)) {
                 topics[static_cast<size_t>(topic)] += 1;
             }
         }
-        topics_by_time.insert({ entry.first, topics });
+        topics_by_time.insert({entry.first, topics});
     }
     return topics_by_time;
 }
 
 std::map<cell_pose_t, std::vector<int>> topic_model::get_topics_by_cell() const
 {
-    auto const& poses = rost->cell_pose;
+    auto const &poses = rost->cell_pose;
     std::map<cell_pose_t, std::vector<int>> topics_by_cell;
-    for (auto const& pose : poses) {
+    for (auto const &pose : poses) {
         auto const cell = rost->get_cell(pose);
-        topics_by_cell.insert({ pose, cell->nZ });
+        if (cell->nZ.size() == this->K) {
+            topics_by_cell.insert({pose, cell->nZ});
+        } else {
+            ROS_WARN_THROTTLE(1, "topic_model::get_topics_by_cell() : Skipping cells with wrong number of topics");
+            continue;
+        }
     }
     return topics_by_cell;
 }
 
 static std::map<cell_pose_t, std::vector<int>>
-words_for_cell_poses(WordObservation const& wordObs, std::array<double, POSEDIM> cell_size)
+words_for_cell_poses(WordObservation const &wordObs, std::array<double, POSEDIM> cell_size)
 {
     using namespace std;
     map<cell_pose_t, vector<int>> words_by_cell_pose;
@@ -238,7 +295,7 @@ void topic_model::wait_for_processing() const
     using namespace std::chrono;
     auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
     ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
-        min_obs_refine_time, duration_cast<milliseconds>(elapsedSinceAdd).count());
+              min_obs_refine_time, duration_cast<milliseconds>(elapsedSinceAdd).count());
     if (duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time) {
         ROS_WARN("New word observation received too soon! Delaying...");
         if (++consecutive_rate_violations > obs_queue_size) {
@@ -250,7 +307,7 @@ void topic_model::wait_for_processing() const
     }
 }
 
-void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
+void topic_model::words_callback(const WordObservation::ConstPtr &wordObs)
 {
     using namespace std;
     lock_guard<mutex> guard(wordsReceivedLock);
@@ -284,11 +341,11 @@ void topic_model::words_callback(const WordObservation::ConstPtr& wordObs)
 
     ROS_DEBUG("Adding %lu word observations from time %d", wordObs->words.size(), observation_time);
     ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
-        "Words received from different source with same observation time!");
-    auto const& words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
-    for (auto const& entry : words_by_cell_pose) {
-        auto const& cell_pose = entry.first;
-        auto const& cell_words = entry.second;
+                   "Words received from different source with same observation time!");
+    auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
+    for (auto const &entry : words_by_cell_pose) {
+        auto const &cell_pose = entry.first;
+        auto const &cell_words = entry.second;
         rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
         current_cell_poses.push_back(cell_pose);
         current_source = wordObs->source;
@@ -325,7 +382,7 @@ void topic_model::broadcast_topics() const
     topic_map->cell_topics.reserve(rost->cell_pose.size());
     topic_map->cell_ppx.reserve(rost->cell_pose.size());
     topic_map->cell_poses.reserve(rost->cell_pose.size() * (POSEDIM - 1));
-    topic_map->cell_width = { cell_size.begin() + 1, cell_size.end() };
+    topic_map->cell_width = {cell_size.begin() + 1, cell_size.end()};
     topic_map->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
     topic_map->observation_transform.header.stamp = ros::Time::now();
 
@@ -335,13 +392,13 @@ void topic_model::broadcast_topics() const
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(time);
-    global_surprise->cell_width = { cell_size.begin() + 1, cell_size.end() };
+    global_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
     global_surprise->surprise.reserve(current_cell_poses.size());
     global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq = static_cast<uint32_t>(time);
-    local_surprise->cell_width = { cell_size.begin() + 1, cell_size.end() };
+    local_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
     local_surprise->surprise.reserve(current_cell_poses.size());
     local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
 
@@ -358,8 +415,8 @@ void topic_model::broadcast_topics() const
     bool const neighborhood_ppx_required = publish_local_surprise;
     bool const global_ppx_required = publish_global_surprise;
 
-    for (auto const& cell_pose : current_cell_poses) {
-        auto const& cell = rost->get_cell(cell_pose);
+    for (auto const &cell_pose : current_cell_poses) {
+        auto const &cell = rost->get_cell(cell_pose);
         auto const word_pose = toWordPose(cell_pose, cell_size);
 
         vector<int> topics; //topic labels for each word in the cell
@@ -425,8 +482,8 @@ void topic_model::broadcast_topics() const
     }
 
     if (publish_map) {
-        for (auto const& cell_pose : rost->cell_pose) {
-            auto const& cell = rost->get_cell(cell_pose);
+        for (auto const &cell_pose : rost->cell_pose) {
+            auto const &cell = rost->get_cell(cell_pose);
             auto const word_pose = toWordPose(cell_pose, cell_size);
             auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
             if (ml_cell_topic == cell->nZ.cend()) {

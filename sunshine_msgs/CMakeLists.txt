@@ -19,7 +19,6 @@ add_message_files(
   LocalSurprise.msg
   Perplexity.msg
   Summary.msg
-  SummaryObservations.msg
   TopicModel.msg
   TopicWeights.msg
   TopicMap.msg
@@ -33,6 +32,7 @@ add_service_files(
   GetModelPerplexity.srv
   GetTopicModel.srv
   GetTopicsForTime.srv
+  GetTopicSummary.srv
   LoadFile.srv
   Pause.srv
   RefineTopics.srv
