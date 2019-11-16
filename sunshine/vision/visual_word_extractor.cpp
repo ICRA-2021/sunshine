@@ -210,7 +210,7 @@ int main(int argc, char** argv)
     nhp.param<bool>("show_clahe", sunshine::show_clahe, false);
 
     nhp.param<bool>("use_texton", use_texton, true);
-    nhp.param<int>("num_texton", texton_cell_size, 64);
+    nhp.param<int>("texton_cell_size", texton_cell_size, 64);
     nhp.param<string>("texton_vocab", texton_vocab_filename, data_root + "/libvisualwords/data/texton.vocabulary.baraka.1000.csv");
 
     nhp.param<bool>("use_orb", use_orb, true);
