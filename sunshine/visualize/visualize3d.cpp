@@ -19,7 +19,7 @@ class Visualize3d {
     double ppx_display_factor, z_offset;
 
 public:
-    Visualize3d(ros::NodeHandle& nh);
+    Visualize3d(ros::NodeHandle &nh);
 
     inline RGBA colorForWord(int32_t word, double saturation = 1, double value = 1, double alpha = 1)
     {
@@ -37,7 +37,7 @@ public:
     }
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     ros::init(argc, argv, "visualize3d");
     ros::NodeHandle nh("~");
@@ -46,13 +46,12 @@ int main(int argc, char** argv)
 }
 
 class WordObservationPoints {
-    Visualize3d* cls;
-    WordObservation const& wordObservations;
+    Visualize3d *cls;
+    WordObservation const &wordObservations;
 
 public:
-    WordObservationPoints(Visualize3d* cls, WordObservationConstPtr wordObservations)
-        : cls(cls)
-        , wordObservations(*wordObservations)
+    WordObservationPoints(Visualize3d *cls, WordObservationConstPtr wordObservations)
+        : cls(cls), wordObservations(*wordObservations)
     {
     }
 
@@ -63,25 +62,26 @@ public:
 
     RGBAPoint operator[](size_t idx) const
     {
-        auto const& poses = wordObservations.word_pose;
-        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2], cls->colorForWord(wordObservations.words[idx]) };
+        auto const &poses = wordObservations.word_pose;
+        return {poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2], cls->colorForWord(wordObservations.words[idx])};
     }
 };
 
-template <bool show_ppx>
-class TopicMapPoints {
-    Visualize3d* cls;
-    TopicMap const& topicMap;
+template<typename T>
+class MapPointsContainer {
+protected:
+    Visualize3d *cls;
+    TopicMap const &topicMap;
     double const max_ppx;
+    std::array<double, 4> const cell_size;
 
-public:
-    TopicMapPoints(Visualize3d* cls, TopicMapConstPtr topicMap)
-        : cls(cls)
-        , topicMap(*topicMap)
-        , max_ppx((show_ppx && size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 1)
+    MapPointsContainer(Visualize3d *cls, TopicMapConstPtr topicMap, std::array<double, 4> cell_size)
+        : cls(cls), topicMap(*topicMap),
+          max_ppx((size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 1), cell_size(cell_size)
     {
     }
 
+public:
     size_t size() const
     {
         return topicMap.cell_topics.size();
@@ -89,47 +89,63 @@ public:
 
     RGBAPoint operator[](size_t idx) const
     {
-        auto const& poses = topicMap.cell_poses;
-        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2] + cls->get_z_offset(),
-            cls->colorForWord(topicMap.cell_topics[idx], 1, 1 + show_ppx * cls->perplexity_display_factor() * (topicMap.cell_ppx[idx] / max_ppx - 1)) };
+        return static_cast<T const *>(this)->get_point(idx);
     }
 };
 
-class PerplexityPoints {
-    Visualize3d* cls;
-    TopicMap const& topicMap;
-    double const max_ppx;
-
+template<bool show_ppx>
+class TopicMapPoints : public MapPointsContainer<TopicMapPoints<show_ppx>> {
 public:
-    PerplexityPoints(Visualize3d* cls, TopicMapConstPtr topicMap)
-        : cls(cls)
-        , topicMap(*topicMap)
-        , max_ppx((size() > 0) ? *std::max_element(topicMap->cell_ppx.begin(), topicMap->cell_ppx.end()) : 0)
+    TopicMapPoints(Visualize3d *cls, TopicMapConstPtr topicMap, std::array<double, 4> cell_size)
+        : MapPointsContainer<TopicMapPoints<show_ppx>>(cls, topicMap, cell_size)
     {
     }
 
-    size_t size() const
+    RGBAPoint get_point(size_t idx) const
     {
-        return topicMap.cell_topics.size();
-    }
-
-    RGBAPoint operator[](size_t idx) const
-    {
-        auto const& poses = topicMap.cell_poses;
-        uint8_t const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);
-        return { poses[idx * 3], poses[idx * 3 + 1], poses[idx * 3 + 2] + cls->get_z_offset(), { relativePpx, relativePpx, 0, 0 } };
+        auto const &poses = this->topicMap.cell_poses;
+        return {poses[idx * 3] + this->cell_size[1] / 2, poses[idx * 3 + 1] + this->cell_size[2] / 2,
+                poses[idx * 3 + 2] + this->cell_size[3] / 2 + this->cls->get_z_offset(),
+                this->cls->colorForWord(this->topicMap.cell_topics[idx], 1, 1 + show_ppx * this->cls->perplexity_display_factor() *
+                                                                                (this->topicMap.cell_ppx[idx] / this->max_ppx - 1))};
     }
 };
 
-Visualize3d::Visualize3d(ros::NodeHandle& nh)
+class PerplexityPoints : public MapPointsContainer<PerplexityPoints> {
+public:
+    PerplexityPoints(Visualize3d *cls, TopicMapConstPtr topicMap, std::array<double, 4> cell_size)
+        : MapPointsContainer<PerplexityPoints>(cls, topicMap, cell_size)
+    {
+    }
+
+    RGBAPoint get_point(size_t idx) const
+    {
+        auto const &poses = topicMap.cell_poses;
+        auto const relativePpx = uint8_t(255. * topicMap.cell_ppx[idx] / max_ppx);
+        return {poses[idx * 3] + cell_size[1] / 2, poses[idx * 3 + 1] + cell_size[2] / 2,
+                poses[idx * 3 + 2] + cell_size[3] / 2 + cls->get_z_offset(), {relativePpx, relativePpx, 0, 0}};
+    }
+};
+
+Visualize3d::Visualize3d(ros::NodeHandle &nh)
 {
     auto const input_topic = nh.param<std::string>("input_topic", "/words");
     auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
     auto const input_type = nh.param<std::string>("input_type", "TopicMap");
     auto const ppx_topic = nh.param<std::string>("ppx_topic", "/ppx_cloud");
     auto const output_frame = nh.param<std::string>("output_frame", "map");
+    auto const cell_size_string = nh.param<std::string>("cell_size", "");
+    auto const cell_size_space = nh.param<double>("cell_space", 1);
+    auto const cell_size_time = nh.param<double>("cell_time", 1);
     z_offset = nh.param<double>("z_offset", 0.1);
     ppx_display_factor = nh.param<double>("ppx_display_factor", 0.5);
+
+    std::array<double, 4> cell_size = {0};
+    if (!cell_size_string.empty()) {
+        cell_size = computeCellSize<4>(cell_size_string);
+    } else {
+        cell_size = computeCellSize<4>(cell_size_time, cell_size_space);
+    }
 
     pcPub = nh.advertise<PointCloud2>(output_topic, 1);
     if (ppx_topic != output_topic) {
@@ -137,19 +153,19 @@ Visualize3d::Visualize3d(ros::NodeHandle& nh)
     }
 
     if (input_type == "WordObservation") {
-        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this, output_frame](WordObservationConstPtr const& msg) {
+        obsSub = nh.subscribe<WordObservation>(input_topic, 1, [this, output_frame](WordObservationConstPtr const &msg) {
             auto pc = toRGBAPointCloud<WordObservationPoints>(WordObservationPoints(this, msg), output_frame);
             pcPub.publish(pc);
         });
     } else if (input_type == "TopicMap") {
-        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [this, ppx_topic, output_topic, output_frame](sunshine_msgs::TopicMapConstPtr const& msg) {
+        obsSub = nh.subscribe<TopicMap>(input_topic, 1, [=](sunshine_msgs::TopicMapConstPtr const &msg) {
             if (ppx_topic == output_topic) {
-                auto pc = toRGBAPointCloud(TopicMapPoints<true>(this, msg), output_frame);
+                auto pc = toRGBAPointCloud(TopicMapPoints<true>(this, msg, cell_size), output_frame);
                 pcPub.publish(pc);
             } else {
-                auto topicPc = toRGBAPointCloud(TopicMapPoints<false>(this, msg), output_frame);
+                auto topicPc = toRGBAPointCloud(TopicMapPoints<false>(this, msg, cell_size), output_frame);
                 pcPub.publish(topicPc);
-                auto ppxPc = toRGBAPointCloud(PerplexityPoints(this, msg), output_frame);
+                auto ppxPc = toRGBAPointCloud(PerplexityPoints(this, msg, cell_size), output_frame);
                 ppxPub.publish(ppxPc);
             }
         });

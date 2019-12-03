@@ -23,7 +23,7 @@ typedef SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_p
 
 class topic_model {
     static std::vector<std::string> const VALID_MAP_PPX_TYPES;
-    ros::NodeHandle* nh;
+    ros::NodeHandle *nh;
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;
 
@@ -56,19 +56,21 @@ class topic_model {
     std::shared_ptr<std::thread> broadcast_thread;
 
     void wait_for_processing() const;
-    void words_callback(const sunshine_msgs::WordObservation::ConstPtr& words);
-    sunshine_msgs::TopicMapPtr generate_topic_map(int const obs_time) const;
-    void broadcast_topics(int const obs_time, std::vector<cell_pose_t>) const;
+    void words_callback(const sunshine_msgs::WordObservation::ConstPtr &words);
+    sunshine_msgs::TopicMapPtr generate_topic_map(int obs_time) const;
+    void broadcast_topics(int obs_time, std::vector<cell_pose_t>) const;
 
 public:
-    topic_model(ros::NodeHandle* nh);
+    explicit topic_model(ros::NodeHandle *nh);
+
     ~topic_model();
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
+
     std::map<cell_pose_t, std::vector<int>> get_topics_by_cell() const;
 };
 
-static inline cell_pose_t toCellPose(word_pose_t const& word, std::array<double, POSEDIM> cell_size)
+static inline cell_pose_t toCellPose(word_pose_t const &word, std::array<double, POSEDIM> cell_size)
 {
     return {
         static_cast<CellDimType>(word[0] / cell_size[0]),
@@ -78,7 +80,7 @@ static inline cell_pose_t toCellPose(word_pose_t const& word, std::array<double,
     };
 }
 
-static inline word_pose_t toWordPose(cell_pose_t const& cell, std::array<double, POSEDIM> cell_size)
+static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<double, POSEDIM> cell_size)
 {
     return {
         static_cast<WordDimType>(cell[0] * cell_size[0]),

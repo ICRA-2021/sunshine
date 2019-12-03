@@ -86,20 +86,9 @@ topic_model::topic_model(ros::NodeHandle *nh)
     }
 
     if (!cell_size_string.empty()) {
-        double idx = 0;
-        for (size_t i = 1; i <= POSEDIM; i++) {
-            auto const next = (i < POSEDIM) ? cell_size_string.find("x", idx) : cell_size_string.size();
-            if (next == cell_size_string.npos) {
-                throw std::invalid_argument("Cell size string '" + cell_size_string + "' is invalid!");
-            }
-            cell_size[i - 1] = std::stod(cell_size_string.substr(idx, next));
-            idx = next + 1;
-        }
+        cell_size = computeCellSize<POSEDIM>(cell_size_string);
     } else {
-        cell_size[0] = cell_size_time;
-        for (size_t i = 1; i < POSEDIM; i++) {
-            cell_size[i] = cell_size_space;
-        }
+        cell_size = computeCellSize<POSEDIM>(cell_size_time, cell_size_space);
     }
 
     ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
