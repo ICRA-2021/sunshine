@@ -8,6 +8,7 @@
 #include <rost/rost.hpp>
 #include <sunshine_msgs/WordObservation.h>
 #include <sunshine_msgs/GetTopicSummary.h>
+#include <sunshine_msgs/TopicMap.h>
 
 #define POSEDIM 4
 
@@ -26,9 +27,9 @@ class topic_model {
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;
 
-    ros::ServiceServer time_topic_server, cell_topic_server, topic_summary_server;
+    ros::ServiceServer time_topic_server, cell_topic_server, topic_summary_server, topic_map_server;
 
-    std::mutex wordsReceivedLock;
+    mutable std::mutex wordsReceivedLock, rostLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
     mutable int consecutive_rate_violations = 0;
 
@@ -38,7 +39,9 @@ class topic_model {
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
-    bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx, publish_map;
+    bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
+    int map_publish_period;
+    ros::Timer map_publish_timer;
     std::string map_ppx_type;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
@@ -50,10 +53,12 @@ class topic_model {
 
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
+    std::shared_ptr<std::thread> broadcast_thread;
 
     void wait_for_processing() const;
     void words_callback(const sunshine_msgs::WordObservation::ConstPtr& words);
-    void broadcast_topics() const;
+    sunshine_msgs::TopicMapPtr generate_topic_map(int const obs_time) const;
+    void broadcast_topics(int const obs_time, std::vector<cell_pose_t>) const;
 
 public:
     topic_model(ros::NodeHandle* nh);
