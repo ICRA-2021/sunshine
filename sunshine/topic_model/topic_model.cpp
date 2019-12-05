@@ -86,7 +86,7 @@ topic_model::topic_model(ros::NodeHandle *nh)
     }
 
     if (!cell_size_string.empty()) {
-        cell_size = computeCellSize<POSEDIM>(cell_size_string);
+        cell_size = readNumbers<POSEDIM, 'x'>(cell_size_string);
     } else {
         cell_size = computeCellSize<POSEDIM>(cell_size_time, cell_size_space);
     }

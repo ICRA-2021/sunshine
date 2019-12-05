@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
 import seaborn as sb
 import sys
 import numpy as np
@@ -55,8 +56,12 @@ def plot_topics(topics_csv, colors_csv=None, repeat_start=True):
                 colors.append(tuple(float(v) / 255. for v in tokens[1:]))
     ax.set_prop_cycle(color=colors)
     fig.set_size_inches(6, 2)
-    ax.set_axis_off()
     
+    ax.get_yaxis().set_visible(False)
+    plt.xlabel("Time (s)")
+    loc = plticker.MultipleLocator(base=5.0) # this locator puts ticks at regular intervals
+    ax.xaxis.set_major_locator(loc)
+
     ys = dist.transpose()
     ys = [ys[i, :] for i in range(ys.shape[0])]
     

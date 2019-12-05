@@ -1,4 +1,12 @@
 <launch>
+  <arg name="bagfile" />
+  <arg name="maps_dir" default="" />
+  <arg name="topics_bag" default="" />
+
+  <arg name="visualize_2d" default="true" />
+  <arg name="visualize_3d" default="true" />
+  <arg name="use_rviz" default="true" />
+  
   <param name="/use_sim_time" value="true"/>
   <!-- depth_image_proc arguments -->
   <arg name="rgb_info_topic" />
@@ -28,10 +36,10 @@
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="0.5" />
-  <arg name="cell_time" default="3600" />
-  <arg name="cell_size" default="3600x0.5x0.5x0.5" />
-  <arg name="G_time" default="1" />
+  <arg name="cell_space" default="0.25" />
+  <arg name="cell_time" default="1" />
+  <arg name="cell_size" default="1x0.25x0.25x1.0" />
+  <arg name="G_time" default="2" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
@@ -99,7 +107,7 @@
     <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
   </node>
 
-  <node pkg="sunshine" type="visualize" name="word_visualizer">
+  <node pkg="sunshine" type="visualize" name="word_visualizer" if="$(arg visualize_2d)">
     <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
     <param name="topics_topic" type="string" value="/rost/topics" />
     <param name="image" type="string" value="$(arg image_topic)"/>
@@ -109,7 +117,7 @@
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
    </node>
 
-  <node pkg="sunshine" type="visualize3d" name="visualizer">
+  <node pkg="sunshine" type="visualize3d" name="visualizer" if="$(arg visualize_3d)">
     <param name="input_topic" type="string" value="$(arg map_topic)" />
     <param name="input_type" type="string" value="$(arg map_type)" />
     <param name="output_topic" type="string" value="/topic_cloud" />
@@ -120,5 +128,14 @@
     <param name="cell_space" type="double" value="$(arg cell_space)" />
     <param name="cell_time" type="double" value="$(arg cell_time)" />
   </node>
-   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sunshine-bag.rviz" />
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sunshine-bag.rviz" if="$(arg use_rviz)" />
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock $(arg bagfile)"/>
+  <node pkg="rosbag" type="record" name="record_topics" output="screen" args="-a -x '/camera/(.*)' --output-name $(arg topics_bag)" if="$(eval topics_bag != '')" />
+  <!--<node pkg="sunshine" type="save_topic_map" name="save_topic_map" if="$(eval maps_dir != '')" >
+        <param name="outupt_prefix" value="$(arg maps_dir)/topic-map" />
+	<param name="continuous" value="true" />
+	<param name="use_color" value="true" />
+        <param name="box" value="-25x-25x50x50" />
+        <param name="pixel_scale" value="$(arg cell_space)" />
+  </node>-->
 </launch>

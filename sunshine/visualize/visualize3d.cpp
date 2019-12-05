@@ -142,7 +142,7 @@ Visualize3d::Visualize3d(ros::NodeHandle &nh)
 
     std::array<double, 4> cell_size = {0};
     if (!cell_size_string.empty()) {
-        cell_size = computeCellSize<4>(cell_size_string);
+        cell_size = readNumbers<4, 'x'>(cell_size_string);
     } else {
         cell_size = computeCellSize<4>(cell_size_time, cell_size_space);
     }

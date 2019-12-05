@@ -170,20 +170,20 @@ sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::
     return pc;
 }
 
-template <int POSE_DIM>
-static inline std::array<double, POSE_DIM> computeCellSize(std::string const &cell_size_string)
+template <int COUNT, char DELIM='x'>
+static inline std::array<double, COUNT> readNumbers(std::string const &str)
 {
-    std::array<double, POSE_DIM> cell_size = {};
+    std::array<double, COUNT> nums = {0};
     size_t idx = 0;
-    for (size_t i = 1; i <= POSE_DIM; i++) {
-        auto const next = (i < POSE_DIM) ? cell_size_string.find('x', idx) : cell_size_string.size();
+    for (size_t i = 1; i <= COUNT; i++) {
+        auto const next = (i < COUNT) ? str.find(DELIM, idx) : str.size();
         if (next == std::string::npos) {
-            throw std::invalid_argument("Cell size string '" + cell_size_string + "' is invalid!");
+            throw std::invalid_argument("String '" + str + "' contains too few numbers!");
         }
-        cell_size[i - 1] = std::stod(cell_size_string.substr(idx, next));
+        nums[i - 1] = std::stod(str.substr(idx, next));
         idx = next + 1;
     }
-    return cell_size;
+    return nums;
 }
 
 template <int POSE_DIM>
