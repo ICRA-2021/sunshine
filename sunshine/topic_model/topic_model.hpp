@@ -70,7 +70,7 @@ public:
     std::map<cell_pose_t, std::vector<int>> get_topics_by_cell() const;
 };
 
-static inline cell_pose_t toCellPose(word_pose_t const &word, std::array<double, POSEDIM> cell_size)
+static inline cell_pose_t toCellId(word_pose_t const &word, std::array<double, POSEDIM> cell_size)
 {
     return {
         static_cast<CellDimType>(word[0] / cell_size[0]),

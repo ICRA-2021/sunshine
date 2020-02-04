@@ -259,7 +259,7 @@ std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time()
                 topics[static_cast<size_t>(topic)] += 1;
             }
         }
-        topics_by_time.insert({entry.first, topics});
+        topics_by_time.insert({entry.first * cell_size[0], topics}); // IMPORTANT: Real time not cell time
     }
     return topics_by_time;
 }
@@ -295,7 +295,7 @@ words_for_cell_poses(WordObservation const &wordObs, std::array<double, POSEDIM>
         word_stamped_point[1] = static_cast<WordDimType>(word_point.x);
         word_stamped_point[2] = static_cast<WordDimType>(word_point.y);
         word_stamped_point[3] = static_cast<WordDimType>(word_point.z);
-        cell_pose_t cell_stamped_point = toCellPose(word_stamped_point, cell_size);
+        cell_pose_t cell_stamped_point = toCellId(word_stamped_point, cell_size);
 
         words_by_cell_pose[cell_stamped_point].push_back(wordObs.words[i]);
     }

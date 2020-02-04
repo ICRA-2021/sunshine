@@ -9,6 +9,7 @@ src/bin/
 *.autosave
 *.swp
 **/*.txt.user*
+*.pyc
 
 # CMake
 CMakeCache.txt

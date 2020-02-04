@@ -21,5 +21,6 @@ for filename in tqdm(timeseries_files):
         fig = plot_topics(filename, filename.replace("timeseries", "colors"))
         plt.savefig(filename.replace("csv", "png"))
         plt.close(fig)
-    except:
+    except Exception as e:
+        print(e)
         print("Error occurred when processing file %s" % filename, file=sys.stderr)
