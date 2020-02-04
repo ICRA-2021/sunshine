@@ -1,6 +1,7 @@
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.h"
 #include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include "ros/ros.h"
 #include "sensor_msgs/image_encodings.h"
 
@@ -39,6 +40,7 @@ static bool use_clahe;
 static bool show_clahe;
 static double rate;
 static double seq_duration;
+static double img_scale;
 static uint32_t seq_start;
 static pcl::PointCloud<pcl::PointXYZ>::Ptr pc;
 static std::string frame_id = "";
@@ -103,6 +105,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
         }
     }
 
+//    double const real_inv_width = 1. / img.cols, real_inv_height = 1. / img.rows;
+    if (img_scale != 1.0) {
+        cv::resize(img, img, cv::Size(), img_scale, img_scale, (img_scale < 1.0) ? cv::INTER_AREA : cv::INTER_LINEAR);
+    }
+
     WordObservation const z = multi_bow(img);
     size_t const num_words = z.words.size();
 
@@ -120,6 +127,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     sz->vocabulary_size = z.vocabulary_size;
     sz->words = z.words;
     sz->header.frame_id = frame_id;
+    sz->header.stamp = ros::Time::now();
+    sz->header.seq = msg->header.seq;
     sz->word_scale.resize(num_words);
     sz->word_scale = z.word_scale;
 
@@ -145,12 +154,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             v = z.word_pose[i * 2 + 1];
             if (use_pc) {
                 auto const& cloud = *pc;
-                assert(u <= cloud.width && v <= cloud.height);
+                assert(u < cloud.width && v < cloud.height);
                 auto const pcPose = cloud.at(u, v).getArray3fMap();
                 sz->word_pose[i * poseDim + 0] = static_cast<double>(pcPose.x());
                 sz->word_pose[i * poseDim + 1] = static_cast<double>(pcPose.y());
                 sz->word_pose[i * poseDim + 2] = static_cast<double>(pcPose.z());
             } else {
+//                std::cout << "(" << u << "," << v << "), " << real_inv_width << "x" << real_inv_height << std::endl;
+//                assert(u < 1. / real_inv_width && v < 1. / real_inv_height);
                 sz->word_pose[i * poseDim + 0] = static_cast<double>(u);
                 sz->word_pose[i * poseDim + 1] = static_cast<double>(v);
                 sz->word_pose[i * poseDim + 2] = 0.0;
@@ -177,6 +188,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
             }
         } else {
             sz->observation_transform = latest_transform;
+            sz->observation_transform.header = msg->header;
         }
 
         words_pub.publish(sz);
@@ -203,7 +215,6 @@ int main(int argc, char** argv)
         feature_descriptor_name, pc_topic_name, transform_topic_name, world_frame_name, sensor_frame_name;
     int num_surf, num_orb, color_cell_size, texton_cell_size;
     bool use_surf, use_hue, use_intensity, use_orb, use_texton;
-    double img_scale;
 
     // parse parameters
     nhp.param<bool>("use_clahe", sunshine::use_clahe, true);
@@ -224,7 +235,7 @@ int main(int argc, char** argv)
     nhp.param<bool>("use_surf", use_surf, false);
     nhp.param<int>("num_surf", num_surf, 1000);
 
-    nhp.param<double>("scale", img_scale, 1.0);
+    nhp.param<double>("scale", sunshine::img_scale, 1.0);
     nhp.param<string>("image", image_topic_name, "/camera/image_raw");
     nhp.param<string>("transform", transform_topic_name, "");
     nhp.param<string>("pc", pc_topic_name, "/point_cloud");
@@ -262,7 +273,7 @@ int main(int argc, char** argv)
     }
 
     if (use_texton) {
-        sunshine::multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
+        sunshine::multi_bow.add(new TextonBOW(0, texton_cell_size, sunshine::img_scale, texton_vocab_filename));
     }
 
     if (use_surf || use_orb) {
@@ -271,11 +282,11 @@ int main(int argc, char** argv)
             feature_detector_names,
             feature_sizes,
             feature_descriptor_name,
-            img_scale));
+            sunshine::img_scale));
     }
 
     if (use_hue || use_intensity) {
-        sunshine::multi_bow.add(new ColorBOW(0, color_cell_size, img_scale, use_hue, use_intensity));
+        sunshine::multi_bow.add(new ColorBOW(0, color_cell_size, sunshine::img_scale, use_hue, use_intensity));
     }
 
     image_transport::ImageTransport it(nhp);

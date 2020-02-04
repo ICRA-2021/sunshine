@@ -155,6 +155,7 @@ include_directories(
 
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
 add_executable(topic_model topic_model/topic_model.cpp)
+add_executable(model_translator topic_model/model_translator.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
 add_executable(visualize3d visualize/visualize3d.cpp)
 add_executable(save_topic_map visualize/save_topic_map.cpp)
@@ -166,6 +167,7 @@ add_executable(test.sunshine_eval test/sunshine_eval.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
+add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
 add_dependencies(save_topic_map sunshine_msgs_generate_messages_cpp)
@@ -196,6 +198,9 @@ target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${B
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES})
+
+target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(model_translator ${catkin_LIBRARIES})
 
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 

@@ -1,3 +1,6 @@
+#identifier
+string identifier
+
 #number of topics
 int32 K
 
@@ -5,10 +8,10 @@ int32 K
 int32 V
 
 #Dirichlet prior topic distribution in a cell
-float32 alpha
+# float32 alpha
 
 #Dirichlet prior word distribution in a topic
-float32 beta
+# float32 beta
 
 #flattened KxV matrix which stores the word distribution for each topic
 #phi[k*V + v] is the frequency of vocabulary word <v> in topic <k>

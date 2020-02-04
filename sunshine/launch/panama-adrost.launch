@@ -1,0 +1,192 @@
+<launch>
+  <!-- Set this to true if running sunshine with a rosbag; false for real-time -->
+  <param name="/use_sim_time" value="true"/>
+
+  <arg name="basename" default="rost" />
+  <arg name="match_period" default="3" />
+
+  <!-- Incoming topic -->
+  <arg name="image_topic" default="/camera/image_raw" />
+
+  <!-- Vision (visual_word_extractor) arguments -->
+  <!-- As the name says, this node extracts visual words from images.
+       The important thing is that it subscribes to BOTH images and the
+       correspondingpoint clouds, so it can extract features and then map to
+       3D locations using the point clouds. -->
+  <!-- (Not required for Sentry) -->
+  <arg name="transform_topic" default="" />
+  <!-- Words are binned based on their spatial location.
+       That needs to be done in a map-like frame, and Sentry bags already had
+       this info in odom_dr. -->
+  <arg name="world_frame_name" default=""/>
+  <!-- This enables Sunshine to change point cloud frames for compatability
+       with BlueROV. For sentry, this must match point clouds that are published,
+       so this 'if' replicates the logic in pc_publisher -->
+  <arg name="sensor_frame_name" default="" />
+  <!-- Whether to use tf lookup to get differences between frames. For compatibility
+       with other lab systems that aren't yet TF-ified. -->
+  <arg name="use_tf" default="false"/>
+  <!-- Downsamples/upsamples image before extracting words. we may want to change this
+       for running on the robot; for testing, SJ created bag files with reduced size
+       images that downsampled to the equivalent of scale = 0.25 -->
+  <arg name="scale" default="0.5" />
+  <!-- If positive, limits rate at which words are published.
+       If set to 0, rate is driven by input image frequency. Effectively
+       ignores/discards images.
+       NOTE: SJ has used rate=4 because topic model usually takes ~200ms to
+       assign reasonable topics and this is the knob available for rate-limiting;
+       For our use, could probably be 0 because it's not currently doing anything
+       (even when running accelerated bags, we don't hit 4Hz.) -->
+  <arg name="rate" default="4" />
+  <!-- Flags to enable/disable different word extractors.-->
+  <arg name="hue" default="true" /> <!-- (only one that looks at color) -->
+  <arg name="intensity" default="true" /> <!-- Produces 400 words, with each word representing patch of image. -->
+  <arg name="texton" default="true" /> <!-- Texture, looking at gradients-->
+  <arg name="orb" default="true" /> <!-- Improved version of SIFT, superior to SURF. There's a corner-detector underneath, so only get feature if sufficiently good match. -->
+  <arg name="surf" default="false" /> <!-- NOT used b/c orb is better-->
+  <!-- Sunshine supports operating on images without any localization information
+      (e.g. webcam, other stationary camera) -->
+  <arg name="use_pc" default="false" />
+  <!-- "not technically an implementation detail, but ..."
+       SJ uses on some bag files, N/A for anybody else.-->
+  <arg name="seq_duration" default="0" />
+
+  <!-- Topic model arguments -->
+  <!-- Most of these definitions come straight from the papers ...-->
+  <!-- Hyperparameters! -->
+  <arg name="K" default="10" />    <!-- Number of topics -->
+  <arg name="V" default="16180" />   <!-- Vocabulary size / how many unique word IDs there are;  word extractor knows how big vocab is but doesn't publish it. So, have to tell topic model. NOTE: This changes if you change which extractors are running. Lowering it makes rost more computationally efficient (smaller matrices, reducing memory usage), but isn't required to run with fewer features. -->
+  <arg name="alpha" default="0.073" />   <!-- Controls peakiness of distribution of topics per cell (Dirichlet parameter). As approaches 0, will be very peaky since once one word is assigned to a topic rest of words will also be assigned to same topic (probability mass at the vertices). If 1, even distribution of probability mass. If arbitrarily large, every cell will have roughly equal distribution of all topics and probaility mass wil be concentrated at center of simplex. ... if 0.2, probability mass largely towards boundary of the simplex. Appropriate choice of this depends on relationsihp between spatial size of cell and expected size of feature of interest. If we go to larger cells, might make sense to have alpha closer to 1 because would have several things going on in same image. NB: appropriate selection depends on K. -->
+  <arg name="beta" default="0.15" />   <!-- Same as alpha, but for words to describe a topic (rather than topics to describe an image). If low, every topic is characterized by only a few words. If high, most words are represented in each topic. Like alpha, commonly tuned by grid search :-\ The metrics used for this are perplexity and log-likelihood... as well as qualitative observation -->
+  <arg name="gamma" default="0" />   <!-- Weight factor for topic growth. If positive, model starts with one topic and adds additional topics if the likelihood of adding new word to an existing topic is too low (if a bunch of words come in that are different from something seen before) and larger gamma means lower threshold for adding a topic. If 0, any word could be assigned to any topic (the same as infinity, since always capped at K topics). If used, reasonable values are 1e-6 to 1e-3. SJ doesn't use it for Sentry data because he set K based on inspection of data. Ideally when using a topic model you'd set K higher than you need and let gamma determine effective number of topics. (see literature on HDP - hierarchical dirichlet process)-->
+  <arg name="tau" default="0.5" />   <!-- (defined in ROST paper) Controls distribution of resources for refining cells and how much that it weighted towards newer cells. Every cell always gets one refine step when added, but some cells don't get good distribution until refined several times. SJ has never changed this. -->
+  <!--???? -->
+  <arg name="p_refine_last_observation" default="0.5" />
+  <!-- Number of threads used by ROST. Will run this many cores at 100%. -->
+  <arg name="num_threads" default="4" />
+  <!-- Cells are non-overlaping densely-packed volumes of space.
+       Words are assigned to a cell based on their 4D location, and topic
+       distributions are computed per-cell (but influenced by neighboring cells). -->
+  <!-- Spatial extent of each cell, in meters. (assumes cells are cubes) -->
+  <arg name="cell_space" default=".1" />
+  <!-- Temporal extent of cell, in seconds. Want low for Sentry because the localization is not sufficiently accurate over long time periods. -->
+  <arg name="cell_time" default="5" />
+  <!-- Redundant parameter for defining non-cubic cells. time/x/y/z. If defined, overrides cell_space and cell_time. This has been made non-cubic so if the zero-z flag is turned off and two images are offset vertically, they will be grouped. This is useful for sentry. When zero-z turned on, this doesn't matter -->
+  <arg name="cell_size" default="5x85x64x1" />
+  <!-- In each cell, topic assignment for each word is computed based on
+       assignments in that cell AND its neighbors. These parameters determine
+       that neighborhood size, in units of cells. (really, a smoothing parameter)
+       This matters surprisingly much; see yogi's publications. -->
+  <arg name="G_time" default="1" />
+  <arg name="G_space" default="1" />
+  <!-- DON'T TOUCH. Setting this to true means topic model only
+       refines in response to a service call. -->
+  <arg name="polled_refine" default="false" />
+  <!-- Words are published ... -->
+  <arg name="words_topic" default="/$(arg basename)_vision/words" />
+  <!-- Minimum observation refine time, in ms, after overhead for adding observations to model. Gives warning if images arriving faster than this. SJ not sure if this will cause it to drop messages. Tricky because refine time is stochastic and determines on size of observation....also depends on hardware that this is being run on. SJ tuned on Coral data set by looking at output model quality. -->
+  <arg name="min_obs_refine_time" default="200" />
+  <!-- How many word observations will be cached while processing the current one.
+       Warns when starts using the queue, starts dropping when queue is full.-->
+  <arg name="word_obs_queue_size" default="1" />
+
+  <!-- Visualization arguments -->
+  <arg name="2d_words_topic" default="/$(arg basename)_vision/words_2d" />
+  <arg name="show_topics" default="true" />
+  <arg name="show_words" default="false" />
+  <arg name="show_perplexity" default="false" />
+
+  <!-- Launch word extractor -->
+  <node pkg="sunshine" type="visual_word_extractor" name="$(arg basename)_vision" output="screen" >
+    <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
+    <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
+    <param name="feature_descriptor" type="string" value="ORB"/>
+    <param name="scale" type="double" value="$(arg scale)"/>
+    <param name="rate" type="double" value="$(arg rate)"/>
+    <param name="use_hue" value="$(arg hue)"/>
+    <param name="use_intensity" value="$(arg intensity)"/>
+    <param name="use_orb" value="$(arg orb)"/>
+    <param name="use_surf" value="$(arg surf)"/>
+    <param name="use_texton" value="$(arg texton)" />
+    <param name="image" value="$(arg image_topic)"/>
+    <param name="transform" value="$(arg transform_topic)"/>
+    <param name="use_pc" value="$(arg use_pc)" />
+    <param name="publish_2d_words" value="true" />
+    <param name="publish_3d_words" value="true" />
+    <param name="use_tf" value="$(arg use_tf)" type="bool"/>
+    <param name="world_frame" value="$(arg world_frame_name)"/>
+    <param name="sensor_frame" value="$(arg sensor_frame_name)"/>
+    <param name="seq_duration" value="$(arg seq_duration)" />
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="$(arg basename)_1">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="map_publish_period" type="double" value="-1" />
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="$(arg basename)_2">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="map_publish_period" type="double" value="-1" />
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="$(arg basename)_3">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="map_publish_period" type="double" value="-1" />
+  </node>
+
+   <node pkg="sunshine" type="model_translator" name="model_translator" output="screen" >
+        <param name="target_nodes" type="string" value="$(arg basename)_1,$(arg basename)_2,$(arg basename)_3" />
+        <param name="match_period" type="double" value="$(arg match_period)" />
+   </node>
+</launch>

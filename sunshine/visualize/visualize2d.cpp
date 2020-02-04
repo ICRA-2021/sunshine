@@ -126,7 +126,7 @@ int main(int argc, char** argv){
   nhp.param<bool>("show_topics", show_topics, true);
   nhp.param<bool>("show_words", show_words, true);
   nhp.param<bool>("show_perplexity", show_perplexity, false);
-  nhp.param<bool>("show_equalized", show_equalized, true);
+//  nhp.param<bool>("show_equalized", show_equalized, true);
   
   nhp.param<string>("words_topic", words_topic_name, "/words");
   nhp.param<string>("topics_topic", topic_topic_name, "/topics");
