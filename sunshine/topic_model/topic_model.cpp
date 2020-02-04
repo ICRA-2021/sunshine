@@ -3,16 +3,13 @@
 #include "utils.hpp"
 #include <fstream>
 #include <exception>
-#include <opencv2/core.hpp>
+#include <functional>
 #include <rost/refinery.hpp>
 #include <sunshine_msgs/LocalSurprise.h>
 #include <sunshine_msgs/Perplexity.h>
-#include <sunshine_msgs/SaveObservationModel.h>
-#include <sunshine_msgs/GetTopicMap.h>
 #include <sunshine_msgs/TopicMap.h>
 #include <sunshine_msgs/TopicWeights.h>
 #include <tf2/LinearMath/Vector3.h>
-#include <tf2/convert.h>
 #include <tf2/transform_storage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -35,6 +32,103 @@ long record_lap(T &time_checkpoint)
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
+bool _save_topics_by_time_csv(topic_model const *topic_model, sunshine_msgs::SaveObservationModelRequest &req,
+                              sunshine_msgs::SaveObservationModelResponse &)
+{
+    std::ofstream writer(req.filename);
+    writer << "time";
+    for (auto k = 0; k < topic_model->get_num_topics(); k++) {
+        writer << ",topic_" << std::to_string(k) << "_count";
+    }
+    auto const topics = topic_model->get_topics_by_time();
+    for (auto const &entry : topics) {
+        writer << "\n";
+        writer << std::to_string(entry.first);
+        for (auto const &count : entry.second) {
+            writer << "," + std::to_string(count);
+        }
+    }
+    writer.close();
+    return true;
+}
+
+bool _save_topics_by_cell_csv(topic_model const *topic_model, sunshine_msgs::SaveObservationModelRequest &req,
+                              sunshine_msgs::SaveObservationModelResponse &)
+{
+    std::ofstream writer(req.filename);
+    writer << "pose_dim_0";
+    for (auto i = 1; i < POSEDIM; i++) {
+        writer << ",pose_dim_" + std::to_string(i);
+    }
+    for (auto k = 0; k < topic_model->get_num_topics(); k++) {
+        writer << ",topic_" << std::to_string(k) << "_count";
+    }
+    auto const topics = topic_model->get_topics_by_cell();
+    for (auto const &entry : topics) {
+        writer << "\n";
+        writer << std::to_string(entry.first[0]);
+        for (auto dim = 1u; dim < POSEDIM; dim++) {
+            writer << "," + std::to_string(entry.first[dim]);
+        }
+        for (auto const &count : entry.second) {
+            writer << "," + std::to_string(count);
+        }
+    }
+    writer.close();
+    return true;
+}
+
+bool _generate_topic_summary(topic_model const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response)
+{
+    response.num_topics = topic_model->get_num_topics();
+    response.last_seq = topic_model->get_last_observation_time();
+    response.header.stamp = ros::Time::now();
+    if (request.grouping == "cell") {
+        auto const topics = topic_model->get_topics_by_cell();
+        response.num_observations = topics.size();
+        response.pose_fields = "t,x,y,z";
+        response.topic_counts.reserve(topic_model->get_num_topics() * topics.size());
+        response.topic_pose.reserve(POSEDIM * topics.size());
+        for (auto const &entry : topics) {
+            response.topic_pose.insert(response.topic_pose.end(), entry.first.begin(), entry.first.end());
+            response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
+        }
+    } else if (request.grouping == "time") {
+        auto const topics = topic_model->get_topics_by_time();
+        response.num_observations = topics.size();
+        response.pose_fields = "t";
+        response.topic_counts.reserve(topic_model->get_num_topics() * topics.size());
+        response.topic_pose.reserve(topics.size());
+        for (auto const &entry : topics) {
+            response.topic_pose.push_back(entry.first);
+            response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
+        }
+    } else if (request.grouping == "global") {
+        auto const topics = topic_model->get_rost().get_topic_weights();
+        response.num_observations = 1;
+        response.pose_fields = "";
+        assert(topics.size() == topic_model->get_num_topics());
+        response.topic_counts.reserve(topics.size());
+        response.topic_pose.reserve(0);
+        for (auto const &entry : topics) {
+            response.topic_counts = topics;
+        }
+    } else if (request.grouping == "observation") {
+        ROS_ERROR("'observation' grouping is not yet implemented.");
+        return false;
+    } else {
+        ROS_ERROR("Unrecognized topic grouping: %s", request.grouping.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool _get_topic_map(topic_model const *topic_model, sunshine_msgs::GetTopicMapRequest &, sunshine_msgs::GetTopicMapResponse &response)
+{
+    response.topic_map = *topic_model->generate_topic_map(topic_model->get_last_observation_time());
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "topic_model");
@@ -48,7 +142,9 @@ int main(int argc, char **argv)
 }
 
 topic_model::topic_model(ros::NodeHandle *nh)
-    : nh(nh)
+    : nh(nh), save_topics_by_time_csv(boost::bind(_save_topics_by_time_csv, this, _1, _2)),
+      save_topics_by_cell_csv(boost::bind(_save_topics_by_cell_csv, this, _1, _2)),
+      generate_topic_summary(boost::bind(_generate_topic_summary, this, _1, _2)), get_topic_map(boost::bind(_get_topic_map, this, _1, _2))
 {
     std::string cell_size_string;
     bool is_hierarchical;
@@ -129,107 +225,10 @@ topic_model::topic_model(ros::NodeHandle *nh)
         workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
     }
 
-    boost::function<bool(sunshine_msgs::SaveObservationModelRequest &,
-                         sunshine_msgs::SaveObservationModelResponse &)> const save_topics_by_time_csv =
-        [this](sunshine_msgs::SaveObservationModelRequest &req, sunshine_msgs::SaveObservationModelResponse &) {
-            std::ofstream writer(req.filename);
-            writer << "time";
-            for (auto k = 0; k < this->K; k++) {
-                writer << ",topic_" << std::to_string(k) << "_count";
-            }
-            auto const topics = this->get_topics_by_time();
-            for (auto const &entry : topics) {
-                writer << "\n";
-                writer << std::to_string(entry.first);
-                for (auto const &count : entry.second) {
-                    writer << "," + std::to_string(count);
-                }
-            }
-            writer.close();
-            return true;
-        };
-
-    boost::function<bool(sunshine_msgs::SaveObservationModelRequest &,
-                         sunshine_msgs::SaveObservationModelResponse &)> const save_topics_by_cell_csv =
-        [this](sunshine_msgs::SaveObservationModelRequest &req, sunshine_msgs::SaveObservationModelResponse &) {
-            std::ofstream writer(req.filename);
-            writer << "pose_dim_0";
-            for (auto i = 1; i < POSEDIM; i++) {
-                writer << ",pose_dim_" + std::to_string(i);
-            }
-            for (auto k = 0; k < this->K; k++) {
-                writer << ",topic_" << std::to_string(k) << "_count";
-            }
-            auto const topics = this->get_topics_by_cell();
-            for (auto const &entry : topics) {
-                writer << "\n";
-                writer << std::to_string(entry.first[0]);
-                for (auto dim = 1u; dim < POSEDIM; dim++) {
-                    writer << "," + std::to_string(entry.first[dim]);
-                }
-                for (auto const &count : entry.second) {
-                    writer << "," + std::to_string(count);
-                }
-            }
-            writer.close();
-            return true;
-        };
-
-    boost::function<bool(sunshine_msgs::GetTopicSummaryRequest &, sunshine_msgs::GetTopicSummaryResponse &)> const generate_topic_summary =
-        [this](GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
-            response.num_topics = this->K;
-            response.last_seq = last_time;
-            response.header.stamp = ros::Time::now();
-            if (request.grouping == "cell") {
-                auto const topics = this->get_topics_by_cell();
-                response.num_observations = topics.size();
-                response.pose_fields = "t,x,y,z";
-                response.topic_counts.reserve(this->K * topics.size());
-                response.topic_pose.reserve(POSEDIM * topics.size());
-                for (auto const &entry : topics) {
-                    response.topic_pose.insert(response.topic_pose.end(), entry.first.begin(), entry.first.end());
-                    response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
-                }
-            } else if (request.grouping == "time") {
-                auto const topics = this->get_topics_by_time();
-                response.num_observations = topics.size();
-                response.pose_fields = "t";
-                response.topic_counts.reserve(this->K * topics.size());
-                response.topic_pose.reserve(topics.size());
-                for (auto const &entry : topics) {
-                    response.topic_pose.push_back(entry.first);
-                    response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
-                }
-            } else if (request.grouping == "global") {
-                auto const topics = this->rost->get_topic_weights();
-                response.num_observations = 1;
-                response.pose_fields = "";
-                assert(topics.size() == this->K);
-                response.topic_counts.reserve(topics.size());
-                response.topic_pose.reserve(0);
-                for (auto const &entry : topics) {
-                    response.topic_counts = topics;
-                }
-            } else if (request.grouping == "observation") {
-                ROS_ERROR("'observation' grouping is not yet implemented.");
-                return false;
-            } else {
-                ROS_ERROR("Unrecognized topic grouping: %s", request.grouping.c_str());
-                return false;
-            }
-            return true;
-        };
-
-    boost::function<bool(sunshine_msgs::GetTopicMapRequest &, sunshine_msgs::GetTopicMapResponse &)> const get_topic_map =
-        [this](sunshine_msgs::GetTopicMapRequest &, sunshine_msgs::GetTopicMapResponse &response) {
-            response.topic_map = *generate_topic_map(last_time);
-            return true;
-        };
-
-    this->time_topic_server = nh->advertiseService<>("save_topics_by_time_csv", save_topics_by_time_csv);
-    this->cell_topic_server = nh->advertiseService<>("save_topics_by_cell_csv", save_topics_by_cell_csv);
-    this->topic_summary_server = nh->advertiseService<>("get_topic_summary", generate_topic_summary);
-    this->topic_map_server = nh->advertiseService<>("get_topic_map", get_topic_map);
+    this->time_topic_server = nh->advertiseService<>("save_topics_by_time_csv", this->save_topics_by_time_csv);
+    this->cell_topic_server = nh->advertiseService<>("save_topics_by_cell_csv", this->save_topics_by_cell_csv);
+    this->topic_summary_server = nh->advertiseService<>("get_topic_summary", this->generate_topic_summary);
+    this->topic_map_server = nh->advertiseService<>("get_topic_map", this->get_topic_map);
 
     if (map_publish_period > 0) {
         map_publish_timer = nh->createTimer(ros::Duration(map_publish_period), [this](ros::TimerEvent const &) {
