@@ -4,6 +4,7 @@
 
   <arg name="basename" default="rost" />
   <arg name="match_period" default="3" />
+  <arg name="merge_period" default="-1" />
 
   <!-- Incoming topic -->
   <arg name="image_topic" default="/camera/image_raw" />
@@ -188,5 +189,6 @@
    <node pkg="sunshine" type="model_translator" name="model_translator" output="screen" >
         <param name="target_nodes" type="string" value="$(arg basename)_1,$(arg basename)_2,$(arg basename)_3" />
         <param name="match_period" type="double" value="$(arg match_period)" />
+        <param name="merge_period" type="double" value="$(arg merge_period)" />
    </node>
 </launch>

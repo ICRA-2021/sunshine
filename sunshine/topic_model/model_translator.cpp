@@ -67,13 +67,20 @@ model_translator::model_translator(ros::NodeHandle *nh)
         this->merge_timer = nh->createTimer(ros::Duration(this->merge_period), [this](ros::TimerEvent const &) {
             ROS_INFO("Beginning topic merging.");
             auto const topic_models = fetch_topic_models();
-            auto correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
-            TopicModel const global_model = TopicModel(merge_models(topic_models, correspondences));
+            if (topic_models.size() < this->set_topic_clients.size()) {
+                ROS_INFO("Skipping topic merging");
+                return; // only merge if we have everything
+            }
+            auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
+            ROS_INFO("Done matching");
+            TopicModel const global_model = (TopicModel) merge_models(topic_models, correspondences);
+            ROS_INFO("Done merging");
 
             auto i = 0ul;
             for (auto& serviceClient : this->set_topic_clients) {
                 SetTopicModel setTopicModel;
                 setTopicModel.request.topic_model = global_model;
+                // TODO: only replace topic models that were used in merge?
                 if (!serviceClient.call(setTopicModel)) ROS_WARN("Failed to set topic model for robot %s!", target_models[i].c_str());
                 i += 1;
             }

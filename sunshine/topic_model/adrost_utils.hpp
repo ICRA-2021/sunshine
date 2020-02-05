@@ -193,7 +193,7 @@ match_results sequential_hungarian_matching(std::vector<sunshine::Phi> const &to
                 }
             }
         }
-        ROS_DEBUG("SSD %f", results.ssd.back());
+        ROS_INFO("SSD %f", results.ssd.back());
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
     return results;
@@ -205,15 +205,17 @@ sunshine::Phi merge_models(std::vector<sunshine::Phi> const &topic_models, match
                                topic_models[0].V,
                                std::vector<std::vector<int>>(matches.num_unique, std::vector<int>(topic_models[0].V, 0)),
                                std::vector<int>(matches.num_unique, 0));
+    double const N = topic_models.size();
     for (auto i = 0ul; i < topic_models.size(); ++i) {
         for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {
             auto const &k1 = matches.lifting[i][k2];
             assert(k1 < matches.num_unique);
             assert(topic_models[i].V == global_model.V);
 
-            global_model.topic_weights[k1] += topic_models[i].topic_weights[k2];
             for (auto v = 0ul; v < global_model.V; ++v) {
-                global_model.counts[k1][v] += topic_models[i].counts[k2][v];
+                auto const count = std::round(topic_models[i].counts[k2][v] / N);
+                global_model.counts[k1][v] += count;
+                global_model.topic_weights[k1] += count;
             }
         }
     }

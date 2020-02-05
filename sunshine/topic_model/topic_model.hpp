@@ -66,7 +66,7 @@ namespace sunshine {
       boost::function<bool(sunshine_msgs::GetTopicSummaryRequest &, sunshine_msgs::GetTopicSummaryResponse &)> const generate_topic_summary;
       boost::function<bool(sunshine_msgs::GetTopicMapRequest &, sunshine_msgs::GetTopicMapResponse &)> const get_topic_map;
       boost::function<bool(sunshine_msgs::GetTopicModelRequest &, sunshine_msgs::GetTopicModelResponse &)> const get_topic_model;
-      boost::function<bool(sunshine_msgs::GetTopicModelRequest &, sunshine_msgs::SetTopicModelResponse &)> const set_topic_model;
+      boost::function<bool(sunshine_msgs::SetTopicModelRequest &, sunshine_msgs::SetTopicModelResponse &)> const set_topic_model;
 
       void wait_for_processing() const;
 

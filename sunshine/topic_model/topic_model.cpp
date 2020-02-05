@@ -156,10 +156,23 @@ bool _get_topic_model(topic_model const *topic_model, std::string name, GetTopic
 }
 
 bool _set_topic_model(topic_model *topic_model, SetTopicModelRequest &request, SetTopicModelResponse &) {
-    auto const &rost = topic_model->get_rost();
+    std::vector<std::vector<int>> nZW;
+    nZW.reserve(request.topic_model.K);
+    auto const V = request.topic_model.V;
+    for (auto k = 0ul; k < request.topic_model.K; ++k) {
+        nZW.emplace_back(request.topic_model.phi.cbegin() + k * V, request.topic_model.phi.cbegin() + (k + 1) * V);
+    }
+    auto& rost = topic_model->get_rost();
     rost.pause(true);
-    // TODO: Implement
+    assert(V == rost.get_num_words());
+    if (request.topic_model.K < rost.get_num_topics()) {
+        nZW.resize(rost.get_num_topics(), std::vector<int>(V, 0));
+        request.topic_model.topic_weights.resize(rost.get_num_topics());
+    }
+    ROS_WARN("Dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
+    topic_model->get_rost().set_topic_model(nZW, request.topic_model.topic_weights);
     rost.pause(false);
+    ROS_INFO("Replaced topic model!");
     return true;
 }
 
@@ -182,6 +195,7 @@ topic_model::topic_model(ros::NodeHandle *nh)
       , get_topic_map(boost::bind(_get_topic_map, this, _1, _2))
       , get_topic_model(boost::bind(_get_topic_model, this, ros::this_node::getName(), _1, _2))
       , set_topic_model(boost::bind(_set_topic_model, this, _1, _2)) {
+//    std::this_thread::sleep_for(std::chrono::seconds(5));
     std::string cell_size_string;
     bool is_hierarchical;
     int num_levels;
