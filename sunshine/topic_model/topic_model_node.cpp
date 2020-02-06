@@ -107,7 +107,6 @@ bool _generate_topic_summary(topic_model_node const *topic_model, GetTopicSummar
         response.pose_fields = "";
         assert(topics.size() == topic_model->get_num_topics());
         response.topic_counts.reserve(topics.size());
-        response.topic_pose.reserve(0);
         for (auto const &entry : topics) {
             response.topic_counts = topics;
         }
@@ -145,13 +144,13 @@ bool _get_topic_model(topic_model_node *topic_model,
     response.topic_model.V = rost.get_num_words();
     auto const phi = rost.get_topic_model();
 
-    int K;
-    for (K = rost.get_num_topics(); weights[K - 1] == 0; --K);
+    int const K = rost.get_num_topics();
+//    for (K = rost.get_num_topics(); K > 0 && weights[K - 1] == 0; --K); // WARNING: it is not so simple to skip empty topics!! the model translator has issues merging if topics that it added disappear
     response.topic_model.K = K;
     response.topic_model.topic_weights.reserve(K);
     response.topic_model.phi.reserve(K * response.topic_model.V);
     for (auto k = 0ul; k < K; ++k) {
-        if (weights[k] < 0) ROS_ERROR("How is this weight negative? %d", weights[k]);
+        if (weights[k] < 0) { ROS_ERROR("How is this weight negative? %d", weights[k]); }
         else if (weights[k] == 0) ROS_WARN("Sending empty topic. Try using HDP to minimize this expense."); // TODO optimize?
         response.topic_model.topic_weights.push_back(weights[k]);
         response.topic_model.phi.insert(response.topic_model.phi.end(), phi[k].begin(), phi[k].end());
@@ -167,7 +166,11 @@ bool _set_topic_model(topic_model_node *topic_model,
              (*rostLock)
              ? "true"
              : "false");
+    std::stringstream weights;
+    for (auto const &weight : request.topic_model.topic_weights) weights << weight << " ";
+    ROS_INFO("New topic weights: %s", weights.str().c_str());
     std::vector<std::vector<int>> nZW;
+    assert(request.topic_model.K > 0);
     nZW.reserve(request.topic_model.K);
     auto const V = request.topic_model.V;
     for (auto k = 0ul; k < request.topic_model.K; ++k) {
@@ -180,7 +183,7 @@ bool _set_topic_model(topic_model_node *topic_model,
     assert(V == rost.get_num_words());
     if (request.topic_model.K < rost.get_num_topics()) {
         nZW.resize(rost.get_num_topics(), std::vector<int>(V, 0));
-        request.topic_model.topic_weights.resize(rost.get_num_topics());
+        request.topic_model.topic_weights.resize(rost.get_num_topics(), 0);
     }
 
 #ifndef NDEBUG

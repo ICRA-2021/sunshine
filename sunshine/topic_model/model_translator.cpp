@@ -178,18 +178,23 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
 }
 
 void model_translator::update_global_model(std::vector<Phi> const &topic_models, match_results const &matches) {
+    auto const total_weight = [](std::vector<int> const& vec) { return std::accumulate(vec.begin(), vec.end(), 0); };
     assert(!topic_models.empty());
+    assert(total_weight(global_model.topic_weights) == total_num_observations);
 
     if (global_model.counts.empty() || global_model.K != matches.num_unique) {
         assert(global_model.counts.empty() || global_model.V == topic_models[0].V);
         global_model.K = matches.num_unique;
         global_model.V = topic_models[0].V;
-        global_model.topic_weights.resize(global_model.K, 0);
-        global_model.counts.resize(global_model.K, std::vector<int>(global_model.V, 0));
+        global_model.topic_weights.resize(matches.num_unique, 0);
+        global_model.counts.resize(matches.num_unique, std::vector<int>(global_model.V, 0));
     }
+    assert(total_weight(global_model.topic_weights) == total_num_observations);
 
-    std::vector<std::vector<int>> const old_counts(global_model.counts);
+    auto const old_weights = global_model.topic_weights;
+    std::vector<std::vector<int>> const old_counts = global_model.counts; // DO NOT use copy constructor!
     for (auto i = 0ul; i < topic_models.size(); ++i) {
+        std::vector<int> weight_ref = topic_models[i].topic_weights;
         for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {
             auto const &k1 = matches.lifting[i][k2];
             assert(k1 < matches.num_unique);
@@ -197,26 +202,34 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
 
             for (auto v = 0ul; v < global_model.V; ++v) {
                 int delta = topic_models[i].counts[k2][v] - old_counts[k2][v];
+                assert(k2 == k1);
                 if (delta < -global_model.counts[k1][v]) ROS_ERROR_THROTTLE(1, "Delta implies a negative topic-word count!");
-                else if (delta < 0 && match_method != "id") ROS_WARN_THROTTLE(1, "Delta negative -- setting to 0 (see Doherty IROS'18)");
-                delta = (delta >= 0 || match_method == "id") ? delta : 0;
+                else if (delta < 0 && match_method != "id") {
+                    ROS_WARN_THROTTLE(1, "Delta negative -- setting to 0 (see Doherty IROS'18)");
+                    delta = 0;
+                }
                 global_model.counts[k1][v] += delta;
 //                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
 //                               "The global count is less than the individual count!");
                 global_model.topic_weights[k1] += delta;
+                weight_ref[k2] -= delta;
+                assert(weight_ref[k2] >= 0);
             }
         }
+        ROS_INFO("Total weight ref after removing deltas: %d", total_weight(weight_ref));
+        assert(total_weight(weight_ref) == total_num_observations);
     }
-    auto const total_weight = [](std::vector<int> left) { return std::accumulate(left.begin(), left.end(), 0); };
     auto const total_out = total_weight(global_model.topic_weights);
+    ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
 #ifndef NDEBUG
     auto const total_in = std::accumulate(topic_models.begin(),
                                           topic_models.end(),
                                           0,
                                           [total_weight](int left, Phi const &right) { return left + total_weight(right.topic_weights); });
+    ROS_INFO("Detected %li new observations.", total_in - total_num_observations * topic_models.size());
+    ROS_INFO("%d in, %d out based on %li previous observations and %li new observations", total_in, total_out, total_num_observations, total_in - total_num_observations * topic_models.size());
     assert(total_in - total_num_observations * topic_models.size() == total_out - total_num_observations);
 #endif
-    ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
     total_num_observations = total_out;
 }
 
