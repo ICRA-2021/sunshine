@@ -120,7 +120,7 @@
   </node>
 
   <!-- Launch topic model -->
-  <node pkg="sunshine" type="topic_model" name="$(arg basename)">
+  <node pkg="sunshine" type="topic_model" name="$(arg basename)" output="screen">
     <param name="K" type="int" value="$(arg K)" />
     <param name="V" type="int" value="$(arg V)" />
     <param name="alpha" type="double" value="$(arg alpha)" />

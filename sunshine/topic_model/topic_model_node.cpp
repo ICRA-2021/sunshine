@@ -131,30 +131,28 @@ bool _get_topic_model(topic_model_node *topic_model,
                       std::string name,
                       GetTopicModelRequest &,
                       GetTopicModelResponse &response) {
-    ROS_INFO("Sending topic model");
+    ROS_DEBUG("Sending topic model! Global lock held: %s",
+              (*rostLock)
+              ? "true"
+              : "false");
     response.topic_model = sunshine_msgs::TopicModel();
     response.topic_model.identifier = name;
 
     auto &rost = topic_model->get_rost();
     std::unique_ptr<activity_manager::ReadToken> readToken;
-    ROS_INFO("Global lock held: %s", (*rostLock) ? "true" : "false");
     if (!*rostLock) readToken = rost.get_read_token();
-    auto const K = rost.get_num_topics();
     auto const weights = rost.get_topic_weights();
     response.topic_model.V = rost.get_num_words();
     auto const phi = rost.get_topic_model();
 
+    int K;
+    for (K = rost.get_num_topics(); weights[K - 1] == 0; --K);
     response.topic_model.K = K;
     response.topic_model.topic_weights.reserve(K);
     response.topic_model.phi.reserve(K * response.topic_model.V);
     for (auto k = 0ul; k < K; ++k) {
-        if (weights[k] <= 0) {
-            if (weights[k] < 0) {
-                ROS_ERROR("How is this weight negative? %d", weights[k]);
-            }
-            response.topic_model.K -= 1;
-            continue;
-        }
+        if (weights[k] < 0) ROS_ERROR("How is this weight negative? %d", weights[k]);
+        else if (weights[k] == 0) ROS_WARN("Sending empty topic. Try using HDP to minimize this expense."); // TODO optimize?
         response.topic_model.topic_weights.push_back(weights[k]);
         response.topic_model.phi.insert(response.topic_model.phi.end(), phi[k].begin(), phi[k].end());
     }
@@ -165,14 +163,16 @@ bool _set_topic_model(topic_model_node *topic_model,
                       std::unique_ptr<activity_manager::WriteToken> *rostLock,
                       SetTopicModelRequest &request,
                       SetTopicModelResponse &) {
-    ROS_WARN("Attempting to set new topic model!");
+    ROS_INFO("New topic model received. Global lock held: %s",
+             (*rostLock)
+             ? "true"
+             : "false");
     std::vector<std::vector<int>> nZW;
     nZW.reserve(request.topic_model.K);
     auto const V = request.topic_model.V;
     for (auto k = 0ul; k < request.topic_model.K; ++k) {
         nZW.emplace_back(request.topic_model.phi.cbegin() + k * V, request.topic_model.phi.cbegin() + (k + 1) * V);
     }
-    ROS_INFO("Global lock held: %s", (*rostLock) ? "true" : "false");
     auto &rost = topic_model->get_rost();
     auto writeLock = (*rostLock)
                      ? std::unique_ptr<activity_manager::WriteToken>()
@@ -183,22 +183,27 @@ bool _set_topic_model(topic_model_node *topic_model,
         request.topic_model.topic_weights.resize(rost.get_num_topics());
     }
 
-    /// TO DELETE
-//    ROS_INFO("Running exhaustive comparison");
-//    auto const& ref = rost.get_topic_model();
-//    for (auto i = 0ul; i < ref.size(); ++i) {
-//        for (auto j =0ul; j < ref[i].size(); ++j) {
-//            assert(nZW[i][j] >= ref[i][j]);
-//        }
-//    }
-    /// END TO DELETE
+#ifndef NDEBUG
+    ROS_WARN("Running exhaustive topic_model set verifications -- use release build to skip");
+    auto const ref = rost.get_topic_weights();
+    ROS_INFO("Topic counts old: %d. Topic counts new: %d.",
+             std::accumulate(ref.begin(), ref.end(), 0),
+             std::accumulate(request.topic_model.topic_weights.begin(), request.topic_model.topic_weights.end(), 0));
+    topic_model->externalTopicCounts.resize(rost.get_num_topics(), std::vector<int>(V, 0));
+    auto const &ref_model = rost.get_topic_model();
+    for (auto i = 0ul; i < ref_model.size(); ++i) {
+        for (auto j = 0ul; j < ref_model[i].size(); ++j) {
+            topic_model->externalTopicCounts[i][j] += nZW[i][j] - ref_model[i][j];
+            assert(topic_model->externalTopicCounts[i][j] >= 0);
+        }
+    }
+#endif
 
-    ROS_INFO("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
+    ROS_DEBUG("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
     topic_model->get_rost()
                .set_topic_model((*rostLock)
                                 ? *rostLock
                                 : writeLock, nZW, request.topic_model.topic_weights);
-    ROS_INFO("Replaced topic model!");
     return true;
 }
 
@@ -206,12 +211,15 @@ bool _pause_topic_model(topic_model_node *topic_model,
                         std::unique_ptr<activity_manager::WriteToken> *rostLock,
                         PauseRequest &request,
                         PauseResponse &) {
-    ROS_INFO("Changing topic model pause state");
+    ROS_DEBUG("Changing topic model global pause state");
     auto &rost = topic_model->get_rost();
     if (request.pause == (bool) *rostLock) return false;
     if (request.pause) *rostLock = rost.get_write_token();
     if (!request.pause) rostLock->reset();
-    ROS_INFO("Global lock %s", (*rostLock) ? "locked" : "released");
+    ROS_INFO("Global topic model pause lock %s",
+             (*rostLock)
+             ? "locked"
+             : "released");
     return true;
 }
 

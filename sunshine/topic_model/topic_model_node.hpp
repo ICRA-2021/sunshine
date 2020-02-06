@@ -79,6 +79,10 @@ namespace sunshine {
       void broadcast_topics(const int obs_time, const std::vector<cell_pose_t> &broadcast_poses) const;
 
     public:
+#ifndef NDEBUG
+      std::vector<std::vector<int>> externalTopicCounts = {}; // TODO Delete?
+#endif
+
       explicit topic_model_node(ros::NodeHandle *nh);
 
       ~topic_model_node();

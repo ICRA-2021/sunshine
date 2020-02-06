@@ -1,7 +1,33 @@
+#ifndef SUNSHINE_PROJECT_ADROST_UTILS_HPP
+#define SUNSHINE_PROJECT_ADROST_UTILS_HPP
+
 #include <cmath>
 #include "munkres/munkres.h"
-#include "model_translator.hpp"
 // #include "adapters/boostmatrixadapter.h"
+
+struct Phi {
+  std::string id;
+  int K = 0, V = 0;
+  std::vector<std::vector<int>> counts = {};
+  std::vector<int> topic_weights = {};
+
+  explicit Phi(std::string id)
+        : id(std::move(id)) {}
+
+  Phi(std::string id, int K, int V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
+        : id(std::move(id))
+        , K(K)
+        , V(V)
+        , counts(std::move(counts))
+        , topic_weights(std::move(topic_weights)) {
+  }
+};
+
+struct match_results {
+  int num_unique = -1;
+  std::vector<std::vector<int>> lifting = {};
+  std::vector<double> ssd = {};
+};
 
 /**
  * Computes the squared euclidean distance between two vectors, v and w
@@ -10,27 +36,22 @@
  * @returns float - the squared eucl. distance between v and w
 **/
 template<typename T>
-double dist_sq(std::vector<T> const &v, std::vector<T> const &w, double norm_v = 1., double norm_w = 1.) {
+double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double norm_v = 1., double norm_w = 1.) {
 
     assert (v.size() == w.size());
     double distance_sq = 0.0;
     double diff;
 
-    if (norm_v <= 0) {
-        std::cerr << "WARNING: norm_v non-positive!" << std::endl;
-        return norm_w;
-    }
-    if (norm_w <= 0) {
-        std::cerr << "WARNING: norm_w non-positive!" << std::endl;
-        return norm_v;
-    }
+    if (norm_v == 0 && norm_w == 0) { return 0.; }
+    else if (norm_v == 0 || norm_w == 0) { return 1.; }
+    else if (norm_v < 0 || norm_w < 0) throw std::invalid_argument("Negative norms passed to normed_dist_sq!");
 
     double const invnorm_v = 1. / norm_v, invnorm_w = 1. / norm_w;
 
-    for (int i = 0; i < v.size(); ++i) {
+    for (auto i = 0ul; i < v.size(); ++i) {
         // diff = 10000.0f*v[i] - 10000.0f*w[i];
         diff = (v[i] * invnorm_v) - (w[i] * invnorm_w);
-        distance_sq += pow(diff, 2);
+        distance_sq += (diff * diff);
     }
 
     return distance_sq;
@@ -91,14 +112,14 @@ std::vector<std::vector<double>> pairwise_distance_sq(std::vector<std::vector<T>
     std::vector<std::vector<double>> pd(a.size(), std::vector<double>(b.size(), 0.0));
     for (auto i = 0ul; i < a.size(); ++i) {
         for (auto j = 0ul; j < b.size(); ++j) {
-            pd[i][j] = dist_sq(a[i],
-                               b[j],
-                               (norm_a.empty())
-                               ? 1
-                               : norm_a[i],
-                               (norm_b.empty())
-                               ? 1.
-                               : norm_b[j]);
+            pd[i][j] = normed_dist_sq(a[i],
+                                      b[j],
+                                      (norm_a.empty())
+                                      ? 1
+                                      : norm_a[i],
+                                      (norm_b.empty())
+                                      ? 1.
+                                      : norm_b[j]);
         }
     }
     return pd;
@@ -140,13 +161,7 @@ std::vector<int> get_permutation(std::vector<std::vector<int>> assignment, int *
  * Placeholder to keep track of nZW global and robot 2 permutation
 **/
 
-struct match_results {
-  int num_unique = -1;
-  std::vector<std::vector<int>> lifting = {};
-  std::vector<double> ssd = {};
-};
-
-match_results id_matching(std::vector<sunshine::Phi> const &topic_models) {
+match_results id_matching(std::vector<Phi> const &topic_models) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
@@ -178,7 +193,7 @@ match_results id_matching(std::vector<sunshine::Phi> const &topic_models) {
     return results;
 }
 
-match_results sequential_hungarian_matching(std::vector<sunshine::Phi> const &topic_models) {
+match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
@@ -331,3 +346,5 @@ nZWwithPerm merge_by_similarity(std::vector<std::vector<int>> nZW_1,
     nZW_global_with_perm.perm = perm;
     return nZW_global_with_perm;
 }
+
+#endif //SUNSHINE_PROJECT_ADROST_UTILS_HPP

@@ -3,13 +3,13 @@
 //
 
 #include "model_translator.hpp"
-#include "adrost_utils.hpp"
 #include "sunshine_msgs/GetTopicModel.h"
 #include "sunshine_msgs/SetTopicModel.h"
 #include "sunshine_msgs/Pause.h"
 #include <fstream>
 #include <utility>
 #include <thread>
+#include <numeric>
 
 using namespace sunshine;
 
@@ -36,8 +36,38 @@ static match_results match_topics(std::string const &method, std::vector<Phi> co
     }
 }
 
-static void merge_models(std::vector<sunshine::Phi> const &topic_models, match_results const &matches, Phi &global_model) {
+static Phi fromTopicModel(TopicModel const &topic_model) {
+    Phi out(topic_model.identifier, topic_model.K, topic_model.V, {}, topic_model.topic_weights);
+    assert(*std::min_element(topic_model.topic_weights.cbegin(), topic_model.topic_weights.cend()) >= 0);
+    out.counts.reserve(topic_model.K);
+    for (auto i = 0ul; i < topic_model.K; ++i) {
+        out.counts
+           .emplace_back(topic_model.phi.begin() + i * topic_model.V,
+                         (i < topic_model.K)
+                         ? topic_model.phi.begin() + (i + 1) * topic_model.V
+                         : topic_model.phi.end());
+        assert(out.counts[i].size() == topic_model.V);
+    }
+    return out;
+}
+
+static TopicModel toTopicModel(Phi const &phi) {
+    TopicModel topicModel;
+    topicModel.K = phi.K;
+    topicModel.V = phi.V;
+    topicModel.identifier = phi.id;
+    topicModel.topic_weights = phi.topic_weights;
+    topicModel.phi.reserve(phi.K * phi.V);
+    for (auto i = 0ul; i < phi.K; ++i) {
+        topicModel.phi.insert(topicModel.phi.end(), phi.counts[i].begin(), phi.counts[i].end());
+    }
+    assert(topicModel.phi.size() == phi.K * phi.V);
+    return topicModel;
+}
+
+void model_translator::update_global_model(std::vector<Phi> const &topic_models, match_results const &matches) {
     assert(!topic_models.empty());
+
     if (global_model.counts.empty() || global_model.K != matches.num_unique) {
         assert(global_model.counts.empty() || global_model.V == topic_models[0].V);
         global_model.K = matches.num_unique;
@@ -55,15 +85,26 @@ static void merge_models(std::vector<sunshine::Phi> const &topic_models, match_r
 
             for (auto v = 0ul; v < global_model.V; ++v) {
                 int delta = topic_models[i].counts[k2][v] - old_counts[k2][v];
-                ROS_WARN_COND(global_model.counts[k1][v] + delta < 0, "Delta implies a negative topic-word count!");
+                ROS_ERROR_COND(global_model.counts[k1][v] + delta < 0, "Delta implies a negative topic-word count!");
                 delta = std::max(delta, -global_model.counts[k1][v]);
                 global_model.counts[k1][v] += delta;
-                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
-                               "The global count is less than the individual count!");
+//                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
+//                               "The global count is less than the individual count!");
                 global_model.topic_weights[k1] += delta;
             }
         }
     }
+    auto const total_weight = [](std::vector<int> left) { return std::accumulate(left.begin(), left.end(), 0); };
+    auto const total_out = total_weight(global_model.topic_weights);
+#ifndef NDEBUG
+    auto const total_in = std::accumulate(topic_models.begin(),
+                                          topic_models.end(),
+                                          0,
+                                          [total_weight](int left, Phi const &right) { return left + total_weight(right.topic_weights); });
+    assert(total_in - total_num_observations * topic_models.size() == total_out - total_num_observations);
+#endif
+    ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
+    total_num_observations = total_out;
 }
 
 model_translator::model_translator(ros::NodeHandle *nh)
@@ -114,14 +155,18 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 return; // only merge if we have everything
             }
             auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
-            merge_models(topic_models, correspondences, global_model);
-            broadcast_topic_model((TopicModel) global_model, true);
+            update_global_model(topic_models, correspondences);
+            broadcast_global_model(true);
             ROS_INFO("Finished topic merging.");
         });
     }
 
     this->match_models_service = [this](MatchModelsRequest &req, MatchModelsResponse &resp) {
-        auto correspondences = match_topics(this->match_method, {req.topic_models.begin(), req.topic_models.end()}).lifting;
+        std::vector<Phi> topic_models;
+        topic_models.reserve(req.topic_models.size());
+        for (auto const &msg : req.topic_models) topic_models.push_back(fromTopicModel(msg));
+
+        auto correspondences = match_topics(this->match_method, topic_models).lifting;
         resp = MatchModelsResponse();
         for (auto const &topic_model : req.topic_models) {
             resp.topic_matches.robots.push_back(topic_model.identifier);
@@ -148,7 +193,7 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
         if (!pause_models || pauseClient->call(pause)) {
             GetTopicModel getTopicModel = {};
             if (fetchClient->call(getTopicModel)) {
-                topic_models.emplace_back(getTopicModel.response.topic_model);
+                topic_models.push_back(fromTopicModel(getTopicModel.response.topic_model));
                 if (!save_model_path.empty()) {
                     std::string filename = save_model_path + "/" + std::to_string(ros::Time::now().sec) + "_" + target_model + ".bin";
                     std::fstream writer(filename, std::ios::out | std::ios::binary);
@@ -174,12 +219,12 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
     return topic_models;
 }
 
-void model_translator::broadcast_topic_model(TopicModel new_model, bool unpause_models) {
+void model_translator::broadcast_global_model(bool unpause_models) {
     Pause pause = {};
     pause.request.pause = !unpause_models;
 
     SetTopicModel setTopicModel = {};
-    setTopicModel.request.topic_model = std::move(new_model);
+    setTopicModel.request.topic_model = toTopicModel(global_model);
 
     std::vector<Phi> topic_models;
     topic_models.reserve(this->target_models.size());
@@ -205,7 +250,11 @@ void model_translator::pause_topic_models(bool pause_models) {
     auto pauseClient = this->pause_topic_clients.begin();
     for (auto const &target_model : this->target_models) {
         if (!pauseClient->call(pause)) {
-            ROS_ERROR("Failed to %s topic model for %s!", (pause_models) ? "pause" : "unpause", target_model.c_str());
+            ROS_ERROR("Failed to %s topic model for %s!",
+                      (pause_models)
+                      ? "pause"
+                      : "unpause",
+                      target_model.c_str());
         }
     }
 }
