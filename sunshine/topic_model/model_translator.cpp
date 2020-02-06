@@ -65,48 +65,6 @@ static TopicModel toTopicModel(Phi const &phi) {
     return topicModel;
 }
 
-void model_translator::update_global_model(std::vector<Phi> const &topic_models, match_results const &matches) {
-    assert(!topic_models.empty());
-
-    if (global_model.counts.empty() || global_model.K != matches.num_unique) {
-        assert(global_model.counts.empty() || global_model.V == topic_models[0].V);
-        global_model.K = matches.num_unique;
-        global_model.V = topic_models[0].V;
-        global_model.topic_weights.resize(global_model.K, 0);
-        global_model.counts.resize(global_model.K, std::vector<int>(global_model.V, 0));
-    }
-
-    std::vector<std::vector<int>> const old_counts = global_model.counts;
-    for (auto i = 0ul; i < topic_models.size(); ++i) {
-        for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {
-            auto const &k1 = matches.lifting[i][k2];
-            assert(k1 < matches.num_unique);
-            assert(topic_models[i].V == global_model.V);
-
-            for (auto v = 0ul; v < global_model.V; ++v) {
-                int delta = topic_models[i].counts[k2][v] - old_counts[k2][v];
-                ROS_ERROR_COND(global_model.counts[k1][v] + delta < 0, "Delta implies a negative topic-word count!");
-                delta = std::max(delta, -global_model.counts[k1][v]);
-                global_model.counts[k1][v] += delta;
-//                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
-//                               "The global count is less than the individual count!");
-                global_model.topic_weights[k1] += delta;
-            }
-        }
-    }
-    auto const total_weight = [](std::vector<int> left) { return std::accumulate(left.begin(), left.end(), 0); };
-    auto const total_out = total_weight(global_model.topic_weights);
-#ifndef NDEBUG
-    auto const total_in = std::accumulate(topic_models.begin(),
-                                          topic_models.end(),
-                                          0,
-                                          [total_weight](int left, Phi const &right) { return left + total_weight(right.topic_weights); });
-    assert(total_in - total_num_observations * topic_models.size() == total_out - total_num_observations);
-#endif
-    ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
-    total_num_observations = total_out;
-}
-
 model_translator::model_translator(ros::NodeHandle *nh)
       : nh(nh)
       , global_model("global") {
@@ -217,6 +175,49 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
     }
     ROS_INFO("Fetched %lu of %lu topic models", topic_models.size(), this->target_models.size());
     return topic_models;
+}
+
+void model_translator::update_global_model(std::vector<Phi> const &topic_models, match_results const &matches) {
+    assert(!topic_models.empty());
+
+    if (global_model.counts.empty() || global_model.K != matches.num_unique) {
+        assert(global_model.counts.empty() || global_model.V == topic_models[0].V);
+        global_model.K = matches.num_unique;
+        global_model.V = topic_models[0].V;
+        global_model.topic_weights.resize(global_model.K, 0);
+        global_model.counts.resize(global_model.K, std::vector<int>(global_model.V, 0));
+    }
+
+    std::vector<std::vector<int>> const old_counts(global_model.counts);
+    for (auto i = 0ul; i < topic_models.size(); ++i) {
+        for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {
+            auto const &k1 = matches.lifting[i][k2];
+            assert(k1 < matches.num_unique);
+            assert(topic_models[i].V == global_model.V);
+
+            for (auto v = 0ul; v < global_model.V; ++v) {
+                int delta = topic_models[i].counts[k2][v] - old_counts[k2][v];
+                if (delta < -global_model.counts[k1][v]) ROS_ERROR_THROTTLE(1, "Delta implies a negative topic-word count!");
+                else if (delta < 0 && match_method != "id") ROS_WARN_THROTTLE(1, "Delta negative -- setting to 0 (see Doherty IROS'18)");
+                delta = (delta >= 0 || match_method == "id") ? delta : 0;
+                global_model.counts[k1][v] += delta;
+//                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
+//                               "The global count is less than the individual count!");
+                global_model.topic_weights[k1] += delta;
+            }
+        }
+    }
+    auto const total_weight = [](std::vector<int> left) { return std::accumulate(left.begin(), left.end(), 0); };
+    auto const total_out = total_weight(global_model.topic_weights);
+#ifndef NDEBUG
+    auto const total_in = std::accumulate(topic_models.begin(),
+                                          topic_models.end(),
+                                          0,
+                                          [total_weight](int left, Phi const &right) { return left + total_weight(right.topic_weights); });
+    assert(total_in - total_num_observations * topic_models.size() == total_out - total_num_observations);
+#endif
+    ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
+    total_num_observations = total_out;
 }
 
 void model_translator::broadcast_global_model(bool unpause_models) {

@@ -194,7 +194,7 @@ bool _set_topic_model(topic_model_node *topic_model,
     for (auto i = 0ul; i < ref_model.size(); ++i) {
         for (auto j = 0ul; j < ref_model[i].size(); ++j) {
             topic_model->externalTopicCounts[i][j] += nZW[i][j] - ref_model[i][j];
-            assert(topic_model->externalTopicCounts[i][j] >= 0);
+            if (topic_model->externalTopicCounts[i][j] < 0) ROS_WARN_THROTTLE(1, "New topic model invalidates previous topic labels!");
         }
     }
 #endif
