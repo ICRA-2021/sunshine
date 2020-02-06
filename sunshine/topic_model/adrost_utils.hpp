@@ -146,6 +146,38 @@ struct match_results {
   std::vector<double> ssd = {};
 };
 
+match_results id_matching(std::vector<sunshine::Phi> const &topic_models) {
+    match_results results = {};
+    if (topic_models.empty()) return results;
+
+    auto const &left = topic_models[0].counts;
+    auto const &left_weights = topic_models[0].topic_weights;
+
+    results.num_unique = left_weights.size();
+    results.lifting.emplace_back();
+    for (auto i = 0ul; i < left_weights.size(); ++i) {
+        results.lifting[0].push_back(i);
+    }
+
+    for (auto i = 1ul; i < topic_models.size(); ++i) {
+        auto const &right = topic_models[i].counts;
+        auto const &right_weights = topic_models[i].topic_weights;
+        Matrix<double> matrix(left_weights.size(), right_weights.size());
+
+        std::vector<std::vector<double>> pd_sq = pairwise_distance_sq(left, right, left_weights, right_weights);
+        std::vector<std::vector<int>> assignment(left_weights.size(), std::vector<int>(right_weights.size(), -1));
+
+        results.ssd.push_back(0);
+        for (uint64_t row = 0; row < left_weights.size(); row++) {
+            assignment[row][row] = 0;
+            results.ssd.back() += pd_sq[row][row];
+        }
+        ROS_INFO("SSD %f", results.ssd.back());
+        results.lifting.push_back(get_permutation(assignment, &results.num_unique));
+    }
+    return results;
+}
+
 match_results sequential_hungarian_matching(std::vector<sunshine::Phi> const &topic_models) {
     match_results results = {};
     if (topic_models.empty()) return results;
@@ -197,29 +229,6 @@ match_results sequential_hungarian_matching(std::vector<sunshine::Phi> const &to
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
     return results;
-}
-
-sunshine::Phi merge_models(std::vector<sunshine::Phi> const &topic_models, match_results const &matches, std::string id = "global") {
-    sunshine::Phi global_model(id,
-                               matches.num_unique,
-                               topic_models[0].V,
-                               std::vector<std::vector<int>>(matches.num_unique, std::vector<int>(topic_models[0].V, 0)),
-                               std::vector<int>(matches.num_unique, 0));
-    double const N = topic_models.size();
-    for (auto i = 0ul; i < topic_models.size(); ++i) {
-        for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {
-            auto const &k1 = matches.lifting[i][k2];
-            assert(k1 < matches.num_unique);
-            assert(topic_models[i].V == global_model.V);
-
-            for (auto v = 0ul; v < global_model.V; ++v) {
-                auto const count = std::round(topic_models[i].counts[k2][v] / N);
-                global_model.counts[k1][v] += count;
-                global_model.topic_weights[k1] += count;
-            }
-        }
-    }
-    return global_model;
 }
 
 struct nZWwithPerm {

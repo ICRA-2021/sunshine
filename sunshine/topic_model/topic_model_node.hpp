@@ -13,6 +13,7 @@
 #include <sunshine_msgs/GetTopicMap.h>
 #include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/SetTopicModel.h>
+#include <sunshine_msgs/Pause.h>
 
 #define POSEDIM 4
 
@@ -25,15 +26,16 @@ namespace sunshine {
     typedef neighbors<cell_pose_t> neighbors_t;
     typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
 
-    class topic_model {
+    class topic_model_node {
       static std::vector<std::string> const VALID_MAP_PPX_TYPES;
       ros::NodeHandle *nh;
       ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
       ros::Subscriber word_sub;
 
-      ros::ServiceServer time_topic_server, cell_topic_server, topic_summary_server, topic_map_server, get_topic_model_server, set_topic_model_server;
+      ros::ServiceServer time_topic_server, cell_topic_server, topic_summary_server, topic_map_server;
+      ros::ServiceServer get_topic_model_server, set_topic_model_server, pause_server;
 
-      mutable std::mutex wordsReceivedLock, rostLock;
+      mutable std::mutex wordsReceivedLock;
       std::chrono::steady_clock::time_point lastWordsAdded;
       mutable int consecutive_rate_violations = 0;
 
@@ -49,6 +51,7 @@ namespace sunshine {
       std::string map_ppx_type;
       size_t last_refine_count;
       std::unique_ptr<ROST_t> rost;
+      std::unique_ptr<activity_manager::WriteToken> externalRostLock;
 
       std::vector<CellDimType> observation_times; //list of all time seq ids observed thus far.
       std::vector<cell_pose_t> current_cell_poses, last_poses;
@@ -67,6 +70,7 @@ namespace sunshine {
       boost::function<bool(sunshine_msgs::GetTopicMapRequest &, sunshine_msgs::GetTopicMapResponse &)> const get_topic_map;
       boost::function<bool(sunshine_msgs::GetTopicModelRequest &, sunshine_msgs::GetTopicModelResponse &)> const get_topic_model;
       boost::function<bool(sunshine_msgs::SetTopicModelRequest &, sunshine_msgs::SetTopicModelResponse &)> const set_topic_model;
+      boost::function<bool(sunshine_msgs::PauseRequest &, sunshine_msgs::PauseResponse &)> const pause_topic_model;
 
       void wait_for_processing() const;
 
@@ -75,9 +79,9 @@ namespace sunshine {
       void broadcast_topics(const int obs_time, const std::vector<cell_pose_t> &broadcast_poses) const;
 
     public:
-      explicit topic_model(ros::NodeHandle *nh);
+      explicit topic_model_node(ros::NodeHandle *nh);
 
-      ~topic_model();
+      ~topic_model_node();
 
       std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
 

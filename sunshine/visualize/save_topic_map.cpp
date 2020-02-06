@@ -1,4 +1,4 @@
-#include "../topic_model/topic_model.hpp"
+#include "../topic_model/topic_model_node.hpp"
 #include "utils.hpp"
 #include "word_coloring.hpp"
 #include <iostream>

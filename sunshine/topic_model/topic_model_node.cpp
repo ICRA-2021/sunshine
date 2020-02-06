@@ -1,4 +1,4 @@
-#include "topic_model.hpp"
+#include "topic_model_node.hpp"
 
 #include "utils.hpp"
 #include <fstream>
@@ -26,7 +26,7 @@ static std::string const NO_PPX = "none";
 static std::string const CELL_PPX = "cell";
 static std::string const NEIGHBORHOOD_PPX = "neighborhood";
 static std::string const GLOBAL_PPX = "global";
-std::vector<std::string> const topic_model::VALID_MAP_PPX_TYPES = {NO_PPX, CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX};
+std::vector<std::string> const topic_model_node::VALID_MAP_PPX_TYPES = {NO_PPX, CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX};
 
 template<typename T>
 long record_lap(T &time_checkpoint) {
@@ -35,7 +35,7 @@ long record_lap(T &time_checkpoint) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
-bool _save_topics_by_time_csv(topic_model const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+bool _save_topics_by_time_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
     std::ofstream writer(req.filename);
     writer << "time";
     for (auto k = 0; k < topic_model->get_num_topics(); k++) {
@@ -53,7 +53,7 @@ bool _save_topics_by_time_csv(topic_model const *topic_model, SaveObservationMod
     return true;
 }
 
-bool _save_topics_by_cell_csv(topic_model const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+bool _save_topics_by_cell_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
     std::ofstream writer(req.filename);
     writer << "pose_dim_0";
     for (auto i = 1; i < POSEDIM; i++) {
@@ -77,7 +77,7 @@ bool _save_topics_by_cell_csv(topic_model const *topic_model, SaveObservationMod
     return true;
 }
 
-bool _generate_topic_summary(topic_model const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
+bool _generate_topic_summary(topic_model_node const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
     response.num_topics = topic_model->get_num_topics();
     response.last_seq = topic_model->get_last_observation_time();
     response.header.stamp = ros::Time::now();
@@ -121,22 +121,28 @@ bool _generate_topic_summary(topic_model const *topic_model, GetTopicSummaryRequ
     return true;
 }
 
-bool _get_topic_map(topic_model const *topic_model, GetTopicMapRequest &, GetTopicMapResponse &response) {
+bool _get_topic_map(topic_model_node const *topic_model, GetTopicMapRequest &, GetTopicMapResponse &response) {
     response.topic_map = *topic_model->generate_topic_map(topic_model->get_last_observation_time());
     return true;
 }
 
-bool _get_topic_model(topic_model const *topic_model, std::string name, GetTopicModelRequest &, GetTopicModelResponse &response) {
+bool _get_topic_model(topic_model_node *topic_model,
+                      std::unique_ptr<activity_manager::WriteToken> *rostLock,
+                      std::string name,
+                      GetTopicModelRequest &,
+                      GetTopicModelResponse &response) {
+    ROS_INFO("Sending topic model");
     response.topic_model = sunshine_msgs::TopicModel();
     response.topic_model.identifier = name;
 
-    auto const &rost = topic_model->get_rost();
-    rost.pause(true);
+    auto &rost = topic_model->get_rost();
+    std::unique_ptr<activity_manager::ReadToken> readToken;
+    ROS_INFO("Global lock held: %s", (*rostLock) ? "true" : "false");
+    if (!*rostLock) readToken = rost.get_read_token();
     auto const K = rost.get_num_topics();
     auto const weights = rost.get_topic_weights();
     response.topic_model.V = rost.get_num_words();
     auto const phi = rost.get_topic_model();
-    rost.pause(false);
 
     response.topic_model.K = K;
     response.topic_model.topic_weights.reserve(K);
@@ -155,24 +161,57 @@ bool _get_topic_model(topic_model const *topic_model, std::string name, GetTopic
     return response.topic_model.K >= 1;
 }
 
-bool _set_topic_model(topic_model *topic_model, SetTopicModelRequest &request, SetTopicModelResponse &) {
+bool _set_topic_model(topic_model_node *topic_model,
+                      std::unique_ptr<activity_manager::WriteToken> *rostLock,
+                      SetTopicModelRequest &request,
+                      SetTopicModelResponse &) {
+    ROS_WARN("Attempting to set new topic model!");
     std::vector<std::vector<int>> nZW;
     nZW.reserve(request.topic_model.K);
     auto const V = request.topic_model.V;
     for (auto k = 0ul; k < request.topic_model.K; ++k) {
         nZW.emplace_back(request.topic_model.phi.cbegin() + k * V, request.topic_model.phi.cbegin() + (k + 1) * V);
     }
-    auto& rost = topic_model->get_rost();
-    rost.pause(true);
+    ROS_INFO("Global lock held: %s", (*rostLock) ? "true" : "false");
+    auto &rost = topic_model->get_rost();
+    auto writeLock = (*rostLock)
+                     ? std::unique_ptr<activity_manager::WriteToken>()
+                     : rost.get_write_token();
     assert(V == rost.get_num_words());
     if (request.topic_model.K < rost.get_num_topics()) {
         nZW.resize(rost.get_num_topics(), std::vector<int>(V, 0));
         request.topic_model.topic_weights.resize(rost.get_num_topics());
     }
-    ROS_WARN("Dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
-    topic_model->get_rost().set_topic_model(nZW, request.topic_model.topic_weights);
-    rost.pause(false);
+
+    /// TO DELETE
+//    ROS_INFO("Running exhaustive comparison");
+//    auto const& ref = rost.get_topic_model();
+//    for (auto i = 0ul; i < ref.size(); ++i) {
+//        for (auto j =0ul; j < ref[i].size(); ++j) {
+//            assert(nZW[i][j] >= ref[i][j]);
+//        }
+//    }
+    /// END TO DELETE
+
+    ROS_INFO("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
+    topic_model->get_rost()
+               .set_topic_model((*rostLock)
+                                ? *rostLock
+                                : writeLock, nZW, request.topic_model.topic_weights);
     ROS_INFO("Replaced topic model!");
+    return true;
+}
+
+bool _pause_topic_model(topic_model_node *topic_model,
+                        std::unique_ptr<activity_manager::WriteToken> *rostLock,
+                        PauseRequest &request,
+                        PauseResponse &) {
+    ROS_INFO("Changing topic model pause state");
+    auto &rost = topic_model->get_rost();
+    if (request.pause == (bool) *rostLock) return false;
+    if (request.pause) *rostLock = rost.get_write_token();
+    if (!request.pause) rostLock->reset();
+    ROS_INFO("Global lock %s", (*rostLock) ? "locked" : "released");
     return true;
 }
 
@@ -180,22 +219,22 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "topic_model");
     ros::NodeHandle nh("~");
 
-    topic_model model(&nh);
+    topic_model_node model(&nh);
 
     ros::MultiThreadedSpinner spinner;
     ROS_INFO("Spinning...");
     spinner.spin();
 }
 
-topic_model::topic_model(ros::NodeHandle *nh)
+topic_model_node::topic_model_node(ros::NodeHandle *nh)
       : nh(nh)
       , save_topics_by_time_csv(boost::bind(_save_topics_by_time_csv, this, _1, _2))
       , save_topics_by_cell_csv(boost::bind(_save_topics_by_cell_csv, this, _1, _2))
       , generate_topic_summary(boost::bind(_generate_topic_summary, this, _1, _2))
       , get_topic_map(boost::bind(_get_topic_map, this, _1, _2))
-      , get_topic_model(boost::bind(_get_topic_model, this, ros::this_node::getName(), _1, _2))
-      , set_topic_model(boost::bind(_set_topic_model, this, _1, _2)) {
-//    std::this_thread::sleep_for(std::chrono::seconds(5));
+      , get_topic_model(boost::bind(_get_topic_model, this, &externalRostLock, ros::this_node::getName(), _1, _2))
+      , set_topic_model(boost::bind(_set_topic_model, this, &externalRostLock, _1, _2))
+      , pause_topic_model(boost::bind(_pause_topic_model, this, &externalRostLock, _1, _2)) {
     std::string cell_size_string;
     bool is_hierarchical;
     int num_levels;
@@ -246,7 +285,7 @@ topic_model::topic_model(ros::NodeHandle *nh)
     if (publish_local_surprise) local_surprise_pub = nh->advertise<LocalSurprise>("cell_perplexity", 10);
     if (map_publish_period >= 0) map_pub = nh->advertise<TopicMap>("topic_map", 1);
 
-    word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model::words_callback, this);
+    word_sub = nh->subscribe(words_topic_name, static_cast<uint32_t>(obs_queue_size), &topic_model_node::words_callback, this);
 
     cell_pose_t G{{G_time, G_space, G_space, G_space}};
     if (is_hierarchical) {
@@ -287,6 +326,7 @@ topic_model::topic_model(ros::NodeHandle *nh)
     this->topic_map_server = nh->advertiseService<>("get_topic_map", this->get_topic_map);
     this->get_topic_model_server = nh->advertiseService<>("get_topic_model", this->get_topic_model);
     this->set_topic_model_server = nh->advertiseService<>("set_topic_model", this->set_topic_model);
+    this->pause_server = nh->advertiseService<>("pause_topic_model", this->pause_topic_model);
 
     if (map_publish_period > 0) {
         map_publish_timer = nh->createTimer(ros::Duration(map_publish_period), [this](ros::TimerEvent const &) {
@@ -295,7 +335,7 @@ topic_model::topic_model(ros::NodeHandle *nh)
     }
 }
 
-topic_model::~topic_model() {
+topic_model_node::~topic_model_node() {
     map_publish_timer.stop();
     stopWork = true; //signal workers to stop
     for (auto const &t : workers) { //wait for them to stop
@@ -304,7 +344,7 @@ topic_model::~topic_model() {
     if (broadcast_thread && broadcast_thread->joinable()) broadcast_thread->join();
 }
 
-std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time() const {
+std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_time() const {
     auto const poses_by_time = rost->get_poses_by_time();
     std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
     for (auto const &entry : poses_by_time) {
@@ -319,7 +359,7 @@ std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model::get_topics_by_time()
     return topics_by_time;
 }
 
-std::map<cell_pose_t, std::vector<int>> topic_model::get_topics_by_cell() const {
+std::map<cell_pose_t, std::vector<int>> topic_model_node::get_topics_by_cell() const {
     auto const &poses = rost->cell_pose;
     std::map<cell_pose_t, std::vector<int>> topics_by_cell;
     for (auto const &pose : poses) {
@@ -355,7 +395,7 @@ static std::map<cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservat
     return words_by_cell_pose;
 }
 
-void topic_model::wait_for_processing() const {
+void topic_model_node::wait_for_processing() const {
     using namespace std::chrono;
     auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
     ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
@@ -372,7 +412,7 @@ void topic_model::wait_for_processing() const {
     }
 }
 
-void topic_model::words_callback(const WordObservation::ConstPtr &wordObs) {
+void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) {
     auto time_checkpoint = std::chrono::steady_clock::now();
     auto const time_start = time_checkpoint;
 
@@ -398,7 +438,10 @@ void topic_model::words_callback(const WordObservation::ConstPtr &wordObs) {
         if (broadcast_thread && broadcast_thread->joinable()) {
             broadcast_thread->join();
         }
-        broadcast_thread = std::make_shared<std::thread>(&topic_model::broadcast_topics, this, last_time, std::move(current_cell_poses));
+        broadcast_thread = std::make_shared<std::thread>(&topic_model_node::broadcast_topics,
+                                                         this,
+                                                         last_time,
+                                                         std::move(current_cell_poses));
         size_t refine_count = rost->get_refine_count();
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
@@ -412,7 +455,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr &wordObs) {
     ROS_ERROR_COND(!current_source.empty() && current_source != wordObs->source,
                    "Words received from different source with same observation time!");
     {
-        std::lock_guard<std::mutex> guard(rostLock);
+        auto rostWriteGuard = rost->get_write_token();
         duration_lock += record_lap(time_checkpoint);
 
         auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
@@ -448,7 +491,7 @@ void topic_model::words_callback(const WordObservation::ConstPtr &wordObs) {
     lastWordsAdded = chrono::steady_clock::now();
 }
 
-TopicMapPtr topic_model::generate_topic_map(int const obs_time) const {
+TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
     TopicMap::Ptr topic_map(new TopicMap);
     topic_map->seq = static_cast<uint32_t>(obs_time);
     topic_map->vocabulary_begin = 0;
@@ -465,7 +508,7 @@ TopicMapPtr topic_model::generate_topic_map(int const obs_time) const {
     auto const BATCH_SIZE = 500ul;
     auto i = 0ul;
     while (i < poses.size()) {
-        std::lock_guard<std::mutex> guard(rostLock);
+        auto rostReadToken = rost->get_read_token();
         auto const BATCH_END = std::min(i + BATCH_SIZE, poses.size());
         for (; i < BATCH_END; ++i) {
             auto const &cell_pose = poses[i];
@@ -493,7 +536,7 @@ TopicMapPtr topic_model::generate_topic_map(int const obs_time) const {
     return topic_map;
 }
 
-void topic_model::broadcast_topics(int const obs_time, const std::vector<cell_pose_t> &broadcast_poses) const {
+void topic_model_node::broadcast_topics(int const obs_time, const std::vector<cell_pose_t> &broadcast_poses) const {
     if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) {
         return;
     }
@@ -545,7 +588,7 @@ void topic_model::broadcast_topics(int const obs_time, const std::vector<cell_po
     auto const duration_init = record_lap(time_checkpoint);
     long duration_lock;
     {
-        std::lock_guard<std::mutex> guard(rostLock);
+        auto rostReadToken = rost->get_read_token(); // TODO add a timeout here?
         duration_lock = record_lap(time_checkpoint);
         for (auto const &cell_pose : broadcast_poses) {
             auto const &cell = rost->get_cell(cell_pose);

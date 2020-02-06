@@ -154,7 +154,7 @@ include_directories(
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
-add_executable(topic_model topic_model/topic_model.cpp)
+add_executable(topic_model topic_model/topic_model_node.cpp)
 add_executable(model_translator topic_model/model_translator.cpp)
 add_executable(visualize visualize/visualize2d.cpp)
 add_executable(visualize3d visualize/visualize3d.cpp)
