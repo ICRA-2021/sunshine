@@ -11,6 +11,7 @@
 #include <list>
 #include <utility>
 #include "adrost_utils.hpp"
+#include "csv.hpp"
 
 namespace sunshine {
     using namespace sunshine_msgs;
@@ -20,7 +21,8 @@ namespace sunshine {
       std::string match_method;
       double match_period;
       double merge_period;
-      std::string save_model_path;
+      std::string save_model_path, stats_path;
+      std::unique_ptr<csv_writer<>> stats_writer;
 
       std::vector<std::string> target_models;
       std::list<ros::ServiceClient> fetch_topic_clients;

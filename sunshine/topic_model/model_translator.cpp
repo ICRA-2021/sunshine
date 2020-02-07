@@ -82,6 +82,14 @@ model_translator::model_translator(ros::NodeHandle *nh)
     this->match_period = nh->param<double>("match_period", -1);
     this->merge_period = nh->param<double>("merge_period", -1);
     this->save_model_path = nh->param<std::string>("save_model_path", "");
+    this->stats_path = nh->param<std::string>("merge_stats_path", "");
+    if (!stats_path.empty()) {
+        this->stats_writer = std::make_unique<csv_writer<>>(stats_path);
+        csv_row<> header{};
+        header.append("Total # of Topics");
+        header.append("SSD");
+        stats_writer->write_header(header);
+    }
 
     if (this->match_period > 0) {
         this->match_publisher = nh->advertise<TopicMatches>("matches", 1);
@@ -109,10 +117,17 @@ model_translator::model_translator(ros::NodeHandle *nh)
             auto const topic_models = fetch_topic_models(true);
             if (topic_models.size() < this->set_topic_clients.size()) {
                 ROS_ERROR("Failed to fetch all models - skipping topic merging!");
-                if (topic_models.size() > 0) pause_topic_models(false);
+                if (!topic_models.empty()) pause_topic_models(false);
                 return; // only merge if we have everything
             }
             auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
+            if (this->stats_writer) {
+                csv_row<> row{};
+                row.append(correspondences.num_unique);
+                for (auto const& dist : correspondences.ssd) row.append(dist);
+                stats_writer->write_row(row);
+                stats_writer->flush();
+            }
             update_global_model(topic_models, correspondences);
             broadcast_global_model(true);
             ROS_INFO("Finished topic merging.");
