@@ -292,3 +292,9 @@ void model_translator::pause_topic_models(bool pause_models) {
         }
     }
 }
+
+model_translator::~model_translator() {
+    merge_timer.stop();
+    match_timer.stop();
+    pause_topic_models(false);
+}

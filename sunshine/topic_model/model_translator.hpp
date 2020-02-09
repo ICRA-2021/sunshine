@@ -45,6 +45,7 @@ namespace sunshine {
 
     public:
       explicit model_translator(ros::NodeHandle *nh);
+      ~model_translator();
     };
 }
 

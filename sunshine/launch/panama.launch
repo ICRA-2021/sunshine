@@ -7,6 +7,7 @@
 
   <!-- Incoming topic -->
   <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="rosbag" default="" /> <!-- If set, will extract images from rosbag rather than from ros messages -->
 
   <!-- Vision (visual_word_extractor) arguments -->
   <!-- As the name says, this node extracts visual words from images.
@@ -37,7 +38,7 @@
        assign reasonable topics and this is the knob available for rate-limiting;
        For our use, could probably be 0 because it's not currently doing anything
        (even when running accelerated bags, we don't hit 4Hz.) -->
-  <arg name="rate" default="4" />
+  <arg name="rate" default="1" />
   <!-- Flags to enable/disable different word extractors.-->
   <arg name="hue" default="true" /> <!-- (only one that looks at color) -->
   <arg name="intensity" default="true" /> <!-- Produces 400 words, with each word representing patch of image. -->
@@ -117,6 +118,7 @@
     <param name="world_frame" value="$(arg world_frame_name)"/>
     <param name="sensor_frame" value="$(arg sensor_frame_name)"/>
     <param name="seq_duration" value="$(arg seq_duration)" />
+    <param name="image_bag" value="$(arg rosbag)" />
   </node>
 
   <!-- Launch topic model -->

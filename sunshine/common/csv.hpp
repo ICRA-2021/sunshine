@@ -96,7 +96,7 @@ class csv_row {
         ss << "[ ";
         size_t i = 0;
         for (auto const& value : values) {
-            if (i > 0) ss << ", ";
+            if (i++ > 0) ss << ", ";
             ss << value;
         }
         ss << " ]";

@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 14)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rosbag
   sensor_msgs
   std_msgs
   cv_bridge

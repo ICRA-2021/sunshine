@@ -149,12 +149,14 @@ bool _get_topic_model(topic_model_node *topic_model,
     response.topic_model.K = K;
     response.topic_model.topic_weights.reserve(K);
     response.topic_model.phi.reserve(K * response.topic_model.V);
+    int empty = 0;
     for (auto k = 0ul; k < K; ++k) {
         if (weights[k] < 0) { ROS_ERROR("How is this weight negative? %d", weights[k]); }
-        else if (weights[k] == 0) ROS_WARN("Sending empty topic. Try using HDP to minimize this expense."); // TODO optimize?
+        else if (weights[k] == 0) empty++;
         response.topic_model.topic_weights.push_back(weights[k]);
         response.topic_model.phi.insert(response.topic_model.phi.end(), phi[k].begin(), phi[k].end());
     }
+    if (empty > 0) ROS_INFO("Sent %d empty topics. Try using HDP to minimize this expense.", empty); // TODO optimize?
     return response.topic_model.K >= 1;
 }
 
