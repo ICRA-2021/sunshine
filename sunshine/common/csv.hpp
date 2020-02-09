@@ -67,7 +67,7 @@ class csv_row {
         return data;
     }
 
-    void append(std::string value) {
+    void append(std::string const& value) {
         if (get_next_delimiter<str_delimiter>(value, 0) != value.size()) throw std::invalid_argument("String contains unexpected escapes");
         data += ((data.empty())
                  ? escape(value)
@@ -75,11 +75,11 @@ class csv_row {
         delimiters.push_back(data.size());
     }
 
-    void append(const char* value) {
+    void append(const char* const& value) {
         append(std::string(value));
     }
 
-    void append(char value) {
+    void append(char const& value) {
         if (check_delim<str_delimiter>(value)) throw std::invalid_argument("String contains unexpected escapes");
         if (check_delim<delimiter>(value)) {
             data += ((data.empty())
@@ -90,8 +90,21 @@ class csv_row {
         delimiters.push_back(data.size());
     }
 
-    template<typename T>
-    void append(T value) {
+    template <typename T>
+    void append(std::vector<T> const& values) {
+        std::stringstream ss;
+        ss << "[ ";
+        size_t i = 0;
+        for (auto const& value : values) {
+            if (i > 0) ss << ", ";
+            ss << value;
+        }
+        ss << " ]";
+        append(ss.str());
+    }
+
+    template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
+    void append(T const& value) {
         data += (data.empty()) ? std::to_string(value) : (delimiter + std::to_string(value));
         delimiters.push_back(data.size());
     }

@@ -30,9 +30,11 @@ static match_results match_topics(std::string const &method, std::vector<Phi> co
         return id_matching(topic_models);
     } else if (method == "hungarian") {
         return sequential_hungarian_matching(topic_models);
+    } else if (method == "clear") {
+        throw std::invalid_argument(method + "is not yet implemented.");
     } else {
         ROS_ERROR("Unrecognized matching method: %s", method.c_str());
-        return {};
+        throw std::logic_error(method + " is not recognized.");
     }
 }
 
@@ -88,6 +90,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
         csv_row<> header{};
         header.append("Total # of Topics");
         header.append("SSD");
+        header.append("Matched SSD");
         stats_writer->write_header(header);
     }
 
@@ -124,7 +127,8 @@ model_translator::model_translator(ros::NodeHandle *nh)
             if (this->stats_writer) {
                 csv_row<> row{};
                 row.append(correspondences.num_unique);
-                for (auto const& dist : correspondences.ssd) row.append(dist);
+                row.append(correspondences.ssd);
+                row.append(correspondences.matched_ssd);
                 stats_writer->write_row(row);
                 stats_writer->flush();
             }
@@ -175,8 +179,9 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
                                      sizeof(decltype(getTopicModel.response.topic_model.phi)::value_type) / sizeof(char)
                                            * getTopicModel.response.topic_model.phi.size());
                         writer.close();
-                    } else
+                    } else {
                         ROS_WARN("Failed to save topic model to file %s", filename.c_str());
+                    }
                 }
             } else {
                 ROS_WARN("Failed to fetch topic model from %s after pausing! Attempting to unpause.", target_model.c_str());
@@ -193,7 +198,7 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
 }
 
 void model_translator::update_global_model(std::vector<Phi> const &topic_models, match_results const &matches) {
-    auto const total_weight = [](std::vector<int> const& vec) { return std::accumulate(vec.begin(), vec.end(), 0); };
+    auto const total_weight = [](std::vector<int> const &vec) { return std::accumulate(vec.begin(), vec.end(), 0); };
     assert(!topic_models.empty());
     assert(total_weight(global_model.topic_weights) == total_num_observations);
 
@@ -206,7 +211,7 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
     }
     assert(total_weight(global_model.topic_weights) == total_num_observations);
 
-    auto const old_weights = global_model.topic_weights;
+//    auto const old_weights = global_model.topic_weights;
     std::vector<std::vector<int>> const old_counts = global_model.counts; // DO NOT use copy constructor!
     for (auto i = 0ul; i < topic_models.size(); ++i) {
         std::vector<int> weight_ref = topic_models[i].topic_weights;
@@ -224,15 +229,11 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
                     delta = 0;
                 }
                 global_model.counts[k1][v] += delta;
-//                ROS_ERROR_COND(global_model.counts[k1][v] < topic_models[i].counts[k2][v],
-//                               "The global count is less than the individual count!");
                 global_model.topic_weights[k1] += delta;
-                weight_ref[k2] -= delta;
-                assert(weight_ref[k2] >= 0);
+//                weight_ref[k2] -= delta; assert(weight_ref[k2] >= 0);
             }
         }
-        ROS_INFO("Total weight ref after removing deltas: %d", total_weight(weight_ref));
-        assert(total_weight(weight_ref) == total_num_observations);
+//        ROS_INFO("Total weight ref after removing deltas: %d", total_weight(weight_ref)); assert(total_weight(weight_ref) == total_num_observations);
     }
     auto const total_out = total_weight(global_model.topic_weights);
     ROS_INFO("Added %li observations to global topic model.", total_out - total_num_observations);
@@ -242,7 +243,11 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
                                           0,
                                           [total_weight](int left, Phi const &right) { return left + total_weight(right.topic_weights); });
     ROS_INFO("Detected %li new observations.", total_in - total_num_observations * topic_models.size());
-    ROS_INFO("%d in, %d out based on %li previous observations and %li new observations", total_in, total_out, total_num_observations, total_in - total_num_observations * topic_models.size());
+    ROS_INFO("%d in, %d out based on %li previous observations and %li new observations",
+             total_in,
+             total_out,
+             total_num_observations,
+             total_in - total_num_observations * topic_models.size());
     assert(total_in - total_num_observations * topic_models.size() == total_out - total_num_observations);
 #endif
     total_num_observations = total_out;

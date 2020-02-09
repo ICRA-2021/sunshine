@@ -27,6 +27,7 @@ struct match_results {
   int num_unique = -1;
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
+  std::vector<double> matched_ssd = {};
 };
 
 /**
@@ -174,6 +175,9 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
         results.lifting[0].push_back(i);
     }
 
+    results.ssd = std::vector<double>(1, 0); // SSD with self is 0
+    results.matched_ssd = std::vector<double>(1, 0); // SSD with self is 0
+
     for (auto i = 1ul; i < topic_models.size(); ++i) {
         auto const &right = topic_models[i].counts;
         auto const &right_weights = topic_models[i].topic_weights;
@@ -187,9 +191,9 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
             assignment[row][row] = 0;
             results.ssd.back() += pd_sq[row][row];
         }
-        ROS_INFO("SSD %f", results.ssd.back());
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
+    results.matched_ssd = results.ssd; // identity matching
     return results;
 }
 
@@ -205,6 +209,8 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     for (auto i = 0ul; i < left_weights.size(); ++i) {
         results.lifting[0].push_back(i);
     }
+    results.ssd = std::vector<double>(1, 0); // SSD with self is 0
+    results.matched_ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
         auto const &right = topic_models[i].counts;
@@ -218,26 +224,24 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
 
         pd_sq = pairwise_distance_sq(left, right, left_weights, right_weights);
 
+        results.ssd.push_back(0);
         // convert pd_sq to a Matrix
         for (int fi = 0; fi < left_weights.size(); ++fi) {
             for (int fj = 0; fj < right_weights.size(); ++fj) {
                 matrix(fi, fj) = pd_sq[fi][fj];
-//                std::cout << pd_sq[fi][fj] << "\t";
+                if (fi == fj) results.ssd.back() += pd_sq[fi][fj];
             }
-//            std::cout << std::endl;
         }
 
         // Apply Munkres algorithm to matrix.
         Munkres<double> m;
         m.solve(matrix);
 
-        results.ssd.push_back(0);
+        results.matched_ssd.push_back(0);
         for (int row = 0; row < left_weights.size(); row++) {
             for (int col = 0; col < right_weights.size(); col++) {
                 assignment[row][col] = matrix(row, col);
-                if (matrix(row, col) == 0) {
-                    results.ssd.back() += pd_sq[row][col];
-                }
+                if (matrix(row, col) == 0) results.matched_ssd.back() += pd_sq[row][col];
             }
         }
         ROS_INFO("SSD %f", results.ssd.back());
