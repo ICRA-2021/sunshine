@@ -79,7 +79,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
         this->set_topic_clients.push_back(nh->serviceClient<SetTopicModel>("/" + node + "/set_topic_model", false));
         this->pause_topic_clients.push_back(nh->serviceClient<Pause>("/" + node + "/pause_topic_model", false));
     }
-    this->match_method = nh->param<std::string>("match_method", "hungarian");
+    this->match_method = nh->param<std::string>("match_method", "");
     ROS_INFO("Using match method '%s'", this->match_method.c_str());
     this->match_period = nh->param<double>("match_period", -1);
     this->merge_period = nh->param<double>("merge_period", -1);
