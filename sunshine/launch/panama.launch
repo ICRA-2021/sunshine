@@ -90,12 +90,14 @@
   <!-- How many word observations will be cached while processing the current one.
        Warns when starts using the queue, starts dropping when queue is full.-->
   <arg name="word_obs_queue_size" default="1" />
+  <arg name="publish_topics" default="false" />
 
   <!-- Visualization arguments -->
   <arg name="2d_words_topic" default="/$(arg basename)_vision/words_2d" />
   <arg name="show_topics" default="true" />
   <arg name="show_words" default="false" />
   <arg name="show_perplexity" default="false" />
+  <arg name="visualize" default="false" />
 
   <!-- Launch word extractor -->
   <node pkg="sunshine" type="visual_word_extractor" name="$(arg basename)_vision" output="screen" unless="$(arg only_topic_model)" required="true" >
@@ -141,9 +143,10 @@
     <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
     <param name="map_publish_period" type="double" value="-1" />
+    <param name="publish_topics" type="bool" value="$(arg publish_topics)" />
   </node>
 
-  <node pkg="sunshine" type="visualize" name="$(arg basename)_visualize2d" unless="$(arg only_topic_model)" >
+  <node pkg="sunshine" type="visualize" name="$(arg basename)_visualize2d" if="$(arg visualize)" >
     <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
     <param name="topics_topic" type="string" value="/$(arg basename)/topics" />
     <param name="show_topics" type="bool" value="$(arg show_topics)" />
