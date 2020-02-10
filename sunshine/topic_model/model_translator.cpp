@@ -84,7 +84,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
     this->match_period = nh->param<double>("match_period", -1);
     this->merge_period = nh->param<double>("merge_period", -1);
     this->save_model_path = nh->param<std::string>("save_model_path", "");
-    this->stats_path = nh->param<std::string>("merge_stats_path", "");
+    this->stats_path = nh->param<std::string>("stats_path", "");
     if (!stats_path.empty()) {
         this->stats_writer = std::make_unique<csv_writer<>>(stats_path);
         csv_row<> header{};
@@ -99,17 +99,25 @@ model_translator::model_translator(ros::NodeHandle *nh)
         this->match_timer = nh->createTimer(ros::Duration(this->match_period), [this](ros::TimerEvent const &) {
             ROS_INFO("Beginning topic matching.");
             auto const topic_models = fetch_topic_models();
-            auto correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()}).lifting;
+            auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
             TopicMatches topic_matches;
             for (auto const &topic_model : topic_models) {
                 topic_matches.robots.push_back(topic_model.id);
             }
-            for (auto const &k_matches : correspondences) {
+            for (auto const &k_matches : correspondences.lifting) {
                 topic_matches.Ks.push_back(k_matches.size());
                 topic_matches.matches.insert(topic_matches.matches.end(), k_matches.begin(), k_matches.end());
                 topic_matches.K_global = std::max(topic_matches.K_global, *std::max_element(k_matches.begin(), k_matches.end()) + 1);
             }
             match_publisher.publish(topic_matches);
+            if (this->stats_writer) {
+                csv_row<> row{};
+                row.append(correspondences.num_unique);
+                row.append(correspondences.ssd);
+                row.append(correspondences.matched_ssd);
+                stats_writer->write_row(row);
+                stats_writer->flush();
+            }
             ROS_INFO("Finished topic matching.");
         });
     }
@@ -124,6 +132,8 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 return; // only merge if we have everything
             }
             auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
+            update_global_model(topic_models, correspondences);
+            broadcast_global_model(true);
             if (this->stats_writer) {
                 csv_row<> row{};
                 row.append(correspondences.num_unique);
@@ -132,8 +142,6 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 stats_writer->write_row(row);
                 stats_writer->flush();
             }
-            update_global_model(topic_models, correspondences);
-            broadcast_global_model(true);
             ROS_INFO("Finished topic merging.");
         });
     }

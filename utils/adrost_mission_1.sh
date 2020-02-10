@@ -8,5 +8,5 @@ tmux select-window -t foo:0
 #tmux split-window -v -t 3 'rosrun sunshine model_translator _target_nodes:=rost_1,rost_2 _match_period:=5 _save_model_path:="/home/stewart/datasets/panama-bags/panama-topics" || bash'
 tmux split-window -v -t 0 "rosrun sunshine model_translator _target_nodes:=rost_1,rost_2 $* || bash"
 tmux split-window -h -t 0 'roslaunch sunshine panama.launch rosbag:=/home/stewart/datasets/panama-bags/d20150403_2.bag image_topic:=camera/image_raw basename:=rost_2 || bash'
-tmux select-window -t foo:1
-tmux -2 attach-session -t foo
+#tmux select-window -t foo:1
+#tmux -2 attach-session -t foo
