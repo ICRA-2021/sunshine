@@ -180,7 +180,8 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
             if (fetchClient->call(getTopicModel)) {
                 topic_models.push_back(fromTopicModel(getTopicModel.response.topic_model));
                 if (!save_model_path.empty()) {
-                    std::string filename = save_model_path + "/" + std::to_string(ros::Time::now().sec) + "_" + target_model + ".bin";
+                    std::string filename = save_model_path + "/" + std::to_string(ros::Time::now().sec) + "_"
+                          + std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6)) + "_" + target_model + ".bin";
                     std::fstream writer(filename, std::ios::out | std::ios::binary);
                     if (writer.good()) {
                         writer.write(reinterpret_cast<char *>(getTopicModel.response.topic_model.phi.data()),
