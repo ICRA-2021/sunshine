@@ -28,8 +28,10 @@ set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3.2 REQUIRED)
 find_package(roslaunch REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
+find_library(libclear libclear.so)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -137,6 +139,7 @@ include_directories(
 # include
   common
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -201,7 +204,7 @@ target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES})
 
 target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(model_translator ${catkin_LIBRARIES})
+target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
 
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 

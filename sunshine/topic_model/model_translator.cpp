@@ -31,7 +31,7 @@ static match_results match_topics(std::string const &method, std::vector<Phi> co
     } else if (method == "hungarian") {
         return sequential_hungarian_matching(topic_models);
     } else if (method == "clear") {
-        throw std::invalid_argument(method + "is not yet implemented.");
+        return clear_matching(topic_models);
     } else {
         ROS_ERROR("Unrecognized matching method: %s", method.c_str());
         throw std::logic_error(method + " is not recognized.");
@@ -95,6 +95,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
     }
 
     if (this->match_period > 0) {
+        ROS_INFO("Enabled matching with period %f", this->match_period);
         this->match_publisher = nh->advertise<TopicMatches>("matches", 1);
         this->match_timer = nh->createTimer(ros::Duration(this->match_period), [this](ros::TimerEvent const &) {
             ROS_INFO("Beginning topic matching.");
@@ -123,6 +124,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
     }
 
     if (this->merge_period > 0) {
+        ROS_INFO("Enabled merging with period %f", this->merge_period);
         this->merge_timer = nh->createTimer(ros::Duration(this->merge_period), [this](ros::TimerEvent const &) {
             ROS_INFO("Beginning topic merging.");
             auto const topic_models = fetch_topic_models(true);

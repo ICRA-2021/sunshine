@@ -2,7 +2,10 @@
 #define SUNSHINE_PROJECT_ADROST_UTILS_HPP
 
 #include <cmath>
-#include "munkres/munkres.h"
+#include <munkres/munkres.h>
+#include <clear/MultiwayMatcher.hpp>
+#include <Eigen/Core>
+#include <numeric>
 // #include "adapters/boostmatrixadapter.h"
 
 struct Phi {
@@ -250,18 +253,92 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     return results;
 }
 
+match_results clear_matching(std::vector<Phi> const &topic_models) {
+    match_results results = {};
+    if (topic_models.empty()) return results;
+
+    int const totalNumTopics = std::accumulate(topic_models.begin(),
+                                               topic_models.end(),
+                                               0,
+                                               [](int count, Phi const &next) { return count + next.K; });
+    Eigen::MatrixXf P = Eigen::MatrixXf::Constant(totalNumTopics, totalNumTopics, 0);
+
+    size_t i = 0, j_offset = 0;
+    for (auto left_idx = 0ul; left_idx < topic_models.size() - 1; ++left_idx) {
+        auto const &left = topic_models[left_idx].counts;
+        auto const &left_weights = topic_models[left_idx].topic_weights;
+
+        j_offset += topic_models[left_idx].K;
+        size_t j = j_offset;
+
+        for (auto right_idx = left_idx + 1; right_idx < topic_models.size(); ++right_idx) {
+            auto const &right = topic_models[right_idx].counts;
+            auto const &right_weights = topic_models[right_idx].topic_weights;
+
+            Eigen::MatrixXf matrix = Eigen::MatrixXf::Constant(left_weights.size(), right_weights.size(), 0);
+
+            results.ssd.push_back(0);
+            // convert pd_sq to a Matrix
+            for (size_t fi = 0; fi < left_weights.size(); ++fi) {
+                for (size_t fj = 0; fj < right_weights.size(); ++fj) {
+                    matrix(fi, fj) = normed_dist_sq(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    if (fi == fj) results.ssd.back() += matrix(fi, fj);
+                }
+            }
+
+            P.block(i, j, left_weights.size(), right_weights.size()) = matrix;
+            P.block(j, i, right_weights.size(), left_weights.size()) = matrix.transpose();
+            j += right_weights.size();
+        }
+        i = j_offset;
+    }
+
+    assert(P.isApprox((P + P.transpose()) / 2.)); // check symmetric
+
+    MultiwayMatcher clearMatcher;
+    std::vector<uint32_t> numSmp;
+    for (auto const& tm : topic_models) numSmp.push_back(tm.K);
+    clearMatcher.initialize(P, numSmp);
+    clearMatcher.CLEAR();
+
+    results.num_unique = static_cast<int>(clearMatcher.get_universe_size());
+    std::vector<int> assignments = clearMatcher.get_assignments();
+    size_t agent_idx = 0, agent_topic_idx = 0;
+    results.lifting.emplace_back();
+    for (auto const& assignment : assignments) {
+        while (agent_topic_idx >= numSmp[agent_idx]) {
+            agent_idx++;
+            agent_topic_idx = 0;
+            assert(agent_idx < numSmp.size());
+            results.lifting.emplace_back();
+        }
+        results.lifting[agent_idx].push_back(assignment);
+        agent_topic_idx++;
+    }
+
+//    results.matched_ssd.push_back(0);
+//    for (int row = 0; row < left_weights.size(); row++) {
+//        for (int col = 0; col < right_weights.size(); col++) {
+//            assignment[row][col] = matrix(row, col);
+//            if (matrix(row, col) == 0) results.matched_ssd.back() += pd_sq[row][col];
+//        }
+//    }
+    // TODO matched ssd calculation -- may need to change Hungarian/ID computation to match
+    return results;
+}
+
 struct nZWwithPerm {
   std::vector<std::vector<int>> nZW_global;
   std::vector<int> perm;
 };
 
-nZWwithPerm merge_by_similarity(std::vector<std::vector<int>> nZW_1,
-                                std::vector<int> weightZ_1,
-                                std::vector<std::vector<int>> nZW_2,
-                                std::vector<int> weightZ_2,
-                                std::vector<std::vector<int>> nZW_global,
-                                int K,
-                                int V) {
+[[deprecated]] nZWwithPerm merge_by_similarity(std::vector<std::vector<int>> nZW_1,
+                                               std::vector<int> weightZ_1,
+                                               std::vector<std::vector<int>> nZW_2,
+                                               std::vector<int> weightZ_2,
+                                               std::vector<std::vector<int>> nZW_global,
+                                               int K,
+                                               int V) {
     // Struct to hold result
     nZWwithPerm nZW_global_with_perm;
 
