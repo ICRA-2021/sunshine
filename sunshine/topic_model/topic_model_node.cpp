@@ -431,7 +431,8 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
 
     using namespace std;
     lock_guard<mutex> guard(wordsReceivedLock);
-    auto duration_lock = record_lap(time_checkpoint);
+    auto duration_words_lock = record_lap(time_checkpoint);
+    long duration_write_lock;
 
     // TODO Can observation transform ever be invalid?
 
@@ -469,7 +470,7 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
                    "Words received from different source with same observation time!");
     {
         auto rostWriteGuard = rost->get_write_token();
-        duration_lock += record_lap(time_checkpoint);
+        duration_write_lock = record_lap(time_checkpoint);
 
         auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
         current_cell_poses.reserve(current_cell_poses.size() + words_by_cell_pose.size());
@@ -487,16 +488,18 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
     auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - time_start).count();
     if (total_duration > this->min_obs_refine_time) {
-        ROS_WARN("Words observation overhead: %lu ms (%lu lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
+        ROS_WARN("Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
                  total_duration,
-                 duration_lock,
+                 duration_words_lock,
+                 duration_write_lock,
                  duration_broadcast,
                  duration_add_observations,
                  min_obs_refine_time);
     } else {
-        ROS_INFO("Words observation overhead: %lu ms (%lu lock, %lu broadcast, %lu updating cells)",
+        ROS_INFO("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
                  total_duration,
-                 duration_lock,
+                 duration_words_lock,
+                 duration_write_lock,
                  duration_broadcast,
                  duration_add_observations);
     }

@@ -71,9 +71,9 @@
   <!-- Spatial extent of each cell, in meters. (assumes cells are cubes) -->
   <arg name="cell_space" default="128" />
   <!-- Temporal extent of cell, in seconds. Want low for Sentry because the localization is not sufficiently accurate over long time periods. -->
-  <arg name="cell_time" default="0.5" />
+  <arg name="cell_time" default="4" />
   <!-- Redundant parameter for defining non-cubic cells. time/x/y/z. If defined, overrides cell_space and cell_time. This has been made non-cubic so if the zero-z flag is turned off and two images are offset vertically, they will be grouped. This is useful for sentry. When zero-z turned on, this doesn't matter -->
-  <arg name="cell_size" default="0.5x128x128x1" />
+  <arg name="cell_size" default="4x128x128x1" />
   <!-- In each cell, topic assignment for each word is computed based on
        assignments in that cell AND its neighbors. These parameters determine
        that neighborhood size, in units of cells. (really, a smoothing parameter)
