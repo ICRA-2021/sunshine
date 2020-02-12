@@ -8,6 +8,9 @@
 #include <numeric>
 // #include "adapters/boostmatrixadapter.h"
 
+template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
+template<typename L, typename R = L> using DistanceMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
+
 struct Phi {
   std::string id;
   int K = 0, V = 0;
@@ -52,11 +55,120 @@ struct Phi {
   }
 };
 
+struct match_scores {
+  private:
+    int K = 0; // number of clusters
+    std::vector<size_t> cluster_sizes = {}; // number of elements in each cluster (Kx1)
+    std::vector<std::vector<double>> sorted_points = {}; // coordinates of points, sorted by clusters (NxV)
+    std::vector<double> point_scales = {}; // scales of points (i.e. sum of elements in each point)
+    std::vector<std::vector<double>> dispersion_matrix = {}; // group dispersion matrix (NxN)
+    std::vector<std::vector<double>> cluster_centers = {}; // coordinates of cluster centers (KxV)
+    std::vector<double> cluster_scales = {}; // scales of cluster centers (i.e. sum of elements in each cluster center)
+
+    template<typename T>
+    typename T::const_iterator clusterEnd(T const &t, int cluster) {
+        assert(cluster < K);
+        auto iter = t.cbegin();
+        for (size_t idx = 0; idx <= cluster; ++idx) {
+            assert(cluster_sizes[idx] <= std::distance(iter, t.cend()));
+            iter += cluster_sizes[idx];
+        }
+        return iter;
+    }
+
+    void compute_scores(DistanceMetric<double> const &metric) {
+        size_t cluster_start = 0, cluster_end = 0;
+        for (auto k = 0; k < K; k++, cluster_start = cluster_end) {
+            cluster_end += cluster_sizes[k];
+            double mscd_k = 0;
+            double silhouette_k = 0;
+            if (!cluster_sizes[k]) ROS_WARN("Empty cluster detected when computing metrics!");
+            if (cluster_sizes[k] > 1) {
+                for (auto i = cluster_start; i < cluster_end; ++i) {
+                    mscd_k += std::pow(metric(sorted_points[i], cluster_centers[k], point_scales[i], cluster_scales[k]), 2);
+
+                    double silhouette_a = 0;
+                    double silhouette_b = std::numeric_limits<double>::max() / 2., silhouette_b_tmp = 0;
+                    int tmp_k = 0;
+                    int tmp_start = 0;
+                    for (auto j = 0ul; j < sorted_points.size(); j++) {
+                        while (j - tmp_start >= cluster_sizes[tmp_k]) {
+                            if (tmp_k != k && cluster_sizes[tmp_k] > 0) {
+                                silhouette_b = std::min(silhouette_b, silhouette_b_tmp / cluster_sizes[tmp_k]);
+                            }
+                            tmp_start += cluster_sizes[tmp_k];
+                            tmp_k++;
+                            silhouette_b_tmp = 0;
+                            assert(tmp_k < K);
+                        }
+
+                        if (tmp_k == k) { silhouette_a += dispersion_matrix[i][j]; }
+                        else { silhouette_b_tmp += dispersion_matrix[i][j]; }
+                    }
+                    silhouette_a /= std::max(cluster_sizes[k] - 1, 1ul);
+                    silhouette_k += (std::max(silhouette_a, silhouette_b) != 0)
+                                    ? (silhouette_b - silhouette_a) / std::max(silhouette_a, silhouette_b)
+                                    : 0.;
+                }
+            }
+
+            mscd.push_back(mscd_k / std::max(cluster_sizes[k], 1ul));
+            silhouette.push_back(silhouette_k / std::max(cluster_sizes[k], 1ul));
+        }
+    }
+
+  public:
+
+    std::vector<double> mscd = {}; // mean of squared cluster distances; closer to 0 is better
+    std::vector<double> silhouette = {}; // closer to +1 is better
+//    std::vector<double> davies_bouldin = {}; // closer to 0 is better // TODO: implement
+//  std::vector<double> calinski_harabasz = {}; // TODO: decide whether to use (this metric isn't great because it is unbounded above)
+
+    match_scores(std::vector<Phi> const &topic_models, std::vector<std::vector<int>> const &lifting, DistanceMetric<double> const &metric) {
+        assert(topic_models.size() == lifting.size());
+
+        for (auto agent = 0ul; agent < topic_models.size(); ++agent) {
+            auto const &data = topic_models[agent].counts;
+            assert(data.size() == lifting[agent].size());
+            for (auto topic = 0ul; topic < data.size(); ++topic) {
+                auto const cluster = lifting[agent][topic];
+                auto const scale = topic_models[agent].topic_weights[topic];
+                if (cluster >= K) {
+                    K = cluster + 1;
+                    cluster_sizes.resize(K, 0);
+                    cluster_centers.resize(K, std::vector<double>(topic_models[agent].V, 0));
+                    cluster_scales.resize(K, 0.);
+                }
+
+                sorted_points.insert(clusterEnd(sorted_points, cluster), std::vector<double>{data[topic].begin(), data[topic].end()});
+                point_scales.insert(clusterEnd(point_scales, cluster), scale);
+
+                cluster_sizes[cluster]++;
+                std::transform(data[topic].begin(),
+                               data[topic].end(),
+                               cluster_centers[cluster].begin(),
+                               cluster_centers[cluster].begin(),
+                               std::plus<double>());
+                cluster_scales[cluster] += scale;
+            }
+        }
+
+        dispersion_matrix.resize(sorted_points.size(), std::vector<double>(sorted_points.size(), 0.0));
+        for (auto i = 0ul; i < sorted_points.size(); ++i) {
+            for (auto j = i; j < sorted_points.size(); ++j) {
+                dispersion_matrix[i][j] = metric(sorted_points[i], sorted_points[j], point_scales[i], point_scales[j]);
+                dispersion_matrix[j][i] = dispersion_matrix[i][j];
+            }
+        }
+
+        compute_scores(metric);
+    }
+};
+
 struct match_results {
   int num_unique = -1;
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
-  std::vector<double> matched_ssd = {};
 };
 
 /**
@@ -119,6 +231,11 @@ double jensen_shannon_div(std::vector<T> const &v, std::vector<T> const &w, doub
           + kl_div(std::vector<double>(w.begin(), w.end()), m, scale_w, norm_m)) / 2.;
 }
 
+template<typename T>
+double jensen_shannon_dist(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return std::sqrt(jensen_shannon_div(v, w, scale_v, scale_w));
+}
+
 /**
  * Computes the cosine similarity two vectors, v and w
  * @param v the first vector<float>
@@ -143,6 +260,11 @@ double cosine_similarity(std::vector<T> const &v, std::vector<T> const &w, doubl
 
     assert (v.size() == w.size());
     return dot_p / (norm_v * norm_w);
+}
+
+template<typename T>
+double angular_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return std::acos(cosine_similarity(v, w, scale_v, scale_w)) / M_PI;
 }
 
 /**
@@ -284,7 +406,6 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     }
 
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
-    results.matched_ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
         auto const &right = topic_models[i].counts;
@@ -301,7 +422,6 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
         }
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
-    results.matched_ssd = results.ssd; // identity matching
     return results;
 }
 
@@ -318,7 +438,6 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
         results.lifting[0].push_back(i);
     }
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
-    results.matched_ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
         auto const &right = topic_models[i].counts;
@@ -345,13 +464,12 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
         Munkres<double> m;
         m.solve(matrix);
 
-        results.matched_ssd.push_back(0);
         for (int row = 0; row < left_weights.size(); row++) {
             for (int col = 0; col < right_weights.size(); col++) {
                 assignment[row][col] = matrix(row, col);
-                if (matrix(row, col) == 0) results.matched_ssd.back() += pd_sq[row][col];
             }
         }
+
         ROS_INFO("SSD %f", results.ssd.back());
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
@@ -359,10 +477,7 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
 }
 
 match_results clear_matching(std::vector<Phi> const &topic_models,
-                             std::function<double(std::vector<int>,
-                                                  std::vector<int>,
-                                                  double,
-                                                  double)> const &similarity_metric = bhattacharyya_coeff<int>) {
+                             SimilarityMetric<int> const &similarity_metric = bhattacharyya_coeff<int>) {
     match_results results = {};
     if (topic_models.empty()) return results;
 

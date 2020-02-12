@@ -95,7 +95,8 @@ model_translator::model_translator(ros::NodeHandle *nh)
         csv_row<> header{};
         header.append("Total # of Topics");
         header.append("SSD");
-        header.append("Matched SSD");
+        header.append("Matched Mean-Square Cluster Distances");
+        header.append("Matched Silhouette Index");
         stats_writer->write_header(header);
     }
 
@@ -120,7 +121,9 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 csv_row<> row{};
                 row.append(correspondences.num_unique);
                 row.append(correspondences.ssd);
-                row.append(correspondences.matched_ssd);
+                match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
                 stats_writer->write_row(row);
                 stats_writer->flush();
             }
@@ -145,7 +148,9 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 csv_row<> row{};
                 row.append(correspondences.num_unique);
                 row.append(correspondences.ssd);
-                row.append(correspondences.matched_ssd);
+                match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
                 stats_writer->write_row(row);
                 stats_writer->flush();
             }
