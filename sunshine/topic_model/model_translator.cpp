@@ -47,10 +47,13 @@ static Phi fromTopicModel(TopicModel const &topic_model) {
     for (auto i = 0ul; i < topic_model.K; ++i) {
         out.counts
            .emplace_back(topic_model.phi.begin() + i * topic_model.V,
-                         (i < topic_model.K)
+                         (i + 1 < topic_model.K)
                          ? topic_model.phi.begin() + (i + 1) * topic_model.V
                          : topic_model.phi.end());
         assert(out.counts[i].size() == topic_model.V);
+    }
+    if (!out.validate()) {
+        ROS_ERROR("Validation failed for topic model! Problem was corrected.");
     }
     return out;
 }

@@ -24,6 +24,32 @@ struct Phi {
         , counts(std::move(counts))
         , topic_weights(std::move(topic_weights)) {
   }
+
+  bool validate() {
+      bool flag = true;
+      if (K != counts.size() || K != topic_weights.size()) {
+          ROS_WARN("Mismatch between K=%d, counts.size()=%lu, and topic_weights.size()=%lu", K, counts.size(), topic_weights.size());
+          flag = false;
+          K = counts.size();
+          topic_weights.resize(K, 0);
+      }
+      for (auto k = 0; k < K; ++k) {
+          assert(k == 0 || V == counts[k].size());
+          if (V != counts[k].size()) {
+              ROS_WARN("Mismatch between V=%d, counts[k].size()=%lu", K, counts[k].size());
+              flag = false;
+              V = counts[k].size();
+          }
+          int weight = 0;
+          for (auto w = 0; w < V; ++w) weight += counts[k][w];
+          if (weight != topic_weights[k]) {
+              ROS_WARN("Mismatch between computed topic weight %d and topic_weights[k]=%d", weight, topic_weights[k]);
+              flag = false;
+              topic_weights[k] = weight;
+          }
+      }
+      return flag;
+  }
 };
 
 struct match_results {
@@ -130,9 +156,12 @@ double bhattacharyya_coeff(std::vector<T> const &v, std::vector<T> const &w, dou
     else if (scale_v == 0 || scale_w == 0) { return 0.; }
 
     assert (v.size() == w.size());
+    double const rt_scale = std::sqrt(scale_v * scale_w);
     double sum = 0.0;
     for (auto i = 0ul; i < v.size(); ++i) {
-        sum += std::sqrt(static_cast<double>(v[i]) * w[i] / (scale_v * scale_w));
+        if (v[i] > 0 && w[i] > 0) {
+            sum += std::sqrt(static_cast<double>(v[i]) * w[i]) / rt_scale;
+        }
     }
     return sum;
 }
@@ -359,19 +388,22 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
             // convert pd_sq to a Matrix
             for (size_t fi = 0; fi < left_weights.size(); ++fi) {
                 for (size_t fj = 0; fj < right_weights.size(); ++fj) {
+                    assert(left[fi].size() == right[fj].size());
+                    assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
+                    assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
                     matrix(fi, fj) = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
                     double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
                         throw std::logic_error("Invalid entries in similarity matrix!");
                     } else if (matrix(fi, fj) < 0 || matrix(fi, fj) > 1) {
-                        if (std::abs(matrix(fi, fj)) <= tolerance) matrix(fi, fj) = 0.;
-                        else if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) matrix(fi, fj) = 1.;
+                        if (std::abs(matrix(fi, fj)) <= tolerance) { matrix(fi, fj) = 0.; }
+                        else if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
                         else {
                             throw std::logic_error("Invalid entries in similarity matrix!");
                         }
                     }
                     if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
-                        if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) matrix(fi, fj) = 1.;
+                        if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
                         else {
                             throw std::logic_error("Invalid entries in similarity matrix!");
                         }
@@ -391,9 +423,10 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
         i = j_offset;
     }
 
-    std::cout << "Pairwise permutation matrix:" << std::endl << P << std::endl;
+//    std::cout << "Pairwise permutation matrix:" << std::endl << P << std::endl;
     assert(P.isApprox((P + P.transpose()) / 2.)); // check symmetric
     assert(P.diagonal() == Eigen::MatrixXf::Identity(totalNumTopics, totalNumTopics).diagonal());
+    assert(P.allFinite());
 
     MultiwayMatcher clearMatcher;
     std::vector<uint32_t> numSmp;
