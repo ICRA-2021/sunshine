@@ -40,25 +40,101 @@ struct match_results {
  * @returns float - the squared eucl. distance between v and w
 **/
 template<typename T>
-double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double norm_v = 1., double norm_w = 1.) {
+double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
 
     assert (v.size() == w.size());
     double distance_sq = 0.0;
     double diff;
 
-    if (norm_v == 0 && norm_w == 0) { return 0.; }
-    else if (norm_v == 0 || norm_w == 0) { return 1.; }
-    else if (norm_v < 0 || norm_w < 0) throw std::invalid_argument("Negative norms passed to normed_dist_sq!");
+    if (scale_v == 0 && scale_w == 0) { return 0.; }
+    else if (scale_v == 0 || scale_w == 0) { return 1.; }
 
-    double const invnorm_v = 1. / norm_v, invnorm_w = 1. / norm_w;
+    double const invscale_v = 1. / scale_v, invscale_w = 1. / scale_w;
 
     for (auto i = 0ul; i < v.size(); ++i) {
         // diff = 10000.0f*v[i] - 10000.0f*w[i];
-        diff = (v[i] * invnorm_v) - (w[i] * invnorm_w);
+        diff = (v[i] * invscale_v) - (w[i] * invscale_w);
         distance_sq += (diff * diff);
     }
 
     return distance_sq;
+}
+
+template<typename T>
+double kl_div(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (scale_v == 0 && scale_w == 0) { return 0.; }
+    else if (scale_v == 0 || scale_w == 0) { return std::numeric_limits<double>::infinity(); }
+
+    assert (v.size() == w.size());
+    // TODO validate this code
+    return std::inner_product(v.begin(),
+                              v.end(),
+                              w.begin(),
+                              0,
+                              [](double const &sum, double const &prod) { return sum + prod; },
+                              [=](T const &left, T const &right) {
+                                  return (left / scale_v) * std::log2(static_cast<double>(left * scale_w) / (right * scale_v));
+                              });
+}
+
+template<typename T>
+double symmetric_kl_div(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return kl_div(v, w, scale_v, scale_w) + kl_div(w, v, scale_w, scale_v);
+}
+
+template<typename T>
+double jensen_shannon_div(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    assert (v.size() == w.size());
+    std::vector<double> m;
+    std::transform(v.begin(), v.end(), w.begin(), std::back_inserter(m), [](T const &left, T const &right) { return (left + right) / 2.; });
+    auto const norm_m = (scale_v + scale_w) / 2.;
+    // TODO validate this code
+    return (kl_div(std::vector<double>(v.begin(), v.end()), m, scale_v, norm_m)
+          + kl_div(std::vector<double>(w.begin(), w.end()), m, scale_w, norm_m)) / 2.;
+}
+
+/**
+ * Computes the cosine similarity two vectors, v and w
+ * @param v the first vector<float>
+ * @param w the second vector<float>
+**/
+template<typename T>
+double cosine_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (scale_v == 0 && scale_w == 0) { return 1.; }
+    else if (scale_v == 0 || scale_w == 0) { return 0.; }
+
+    auto const add_square = [](double const &sum, T const &next) { return sum + (static_cast<double>(next) * next); };
+    double const norm_v = std::sqrt(std::accumulate(v.begin(), v.end(), 0., add_square));
+    double const norm_w = std::sqrt(std::accumulate(w.begin(), w.end(), 0., add_square));
+    double const dot_p = std::inner_product(v.begin(),
+                                            v.end(),
+                                            w.begin(),
+                                            0.0,
+                                            [](double const &sum, double const &prod) { return sum + prod; },
+                                            [](T const &left, T const &right) {
+                                                return static_cast<double>(left) * right;
+                                            }); // coerce ints to doubles
+
+    assert (v.size() == w.size());
+    return dot_p / (norm_v * norm_w);
+}
+
+/**
+ * Computes the Bhattacharyya coefficient between two vectors, v and w
+ * @param v the first vector<float>
+ * @param w the second vector<float>
+**/
+template<typename T>
+double bhattacharyya_coeff(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (scale_v == 0 && scale_w == 0) { return 1.; }
+    else if (scale_v == 0 || scale_w == 0) { return 0.; }
+
+    assert (v.size() == w.size());
+    double sum = 0.0;
+    for (auto i = 0ul; i < v.size(); ++i) {
+        sum += std::sqrt(static_cast<double>(v[i]) * w[i] / (scale_v * scale_w));
+    }
+    return sum;
 }
 
 /**
@@ -253,7 +329,11 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     return results;
 }
 
-match_results clear_matching(std::vector<Phi> const &topic_models) {
+match_results clear_matching(std::vector<Phi> const &topic_models,
+                             std::function<double(std::vector<int>,
+                                                  std::vector<int>,
+                                                  double,
+                                                  double)> const &similarity_metric = bhattacharyya_coeff<int>) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
@@ -264,14 +344,12 @@ match_results clear_matching(std::vector<Phi> const &topic_models) {
     Eigen::MatrixXf P = Eigen::MatrixXf::Constant(totalNumTopics, totalNumTopics, 0);
 
     size_t i = 0, j_offset = 0;
-    for (auto left_idx = 0ul; left_idx < topic_models.size() - 1; ++left_idx) {
+    for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
         auto const &left = topic_models[left_idx].counts;
         auto const &left_weights = topic_models[left_idx].topic_weights;
 
-        j_offset += topic_models[left_idx].K;
         size_t j = j_offset;
-
-        for (auto right_idx = left_idx + 1; right_idx < topic_models.size(); ++right_idx) {
+        for (auto right_idx = left_idx; right_idx < topic_models.size(); ++right_idx) {
             auto const &right = topic_models[right_idx].counts;
             auto const &right_weights = topic_models[right_idx].topic_weights;
 
@@ -281,23 +359,45 @@ match_results clear_matching(std::vector<Phi> const &topic_models) {
             // convert pd_sq to a Matrix
             for (size_t fi = 0; fi < left_weights.size(); ++fi) {
                 for (size_t fj = 0; fj < right_weights.size(); ++fj) {
-                    matrix(fi, fj) = normed_dist_sq(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    matrix(fi, fj) = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    double const tolerance = 2e-3;
+                    if (!std::isfinite(matrix(fi, fj))) {
+                        throw std::logic_error("Invalid entries in similarity matrix!");
+                    } else if (matrix(fi, fj) < 0 || matrix(fi, fj) > 1) {
+                        if (std::abs(matrix(fi, fj)) <= tolerance) matrix(fi, fj) = 0.;
+                        else if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) matrix(fi, fj) = 1.;
+                        else {
+                            throw std::logic_error("Invalid entries in similarity matrix!");
+                        }
+                    }
+                    if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
+                        if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) matrix(fi, fj) = 1.;
+                        else {
+                            throw std::logic_error("Invalid entries in similarity matrix!");
+                        }
+                    }
+//                    assert(left_idx != right_idx || fi != fj || matrix(fi, fj) == 1.);
                     if (fi == fj) results.ssd.back() += matrix(fi, fj);
                 }
             }
 
+            assert(i + left_weights.size() <= P.cols());
+            assert(j + right_weights.size() <= P.rows());
             P.block(i, j, left_weights.size(), right_weights.size()) = matrix;
             P.block(j, i, right_weights.size(), left_weights.size()) = matrix.transpose();
             j += right_weights.size();
         }
+        j_offset += topic_models[left_idx].K;
         i = j_offset;
     }
 
+    std::cout << "Pairwise permutation matrix:" << std::endl << P << std::endl;
     assert(P.isApprox((P + P.transpose()) / 2.)); // check symmetric
+    assert(P.diagonal() == Eigen::MatrixXf::Identity(totalNumTopics, totalNumTopics).diagonal());
 
     MultiwayMatcher clearMatcher;
     std::vector<uint32_t> numSmp;
-    for (auto const& tm : topic_models) numSmp.push_back(tm.K);
+    for (auto const &tm : topic_models) numSmp.push_back(tm.K);
     clearMatcher.initialize(P, numSmp);
     clearMatcher.CLEAR();
 
@@ -305,7 +405,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models) {
     std::vector<int> assignments = clearMatcher.get_assignments();
     size_t agent_idx = 0, agent_topic_idx = 0;
     results.lifting.emplace_back();
-    for (auto const& assignment : assignments) {
+    for (auto const &assignment : assignments) {
         while (agent_topic_idx >= numSmp[agent_idx]) {
             agent_idx++;
             agent_topic_idx = 0;

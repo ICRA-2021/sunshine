@@ -31,7 +31,9 @@ static match_results match_topics(std::string const &method, std::vector<Phi> co
     } else if (method == "hungarian") {
         return sequential_hungarian_matching(topic_models);
     } else if (method == "clear") {
-        return clear_matching(topic_models);
+        return clear_matching(topic_models, bhattacharyya_coeff<int>);
+    } else if (method == "clear_cosine") {
+        return clear_matching(topic_models, cosine_similarity<int>);
     } else {
         ROS_ERROR("Unrecognized matching method: %s", method.c_str());
         throw std::logic_error(method + " is not recognized.");
