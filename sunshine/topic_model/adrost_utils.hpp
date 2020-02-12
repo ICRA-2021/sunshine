@@ -409,7 +409,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                         }
                     }
 //                    assert(left_idx != right_idx || fi != fj || matrix(fi, fj) == 1.);
-                    if (fi == fj) results.ssd.back() += matrix(fi, fj);
+                    if (fi == fj) results.ssd.back() += normed_dist_sq(left[fi], right[fj], left_weights[fi], right_weights[fj]);
                 }
             }
 
