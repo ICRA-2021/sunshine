@@ -279,6 +279,8 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
     nh->param<std::string>("words_topic", words_topic_name, "/word_extractor/words");
     nh->param<std::string>("map_ppx", map_ppx_type, NO_PPX);
     nh->param<float>("map_publish_period", map_publish_period, -1);
+    nh->param<float>("save_topics_period", save_topics_period, -1);
+    nh->param<std::string>("save_topics_path", save_topics_path, "");
     if (std::find(VALID_MAP_PPX_TYPES.cbegin(), VALID_MAP_PPX_TYPES.cend(), map_ppx_type) == VALID_MAP_PPX_TYPES.cend()) {
         throw std::invalid_argument("Invalid map perplexity type: " + map_ppx_type);
     }
@@ -346,6 +348,26 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
             map_pub.publish(*generate_topic_map(last_time));
         });
     }
+
+    if (save_topics_period > 0) {
+        save_topics_timer = nh->createTimer(ros::Duration(save_topics_period), [this](ros::TimerEvent const &) {
+            GetTopicModel serviceObj{};
+            auto const success = _get_topic_model(this, {}, ros::this_node::getName(), serviceObj.request, serviceObj.response);
+            if (success) {
+                std::string filename = save_topics_path + "/" + std::to_string(ros::Time::now().sec) + "_"
+                      + std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6)) + "_" + ros::this_node::getName() + ".bin";
+                std::fstream writer(filename, std::ios::out | std::ios::binary);
+                if (writer.good()) {
+                    writer.write(reinterpret_cast<char *>(serviceObj.response.topic_model.phi.data()),
+                                 sizeof(decltype(serviceObj.response.topic_model.phi)::value_type) / sizeof(char)
+                                       * serviceObj.response.topic_model.phi.size());
+                    writer.close();
+                } else {
+                    ROS_WARN("Failed to save topic model to file %s", filename.c_str());
+                }
+            }
+        });
+    }
 }
 
 topic_model_node::~topic_model_node() {
@@ -358,6 +380,7 @@ topic_model_node::~topic_model_node() {
 }
 
 std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_time() const {
+    auto rostReadToken = rost->get_read_token();
     auto const poses_by_time = rost->get_poses_by_time();
     std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
     for (auto const &entry : poses_by_time) {
@@ -373,6 +396,7 @@ std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_t
 }
 
 std::map<cell_pose_t, std::vector<int>> topic_model_node::get_topics_by_cell() const {
+    auto rostReadToken = rost->get_read_token();
     auto const &poses = rost->cell_pose;
     std::map<cell_pose_t, std::vector<int>> topics_by_cell;
     for (auto const &pose : poses) {
@@ -488,13 +512,14 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
     auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - time_start).count();
     if (total_duration > this->min_obs_refine_time) {
-        ROS_WARN("Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
-                 total_duration,
-                 duration_words_lock,
-                 duration_write_lock,
-                 duration_broadcast,
-                 duration_add_observations,
-                 min_obs_refine_time);
+        ROS_WARN(
+              "Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
+              total_duration,
+              duration_words_lock,
+              duration_write_lock,
+              duration_broadcast,
+              duration_add_observations,
+              min_obs_refine_time);
     } else {
         ROS_INFO("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
                  total_duration,
@@ -508,6 +533,7 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
 }
 
 TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
+    auto rostReadToken = rost->get_read_token();
     TopicMap::Ptr topic_map(new TopicMap);
     topic_map->seq = static_cast<uint32_t>(obs_time);
     topic_map->vocabulary_begin = 0;
@@ -524,7 +550,6 @@ TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
     auto const BATCH_SIZE = 500ul;
     auto i = 0ul;
     while (i < poses.size()) {
-        auto rostReadToken = rost->get_read_token();
         auto const BATCH_END = std::min(i + BATCH_SIZE, poses.size());
         for (; i < BATCH_END; ++i) {
             auto const &cell_pose = poses[i];

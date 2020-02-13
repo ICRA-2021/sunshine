@@ -46,8 +46,9 @@ class topic_model_node {
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model, publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
-    float map_publish_period;
-    ros::Timer map_publish_timer;
+    float map_publish_period, save_topics_period;
+    ros::Timer map_publish_timer, save_topics_timer;
+    std::string save_topics_path;
     std::string map_ppx_type;
     size_t last_refine_count;
     std::unique_ptr<ROST_t> rost;
