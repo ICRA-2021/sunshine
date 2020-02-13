@@ -568,11 +568,9 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
     assert(P.diagonal() == Eigen::MatrixXf::Identity(totalNumTopics, totalNumTopics).diagonal());
     assert(P.allFinite());
 
-#ifndef NDEGUG
-    std::cout << "Pairwise similarity matrix:" << std::endl;
-    Eigen::IOFormat CleanFmt(3, 0, ",", "\n", "[", "]");
-    std::cout << P.format(CleanFmt) << std::endl;
-#endif
+//    std::cout << "Pairwise similarity matrix:" << std::endl;
+//    Eigen::IOFormat CleanFmt(3, 0, ",", "\n", "[", "]");
+//    std::cout << P.format(CleanFmt) << std::endl;
 
     MultiwayMatcher clearMatcher(enforce_distinctness);
     std::vector<uint32_t> numSmp;
