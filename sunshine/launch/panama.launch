@@ -91,6 +91,8 @@
        Warns when starts using the queue, starts dropping when queue is full.-->
   <arg name="word_obs_queue_size" default="1" />
   <arg name="publish_topics" default="false" />
+  <arg name="save_topics_period" default="-1" />
+  <arg name="save_topics_path" default="" />
 
   <!-- Visualization arguments -->
   <arg name="2d_words_topic" default="/$(arg basename)_vision/words_2d" />
@@ -144,6 +146,8 @@
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
     <param name="map_publish_period" type="double" value="-1" />
     <param name="publish_topics" type="bool" value="$(arg publish_topics)" />
+    <param name="save_topics_period" type="double" value="$(arg save_topics_period)" />
+    <param name="save_topics_path" type="string" value="$(arg save_topics_path)" />
   </node>
 
   <node pkg="sunshine" type="visualize" name="$(arg basename)_visualize2d" if="$(arg visualize)" >
