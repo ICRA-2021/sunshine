@@ -30,10 +30,14 @@ static match_results match_topics(std::string const &method, std::vector<Phi> co
         return id_matching(topic_models);
     } else if (method == "hungarian") {
         return sequential_hungarian_matching(topic_models);
+    } else if (method == "hungarian-js") {
+        return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
     } else if (method == "clear") {
         return clear_matching(topic_models, bhattacharyya_coeff<int>);
-    } else if (method == "clear_cosine") {
+    } else if (method == "clear-cosine") {
         return clear_matching(topic_models, cosine_similarity<int>);
+    } else if (method == "clear-js") {
+        return clear_matching(topic_models, jensen_shannon_similarity<int>);
     } else {
         ROS_ERROR("Unrecognized matching method: %s", method.c_str());
         throw std::logic_error(method + " is not recognized.");
@@ -95,7 +99,8 @@ model_translator::model_translator(ros::NodeHandle *nh)
         csv_row<> header{};
         header.append("Total # of Topics");
         header.append("SSD");
-        header.append("Matched Mean-Square Cluster Distances");
+        header.append("Cluster Size");
+        header.append("Matched Mean-Square Cluster Distance");
         header.append("Matched Silhouette Index");
         stats_writer->write_header(header);
     }
@@ -122,6 +127,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 row.append(correspondences.num_unique);
                 row.append(correspondences.ssd);
                 match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
+                row.append(scores.cluster_sizes);
                 row.append(scores.mscd);
                 row.append(scores.silhouette);
                 stats_writer->write_row(row);
@@ -148,7 +154,8 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 csv_row<> row{};
                 row.append(correspondences.num_unique);
                 row.append(correspondences.ssd);
-                match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
+                match_scores const scores(topic_models, correspondences.lifting, jensen_shannon_dist<double>);
+                row.append(scores.cluster_sizes);
                 row.append(scores.mscd);
                 row.append(scores.silhouette);
                 stats_writer->write_row(row);
