@@ -159,7 +159,7 @@ struct match_scores {
                                     ? (silhouette_b - silhouette_a) / std::max(silhouette_a, silhouette_b)
                                     : 0.;
                 }
-            } else { silhouette_k = 1.0; }
+            } else { silhouette_k = 0.0; }
 
             mscd.push_back(mscd_k / std::max(cluster_sizes[k], 1ul));
             silhouette.push_back(silhouette_k / std::max(cluster_sizes[k], 1ul));
