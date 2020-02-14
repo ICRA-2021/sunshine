@@ -15,7 +15,8 @@ for run in 1 2 3; do
     for method in "clear" "clear-js" "hungarian" "hungarian-js"; do
       runid="stats-T$period-$method-run$run"
       mkdir "$runid"
-      cmd="$start_dir/adrost_mission_combined.sh _match_method:=$method _match_period:=$(echo "scale=3; $period / 2.0" | bc -l) _stats_path:=$PWD/$runid.csv _save_model_path:=$PWD/$runid/"
+      mkdir "$runid-matched"
+      cmd="$start_dir/adrost_mission_combined.sh save_topics_period:=$(echo "scale=3; $period / 2.0" | bc -l) save_topics_path:=$PWD/$runid _match_method:=$method _match_period:=$(echo "scale=3; $period / 2.0" | bc -l) _stats_path:=$PWD/$runid.csv _save_model_path:=$PWD/$runid-matched"
       echo $cmd >>adrost.cmd
       $cmd && sleep 1800 || (
         tmux kill-server
