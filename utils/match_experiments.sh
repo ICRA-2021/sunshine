@@ -9,16 +9,27 @@ pushd adrost || exit 1
 workdir=stats_joint
 if [ ! -d $workdir ]; then mkdir $workdir; fi
 pushd $workdir || exit 1
-echo "" >adrost.cmd
+echo "" > adrost.cmd
 for run in 1 2 3; do
   for period in 1 20 40 60 80 100 250; do
     for method in "clear" "clear-js" "hungarian" "hungarian-js"; do
       runid="stats-T$period-$method-run$run"
       mkdir "$runid"
       mkdir "$runid-matched"
-      cmd="$start_dir/adrost_mission_combined.sh save_topics_period:=$(echo "scale=3; $period / 2.0" | bc -l) save_topics_path:=$PWD/$runid _match_method:=$method _match_period:=$(echo "scale=3; $period / 2.0" | bc -l) _stats_path:=$PWD/$runid.csv _save_model_path:=$PWD/$runid-matched"
-      echo $cmd >>adrost.cmd
-      $cmd && sleep 1800 || (
+      tm_args="save_topics_period:=$(echo "scale=3; $period / 2.0" | bc -l) save_topics_path:=$PWD/$runid"
+      match_args="_match_method:=$method _match_period:=$(echo "scale=3; $period / 2.0" | bc -l) _stats_path:=$PWD/$runid.csv _save_model_path:=$PWD/$runid-matched"
+      cmd=("export tm_args=\"$tm_args\"")
+      echo "${cmd[@]}" >>adrost.cmd
+      cmd="${cmd[*]}"
+      export tm_args="$tm_args" || exit 1
+      cmd=("export match_args=\"$match_args\"")
+      echo "${cmd[@]}" >>adrost.cmd
+      cmd="${cmd[*]}"
+      export match_args="$match_args" || exit 1
+      cmd=("$start_dir/adrost_mission_combined.sh")
+      echo "${cmd[@]}" >>adrost.cmd
+      cmd="${cmd[*]}"
+      $start_dir/adrost_mission_combined.sh && sleep 1800 || (
         tmux kill-server
         exit 1
       )
