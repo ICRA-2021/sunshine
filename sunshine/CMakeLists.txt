@@ -168,6 +168,7 @@ add_executable(perplexity_viz visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher test/image_publisher.cpp)
 add_executable(test.image_walker test/image_walk.cpp)
 add_executable(test.sunshine_eval test/sunshine_eval.cpp)
+add_executable(test.topic_match test/topic_match.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
@@ -228,6 +229,9 @@ target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(test.topic_match PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
 
 #############
 ## Install ##

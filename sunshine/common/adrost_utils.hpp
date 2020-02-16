@@ -6,6 +6,10 @@
 #include <clear/MultiwayMatcher.hpp>
 #include <Eigen/Core>
 #include <numeric>
+#include <ostream>
+#include <istream>
+#include <utility>
+#include <ros/console.h> // TODO remove? only needed for logging
 // #include "adapters/boostmatrixadapter.h"
 
 template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
@@ -28,10 +32,11 @@ struct Phi {
         , topic_weights(std::move(topic_weights)) {
   }
 
-  bool validate() {
+  bool validate(bool verbose = true) {
       bool flag = true;
       if (K != counts.size() || K != topic_weights.size()) {
-          ROS_WARN("Mismatch between K=%d, counts.size()=%lu, and topic_weights.size()=%lu", K, counts.size(), topic_weights.size());
+          if (verbose)
+              ROS_WARN("Mismatch between K=%d, counts.size()=%lu, and topic_weights.size()=%lu", K, counts.size(), topic_weights.size());
           flag = false;
           K = counts.size();
           topic_weights.resize(K, 0);
@@ -39,19 +44,56 @@ struct Phi {
       for (auto k = 0; k < K; ++k) {
           assert(k == 0 || V == counts[k].size());
           if (V != counts[k].size()) {
-              ROS_WARN("Mismatch between V=%d, counts[k].size()=%lu", K, counts[k].size());
+              if (verbose) ROS_WARN("Mismatch between V=%d, counts[k].size()=%lu", K, counts[k].size());
               flag = false;
               V = counts[k].size();
           }
           int weight = 0;
           for (auto w = 0; w < V; ++w) weight += counts[k][w];
           if (weight != topic_weights[k]) {
-              ROS_WARN("Mismatch between computed topic weight %d and topic_weights[k]=%d", weight, topic_weights[k]);
+              if (verbose) ROS_WARN("Mismatch between computed topic weight %d and topic_weights[k]=%d", weight, topic_weights[k]);
               flag = false;
               topic_weights[k] = weight;
           }
       }
       return flag;
+  }
+
+  void serialize(std::ostream &out) {
+      if (!out.good()) throw std::logic_error("Output stream in invalid state");
+      validate();
+      constexpr int VERSION = INT_MIN + 1; // increment added constant whenever serialization format changes
+      static_assert(VERSION < 0, "Version number must be negative!");
+      out.write(reinterpret_cast<char const *>(&VERSION), sizeof(VERSION) / sizeof(char));
+      out.write(reinterpret_cast<char *>(&K), sizeof(K) / sizeof(char));
+      out.write(reinterpret_cast<char *>(&V), sizeof(V) / sizeof(char));
+      out.write(reinterpret_cast<char const *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) / sizeof(char) * K);
+      for (auto word_dist : counts) {
+          out.write(reinterpret_cast<char const *>(word_dist.data()), sizeof(decltype(word_dist)::value_type) / sizeof(char) * V);
+      }
+  }
+
+  explicit Phi(std::istream &in) {
+      if (!in.good()) throw std::logic_error("Input stream in invalid state");
+      throw std::logic_error("Not yet implemented");
+  }
+
+  explicit Phi(std::istream &in, std::string id, int const& vocab_size)
+        : id(std::move(id))
+        , K(0)
+        , V(vocab_size) {
+      if (!in.good()) throw std::logic_error("Input stream in invalid state");
+      std::vector<int> row(V, 0);
+      while (!in.eof()) {
+          in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) / sizeof(char) * V);
+          if (in.gcount() == 0) break;
+          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size of corrupt data");
+
+          K += 1;
+          topic_weights.push_back(std::accumulate(row.begin(), row.end(), 0));
+          counts.push_back(row);
+      }
+      assert(validate(false));
   }
 };
 
@@ -64,7 +106,9 @@ struct match_scores {
 //    std::vector<double> davies_bouldin = {}; // closer to 0 is better // TODO: implement
 //    std::vector<double> calinski_harabasz = {}; // TODO: decide whether to use (this metric isn't great because it is unbounded above)
 
-    match_scores(std::vector<Phi> const &topic_models, std::vector<std::vector<int>> const &lifting, DistanceMetric<double> const &metric) {
+    match_scores(std::vector<Phi> const &topic_models,
+                 std::vector<std::vector<int>> const &lifting,
+                 DistanceMetric<double> const &metric = nullptr) {
         assert(topic_models.size() == lifting.size());
 
         for (auto agent = 0ul; agent < topic_models.size(); ++agent) {
@@ -93,6 +137,16 @@ struct match_scores {
             }
         }
 
+        if (metric != nullptr) compute_scores(metric);
+    }
+
+    void compute_scores(DistanceMetric<double> const &metric) {
+        std::vector<std::vector<double>> dispersion_matrix = {}; // group dispersion matrix (NxN)
+        this->mscd.resize(0);
+        this->mscd.reserve(K);
+        this->silhouette.resize(0);
+        this->silhouette.reserve(K);
+
         dispersion_matrix.resize(sorted_points.size(), std::vector<double>(sorted_points.size(), 0.0));
         for (auto i = 0ul; i < sorted_points.size(); ++i) {
             for (auto j = i; j < sorted_points.size(); ++j) {
@@ -101,28 +155,6 @@ struct match_scores {
             }
         }
 
-        compute_scores(metric);
-    }
-
-  private:
-    std::vector<std::vector<double>> sorted_points = {}; // coordinates of points, sorted by clusters (NxV)
-    std::vector<double> point_scales = {}; // scales of points (i.e. sum of elements in each point)
-    std::vector<std::vector<double>> dispersion_matrix = {}; // group dispersion matrix (NxN)
-    std::vector<std::vector<double>> cluster_centers = {}; // coordinates of cluster centers (KxV)
-    std::vector<double> cluster_scales = {}; // scales of cluster centers (i.e. sum of elements in each cluster center)
-
-    template<typename T>
-    typename T::const_iterator clusterEnd(T const &t, int cluster) {
-        assert(cluster < K);
-        auto iter = t.cbegin();
-        for (size_t idx = 0; idx <= cluster; ++idx) {
-            assert(cluster_sizes[idx] <= std::distance(iter, t.cend()));
-            iter += cluster_sizes[idx];
-        }
-        return iter;
-    }
-
-    void compute_scores(DistanceMetric<double> const &metric) {
         size_t cluster_start = 0, cluster_end = 0;
         for (auto k = 0; k < K; k++, cluster_start = cluster_end) {
             cluster_end += cluster_sizes[k];
@@ -164,6 +196,23 @@ struct match_scores {
             mscd.push_back(mscd_k / std::max(cluster_sizes[k], 1ul));
             silhouette.push_back(silhouette_k / std::max(cluster_sizes[k], 1ul));
         }
+    }
+
+  private:
+    std::vector<std::vector<double>> sorted_points = {}; // coordinates of points, sorted by clusters (NxV)
+    std::vector<double> point_scales = {}; // scales of points (i.e. sum of elements in each point)
+    std::vector<std::vector<double>> cluster_centers = {}; // coordinates of cluster centers (KxV)
+    std::vector<double> cluster_scales = {}; // scales of cluster centers (i.e. sum of elements in each cluster center)
+
+    template<typename T>
+    typename T::const_iterator clusterEnd(T const &t, int cluster) {
+        assert(cluster < K);
+        auto iter = t.cbegin();
+        for (size_t idx = 0; idx <= cluster; ++idx) {
+            assert(cluster_sizes[idx] <= std::distance(iter, t.cend()));
+            iter += cluster_sizes[idx];
+        }
+        return iter;
     }
 };
 
@@ -604,105 +653,22 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
     return results;
 }
 
-struct nZWwithPerm {
-  std::vector<std::vector<int>> nZW_global;
-  std::vector<int> perm;
-};
-
-[[deprecated]] nZWwithPerm merge_by_similarity(std::vector<std::vector<int>> nZW_1,
-                                               std::vector<int> weightZ_1,
-                                               std::vector<std::vector<int>> nZW_2,
-                                               std::vector<int> weightZ_2,
-                                               std::vector<std::vector<int>> nZW_global,
-                                               int K,
-                                               int V) {
-    // Struct to hold result
-    nZWwithPerm nZW_global_with_perm;
-
-    Matrix<double> matrix(K, K);
-
-    std::vector<std::vector<double>> pd_sq;
-    std::vector<std::vector<int>> assignment(K, std::vector<int>(K, -1));
-    std::vector<std::vector<int>> permuted_nZW_delta_2;
-    std::vector<int> perm;
-
-    std::vector<std::vector<int>> prev(nZW_global);
-
-    std::vector<std::vector<int>> nZW_delta_2(K, std::vector<int>(V, 0));
-
-    pd_sq = compute_all_pairs<int, int>(nZW_1, nZW_2, weightZ_1, weightZ_2, normed_dist_sq<int>);
-
-    // convert pd_sq to a Matrix
-    for (int fi = 0; fi < K; ++fi) {
-        for (int fj = 0; fj < K; ++fj) {
-            matrix(fi, fj) = pd_sq[fi][fj];
-            // std::cout << pd_sq[fi][fj] << " ";
-        }
-        // std::cout << std::endl;
+match_results match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
+    if (method == "id") {
+        return id_matching(topic_models);
+    } else if (method == "hungarian") {
+        return sequential_hungarian_matching(topic_models);
+    } else if (method == "hungarian-js") {
+        return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
+    } else if (method == "clear") {
+        return clear_matching(topic_models, bhattacharyya_coeff<int>);
+    } else if (method == "clear-cosine") {
+        return clear_matching(topic_models, cosine_similarity<int>);
+    } else if (method == "clear-js") {
+        return clear_matching(topic_models, jensen_shannon_similarity<int>);
+    } else {
+        throw std::logic_error(method + " is not recognized.");
     }
-
-    // find optimal permutation of second topic model
-    // Display begin matrix state.
-    // for ( int row = 0 ; row < K ; row++ ) {
-    // 	for ( int col = 0 ; col < K ; col++ ) {
-    // 		std::cout.width(2);
-    // 		std::cout << matrix(row,col) << ",";
-    // 	}
-    // 	std::cout << std::endl;
-    // }
-    // std::cout << std::endl;
-
-    // Apply Munkres algorithm to matrix.
-    Munkres<double> m;
-    m.solve(matrix);
-
-    // Display solved matrix.
-    // for ( int row = 0 ; row < K ; row++ ) {
-    // 	for ( int col = 0 ; col < K ; col++ ) {
-    // 		std::cout.width(2);
-    // 		std::cout << matrix(row,col) << ",";
-    // 	}
-    // 	std::cout << std::endl;
-    // }
-
-    // std::cout << std::endl;
-
-    for (int row = 0; row < K; row++) {
-        for (int col = 0; col < K; col++) {
-            assignment[row][col] = matrix(row, col);
-        }
-    }
-
-    // Hungarian hungarian(pd_sq, K, K, HUNGARIAN_MODE_MINIMIZE_COST);
-    // hungarian.print_cost();
-    // hungarian.solve();
-    // assignment = hungarian.assignment();
-    // hungarian.print_assignment();
-    perm = get_permutation(assignment);
-
-    // We only want to permute the model differences
-    for (int k = 0; k < K; ++k) {
-        for (int v = 0; v < V; ++v) {
-            nZW_delta_2[k][v] = nZW_2[k][v] - prev[k][v];
-            if (nZW_delta_2[k][v] < 0) nZW_delta_2[k][v] = 0;
-        }
-    }
-    permuted_nZW_delta_2 = permute(nZW_delta_2, perm);
-
-    for (int k = 0; k < K; ++k) {
-        for (int v = 0; v < V; ++v) {
-            //for (int r = 0; r < N_robots; ++r) {
-            int temp_delta = (nZW_1[k][v] - prev[k][v]);
-            if (temp_delta < 0) temp_delta = 0;
-            nZW_global[k][v] = nZW_global[k][v] + temp_delta;
-            nZW_global[k][v] = nZW_global[k][v] + permuted_nZW_delta_2[k][v];
-            //}
-        }
-    }
-
-    nZW_global_with_perm.nZW_global = nZW_global;
-    nZW_global_with_perm.perm = perm;
-    return nZW_global_with_perm;
 }
 
 #endif //SUNSHINE_PROJECT_ADROST_UTILS_HPP

@@ -9,6 +9,9 @@
 #include <type_traits>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <vector>
+#include <cassert>
 #include <exception>
 
 template<char delimiter = ',', char str_delimiter = '"'>
@@ -67,7 +70,7 @@ class csv_row {
         return data;
     }
 
-    void append(std::string const& value) {
+    void append(std::string const &value) {
         if (get_next_delimiter<str_delimiter>(value, 0) != value.size()) throw std::invalid_argument("String contains unexpected escapes");
         data += ((data.empty())
                  ? escape(value)
@@ -75,27 +78,30 @@ class csv_row {
         delimiters.push_back(data.size());
     }
 
-    void append(const char* const& value) {
+    void append(const char *const &value) {
         append(std::string(value));
     }
 
-    void append(char const& value) {
+    void append(char const &value) {
         if (check_delim<str_delimiter>(value)) throw std::invalid_argument("String contains unexpected escapes");
         if (check_delim<delimiter>(value)) {
             data += ((data.empty())
                      ? escape(std::string(1, value))
                      : (delimiter + escape(std::string(1, value))));
+        } else {
+            data += (data.empty())
+                    ? std::string(1, value)
+                    : (delimiter + std::string(1, value));
         }
-        else { data += (data.empty()) ? std::string(1, value) : (delimiter + std::string(1, value)); }
         delimiters.push_back(data.size());
     }
 
-    template <typename T>
-    void append(std::vector<T> const& values) {
+    template<typename T>
+    void append(std::vector<T> const &values) {
         std::stringstream ss;
         ss << "[ ";
         size_t i = 0;
-        for (auto const& value : values) {
+        for (auto const &value : values) {
             if (i++ > 0) ss << ", ";
             ss << value;
         }
@@ -104,35 +110,45 @@ class csv_row {
     }
 
     template<typename T, std::enable_if_t<std::is_scalar<T>::value, int> = 0>
-    void append(T const& value) {
-        data += (data.empty()) ? std::to_string(value) : (delimiter + std::to_string(value));
+    void append(T const &value) {
+        data += (data.empty())
+                ? std::to_string(value)
+                : (delimiter + std::to_string(value));
         delimiters.push_back(data.size());
     }
 };
 
 template<char delimiter = ',', char str_delimiter = '"'>
 class csv_writer {
-    std::string const path;
-    std::ofstream out;
+    std::ostream *out;
+    bool _constructed = false;
     bool _has_header = false;
 
   public:
+    typedef csv_row<delimiter, str_delimiter> Row;
+
     explicit csv_writer(const std::string &path)
-          : path(path)
-          , out(path) {
-        if (!out.good()) throw std::invalid_argument("Failed to open " + path + " for writing.");
+          : out(new std::ofstream(path))
+          , _constructed(true) {
+        if (!out->good()) throw std::invalid_argument("Failed to open " + path + " for writing.");
     }
 
-    void write_row(csv_row<delimiter, str_delimiter> const& row) {
-        out << row.str() << '\n';
+    explicit csv_writer(std::ostream *out)
+          : out(out)
+          , _constructed(false) {
+        if (!out->good()) throw std::invalid_argument("Cannot write to bad stream.");
+    }
+
+    void write_row(csv_row<delimiter, str_delimiter> const &row) {
+        (*out) << row.str() << '\n';
     }
 
     void write_row(std::string const &row) {
-        out << row << '\n';
+        (*out) << row << '\n';
     }
 
-    template <typename T>
-    void write_header(T const& header) {
+    template<typename T>
+    void write_header(T const &header) {
         _has_header = true;
         write_row(header);
     }
@@ -142,15 +158,14 @@ class csv_writer {
     }
 
     void flush() {
-        out.flush();
-    }
-
-    void close() {
-        out.close();
+        out->flush();
     }
 
     ~csv_writer() {
-        close();
+        if (_constructed) {
+            auto *ofstream_ptr = dynamic_cast<std::ofstream *>(out);
+            ofstream_ptr->close();
+        }
     }
 };
 

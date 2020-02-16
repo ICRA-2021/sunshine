@@ -25,25 +25,6 @@ int main(int argc, char **argv) {
     spinner.spin();
 }
 
-static match_results match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
-    if (method == "id") {
-        return id_matching(topic_models);
-    } else if (method == "hungarian") {
-        return sequential_hungarian_matching(topic_models);
-    } else if (method == "hungarian-js") {
-        return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
-    } else if (method == "clear") {
-        return clear_matching(topic_models, bhattacharyya_coeff<int>);
-    } else if (method == "clear-cosine") {
-        return clear_matching(topic_models, cosine_similarity<int>);
-    } else if (method == "clear-js") {
-        return clear_matching(topic_models, jensen_shannon_similarity<int>);
-    } else {
-        ROS_ERROR("Unrecognized matching method: %s", method.c_str());
-        throw std::logic_error(method + " is not recognized.");
-    }
-}
-
 static Phi fromTopicModel(TopicModel const &topic_model) {
     Phi out(topic_model.identifier, topic_model.K, topic_model.V, {}, topic_model.topic_weights);
     assert(*std::min_element(topic_model.topic_weights.cbegin(), topic_model.topic_weights.cend()) >= 0);
