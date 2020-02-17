@@ -22,11 +22,22 @@
 #include "csv.hpp"
 #include "adrost_utils.hpp"
 
+std::vector<std::string> split_algs(const std::string &arg) {
+    std::vector<std::string> algs;
+    size_t next, idx = 0;
+    do {
+        next = arg.find(',', idx);
+        algs.push_back(arg.substr(idx, next - idx));
+        idx = next + 1;
+    } while (next != std::string::npos);
+    return algs;
+}
+
 int main(int argc, char **argv) {
     if (argc != 4) throw std::invalid_argument("Usage: [TOPIC_BIN_DIR] [VOCAB_SIZE] [MATCHING_ALGORITHM]");
     std::string const in_dir(argv[1]);
     int const V = std::stoi(argv[2]);
-    std::string const match_alg(argv[3]);
+    auto const match_algs = split_algs(argv[3]);
 
     using namespace boost::filesystem;
     if (!is_directory(in_dir)) throw std::invalid_argument(in_dir + " is not a valid directory!");
@@ -38,6 +49,7 @@ int main(int argc, char **argv) {
     header.append("Total # of Topics");
     header.append("Cluster Size");
     header.append("Initial SSD");
+    header.append("Match Method");
     header.append("SSD Euclidean");
     header.append("SI Euclidean");
     header.append("SSD JS");
@@ -58,7 +70,6 @@ int main(int argc, char **argv) {
         std::cerr << "Processing " << topic_bin.string() << std::endl;
 
         auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
-        std::cerr << stem << std::endl;
         auto const ms_idx = stem.find('_');
         auto const name_idx = (ms_idx != std::string::npos)
                               ? stem.find('_', ms_idx + 1)
@@ -67,7 +78,6 @@ int main(int argc, char **argv) {
             std::cerr << "Failed to process due to invalid filename format" << std::endl;
             continue;
         }
-        std::cerr << ms_idx << " " << name_idx << std::endl;
         assert(name_idx > ms_idx && name_idx <= ms_idx + 4);
         long const timestamp = std::stol(stem.substr(0, ms_idx)) * 1000 + std::stol(stem.substr(ms_idx + 1, name_idx));
         std::string const name = std::string(stem.substr(name_idx + 1));
@@ -85,34 +95,38 @@ int main(int argc, char **argv) {
         std::vector<Phi> topic_models;
         topic_models.reserve(model_map.size());
         for (auto const &entry : model_map) topic_models.push_back(entry.second);
-        auto const results = match_topics(match_alg, topic_models);
-        match_scores scores(topic_models, results.lifting);
-        assert(scores.K == results.num_unique);
 
-        csv_writer<>::Row row{};
-        row.append(timestamp);
-        row.append(topic_models.size());
-        row.append(results.num_unique);
-        row.append(scores.cluster_sizes);
-        row.append(results.ssd);
+        for (auto const &match_alg : match_algs) {
+            auto const results = match_topics(match_alg, topic_models);
+            match_scores scores(topic_models, results.lifting);
+            assert(scores.K == results.num_unique);
 
-        scores.compute_scores(normed_dist_sq<double>);
-        row.append(scores.mscd);
-        row.append(scores.silhouette);
+            csv_writer<>::Row row{};
+            row.append(timestamp);
+            row.append(topic_models.size());
+            row.append(results.num_unique);
+            row.append(scores.cluster_sizes);
+            row.append(results.ssd);
+            row.append(match_alg);
 
-        scores.compute_scores(jensen_shannon_dist<double>);
-        row.append(scores.mscd);
-        row.append(scores.silhouette);
+            scores.compute_scores(normed_dist_sq<double>);
+            row.append(scores.mscd);
+            row.append(scores.silhouette);
 
-        scores.compute_scores(angular_distance<double>);
-        row.append(scores.mscd);
-        row.append(scores.silhouette);
+            scores.compute_scores(jensen_shannon_dist<double>);
+            row.append(scores.mscd);
+            row.append(scores.silhouette);
 
-        scores.compute_scores(hellinger_dist<double>);
-        row.append(scores.mscd);
-        row.append(scores.silhouette);
+            scores.compute_scores(angular_distance<double>);
+            row.append(scores.mscd);
+            row.append(scores.silhouette);
 
-        writer.write_row(row);
+            scores.compute_scores(hellinger_dist<double>);
+            row.append(scores.mscd);
+            row.append(scores.silhouette);
+
+            writer.write_row(row);
+        }
         writer.flush();
     }
 

@@ -78,7 +78,7 @@ struct Phi {
       throw std::logic_error("Not yet implemented");
   }
 
-  explicit Phi(std::istream &in, std::string id, int const& vocab_size)
+  explicit Phi(std::istream &in, std::string id, int const &vocab_size)
         : id(std::move(id))
         , K(0)
         , V(vocab_size) {
@@ -222,6 +222,13 @@ struct match_results {
   std::vector<double> ssd = {};
 };
 
+double unit_round(double value, double epsilon = 2e-3) {
+    if (value >= 0 && value <= 1) return value;
+    if (std::abs(value) <= epsilon) return 0;
+    if (std::abs(value - 1) <= epsilon) return 1;
+    throw std::logic_error("Value is not within [0,1]");
+}
+
 /**
  * Computes the squared euclidean distance between two vectors, v and w
  * @param v the first vector<float>
@@ -230,8 +237,7 @@ struct match_results {
 **/
 template<typename T>
 double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
-
-    assert (v.size() == w.size());
+    if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     double distance_sq = 0.0;
     double diff;
 
@@ -251,10 +257,10 @@ double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double s
 
 template<typename T>
 double kl_div(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     if (scale_v == 0 && scale_w == 0) { return 0.; }
     else if (scale_v == 0 || scale_w == 0) { return std::numeric_limits<double>::infinity(); }
 
-    assert (v.size() == w.size());
     double divergence = 0;
     for (auto i = 0ul; i < v.size(); ++i) {
         divergence += (v[i])
@@ -284,18 +290,15 @@ double jensen_shannon_div(std::vector<T> const &v, std::vector<T> const &w, doub
     double const scale_m = std::accumulate(m.begin(), m.end(), 0.0);
     assert(std::abs(scale_m - 2.) < 1e-3);
     // TODO validate this code
-    return (kl_div<double>(std::vector<double>(v.begin(), v.end()), m, scale_v, scale_m)
+    auto const js_div = (kl_div<double>(std::vector<double>(v.begin(), v.end()), m, scale_v, scale_m)
           + kl_div<double>(std::vector<double>(w.begin(), w.end()), m, scale_w, scale_m)) / 2.;
+    return unit_round(js_div);
 }
 
 template<typename T>
 double jensen_shannon_dist(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     auto const div = jensen_shannon_div(v, w, scale_v, scale_w);
-    if (div <= 0) {
-        if (std::abs(div) < 2e-3) return 0.;
-        throw std::logic_error("Negative Jensen-Shannon divergence!");
-    }
-    return std::sqrt(div);
+    return unit_round(std::sqrt(div));
 }
 
 template<typename T>
@@ -310,6 +313,7 @@ double jensen_shannon_similarity(std::vector<T> const &v, std::vector<T> const &
 **/
 template<typename T>
 double cosine_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     if (scale_v == 0 && scale_w == 0) { return 1.; }
     else if (scale_v == 0 || scale_w == 0) { return 0.; }
 
@@ -324,14 +328,14 @@ double cosine_similarity(std::vector<T> const &v, std::vector<T> const &w, doubl
                                             [](T const &left, T const &right) {
                                                 return static_cast<double>(left) * right;
                                             }); // coerce ints to doubles
-
-    assert (v.size() == w.size());
-    return dot_p / (norm_v * norm_w);
+    assert(norm_v >= 0 && norm_w >= 0 && dot_p >= 0);
+    return unit_round(dot_p / (norm_v * norm_w));
 }
 
 template<typename T>
 double angular_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
-    return std::acos(cosine_similarity(v, w, scale_v, scale_w)) / M_PI;
+    auto const angle = std::acos(cosine_similarity(v, w, scale_v, scale_w));
+    return unit_round(angle / M_PI);
 }
 
 /**
@@ -341,10 +345,10 @@ double angular_distance(std::vector<T> const &v, std::vector<T> const &w, double
 **/
 template<typename T>
 double bhattacharyya_coeff(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     if (scale_v == 0 && scale_w == 0) { return 1.; }
     else if (scale_v == 0 || scale_w == 0) { return 0.; }
 
-    assert (v.size() == w.size());
     double const rt_scale = std::sqrt(scale_v * scale_w);
     double sum = 0.0;
     for (auto i = 0ul; i < v.size(); ++i) {
@@ -352,7 +356,7 @@ double bhattacharyya_coeff(std::vector<T> const &v, std::vector<T> const &w, dou
             sum += std::sqrt(static_cast<double>(v[i]) * w[i]) / rt_scale;
         }
     }
-    return sum;
+    return unit_round(sum);
 }
 
 template<typename T>
@@ -542,7 +546,7 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
             }
         }
 
-        ROS_INFO("SSD %f", results.ssd.back());
+//        ROS_INFO("SSD %f", results.ssd.back());
         results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
     return results;
@@ -584,13 +588,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     if (!std::isfinite(matrix(fi, fj))) {
                         ROS_ERROR("Invalid entry %f in similarity matrix!", matrix(fi, fj));
                         throw std::logic_error("Invalid entries in similarity matrix!");
-                    } else if (matrix(fi, fj) < 0 || matrix(fi, fj) > 1) {
-                        if (std::abs(matrix(fi, fj)) <= tolerance) { matrix(fi, fj) = 0.; }
-                        else if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
-                        else {
-                            throw std::logic_error("Invalid entries in similarity matrix!");
-                        }
-                    }
+                    } else { matrix(fi, fj) = unit_round(matrix(fi, fj), tolerance); }
                     if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
                         if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
                         else {
@@ -657,7 +655,7 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
     if (method == "id") {
         return id_matching(topic_models);
     } else if (method == "hungarian") {
-        return sequential_hungarian_matching(topic_models);
+        return sequential_hungarian_matching(topic_models, normed_dist_sq<int>);
     } else if (method == "hungarian-js") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
     } else if (method == "clear") {
