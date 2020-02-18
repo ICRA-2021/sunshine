@@ -658,6 +658,8 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
         return sequential_hungarian_matching(topic_models, normed_dist_sq<int>);
     } else if (method == "hungarian-js") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
+    } else if (method == "hungarian-hg") {
+        return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
     } else if (method == "clear") {
         return clear_matching(topic_models, bhattacharyya_coeff<int>);
     } else if (method == "clear-cosine") {
