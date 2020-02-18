@@ -414,9 +414,9 @@ std::vector<std::vector<int>> merge_by_id(std::vector<std::vector<int>> nZW_1,
 template<typename T, typename S = T>
 std::vector<std::vector<double>> compute_all_pairs(std::vector<std::vector<T>> const &a,
                                                    std::vector<std::vector<T>> const &b,
-                                                   std::vector<S> const &scale_a = {},
-                                                   std::vector<S> const &scale_b = {},
-                                                   DistanceMetric<T> const &metric = normed_dist_sq<T>) {
+                                                   std::vector<S> const &scale_a,
+                                                   std::vector<S> const &scale_b,
+                                                   DistanceMetric<T> const &metric) {
     std::vector<std::vector<double>> pd(a.size(), std::vector<double>(b.size(), 0.0));
     for (auto i = 0ul; i < a.size(); ++i) {
         for (auto j = 0ul; j < b.size(); ++j) {
