@@ -420,14 +420,14 @@ std::vector<std::vector<double>> compute_all_pairs(std::vector<std::vector<T>> c
     std::vector<std::vector<double>> pd(a.size(), std::vector<double>(b.size(), 0.0));
     for (auto i = 0ul; i < a.size(); ++i) {
         for (auto j = 0ul; j < b.size(); ++j) {
-            pd[i][j] = normed_dist_sq(a[i],
-                                      b[j],
-                                      (scale_a.empty())
-                                      ? 1
-                                      : scale_a[i],
-                                      (scale_b.empty())
-                                      ? 1.
-                                      : scale_b[j]);
+            pd[i][j] = metric(a[i],
+                              b[j],
+                              (scale_a.empty())
+                              ? 1
+                              : scale_a[i],
+                              (scale_b.empty())
+                              ? 1.
+                              : scale_b[j]);
         }
     }
     return pd;
