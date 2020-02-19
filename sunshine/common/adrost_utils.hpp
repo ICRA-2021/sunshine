@@ -255,6 +255,48 @@ double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double s
     return distance_sq;
 }
 
+template <typename T>
+double gaussian_kernel_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    auto const dist = normed_dist_sq(v, w, scale_v, scale_w);
+    auto const length_scale = 1.;
+    return std::exp(-dist / length_scale);
+}
+
+template <typename T>
+double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
+    double distance = 0.0;
+    double diff;
+
+    if (scale_v == 0 && scale_w == 0) { return 0.; }
+    else if (scale_v == 0 || scale_w == 0) { return 1.; }
+
+    double const invscale_v = 1. / scale_v, invscale_w = 1. / scale_w;
+
+    for (auto i = 0ul; i < v.size(); ++i) {
+        // diff = 10000.0f*v[i] - 10000.0f*w[i];
+        diff = (v[i] * invscale_v) - (w[i] * invscale_w);
+        distance += std::abs(diff);
+    }
+
+    return distance / 2.;
+}
+
+template <typename T>
+double l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return 1 - l1_distance(v, w, scale_v, scale_w);
+}
+
+template <typename T>
+double l2_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return std::sqrt(normed_dist_sq(v, w, scale_v, scale_w) / 2.);
+}
+
+template <typename T>
+double l2_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return 1 - l2_distance(v, w, scale_v, scale_w);
+}
+
 template<typename T>
 double kl_div(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
@@ -654,13 +696,23 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
 match_results match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
     if (method == "id") {
         return id_matching(topic_models);
-    } else if (method == "hungarian") {
-        return sequential_hungarian_matching(topic_models, normed_dist_sq<int>);
+    } else if (method == "hungarian-l2") {
+        return sequential_hungarian_matching(topic_models, l2_distance<int>);
+    } else if (method == "hungarian-l1") {
+        return sequential_hungarian_matching(topic_models, l1_distance<int>);
     } else if (method == "hungarian-js") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
+    } else if (method == "hungarian-angle") {
+        return sequential_hungarian_matching(topic_models, angular_distance<int>);
     } else if (method == "hungarian-hg") {
         return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
-    } else if (method == "clear") {
+    } else if (method == "clear-l1") {
+        return clear_matching(topic_models, l1_similarity<int>);
+    } else if (method == "clear-l2") {
+        return clear_matching(topic_models, l2_similarity<int>);
+    } else if (method == "clear-gk") {
+        return clear_matching(topic_models, gaussian_kernel_similarity<int>);
+    } else if (method == "clear-bh") {
         return clear_matching(topic_models, bhattacharyya_coeff<int>);
     } else if (method == "clear-cosine") {
         return clear_matching(topic_models, cosine_similarity<int>);

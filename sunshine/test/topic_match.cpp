@@ -52,14 +52,16 @@ int main(int argc, char **argv) {
     header.append("Cluster Size");
     header.append("Initial SSD");
     header.append("Match Method");
-    header.append("SSD Euclidean");
-    header.append("SI Euclidean");
+    header.append("SSD L2");
+    header.append("SI L2");
     header.append("SSD JS");
     header.append("SI JS");
     header.append("SSD Angular");
     header.append("SI Angular");
     header.append("SSD Hellinger");
     header.append("SI Hellinger");
+    header.append("SSD L1");
+    header.append("SI L1");
     writer.write_header(header);
 
     std::vector<path> paths;
@@ -114,7 +116,7 @@ int main(int argc, char **argv) {
             row.append(results.ssd);
             row.append(match_alg);
 
-            scores.compute_scores(normed_dist_sq<double>);
+            scores.compute_scores(l2_distance<double>);
             row.append(scores.mscd);
             row.append(scores.silhouette);
 
@@ -127,6 +129,10 @@ int main(int argc, char **argv) {
             row.append(scores.silhouette);
 
             scores.compute_scores(hellinger_dist<double>);
+            row.append(scores.mscd);
+            row.append(scores.silhouette);
+
+            scores.compute_scores(l1_distance<double>);
             row.append(scores.mscd);
             row.append(scores.silhouette);
 
