@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.12)
 project(sunshine)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -232,6 +232,7 @@ target_link_libraries(test.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.topic_match PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+target_compile_features(test.topic_match PRIVATE cxx_std_17)
 
 #############
 ## Install ##

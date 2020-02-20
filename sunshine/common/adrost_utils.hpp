@@ -21,6 +21,9 @@ struct Phi {
   std::vector<std::vector<int>> counts = {};
   std::vector<int> topic_weights = {};
 
+  explicit Phi()
+        : id("") {}
+
   explicit Phi(std::string id)
         : id(std::move(id)) {}
 
@@ -77,6 +80,14 @@ struct Phi {
       if (!in.good()) throw std::logic_error("Input stream in invalid state");
       throw std::logic_error("Not yet implemented");
   }
+
+//  explicit Phi(Phi &&other)
+//        : id(other.id)
+//        , K(other.K)
+//        , V(other.V)
+//        , counts(other.counts)
+//        , topic_weights(other.topic_weights) {
+//  }
 
   explicit Phi(std::istream &in, std::string id, int const &vocab_size)
         : id(std::move(id))
@@ -255,14 +266,14 @@ double normed_dist_sq(std::vector<T> const &v, std::vector<T> const &w, double s
     return distance_sq;
 }
 
-template <typename T>
+template<typename T>
 double gaussian_kernel_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     auto const dist = normed_dist_sq(v, w, scale_v, scale_w);
     auto const length_scale = 1.;
     return std::exp(-dist / length_scale);
 }
 
-template <typename T>
+template<typename T>
 double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     double distance = 0.0;
@@ -282,17 +293,17 @@ double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scal
     return distance / 2.;
 }
 
-template <typename T>
+template<typename T>
 double l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return 1 - l1_distance(v, w, scale_v, scale_w);
 }
 
-template <typename T>
+template<typename T>
 double l2_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return std::sqrt(normed_dist_sq(v, w, scale_v, scale_w) / 2.);
 }
 
-template <typename T>
+template<typename T>
 double l2_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return 1 - l2_distance(v, w, scale_v, scale_w);
 }

@@ -13,6 +13,7 @@
 #include <vector>
 #include <cassert>
 #include <exception>
+#include <mutex>
 
 template<char delimiter = ',', char str_delimiter = '"'>
 class csv_row {
@@ -123,6 +124,7 @@ class csv_writer {
     std::ostream *out;
     bool _constructed = false;
     bool _has_header = false;
+    std::mutex write_lock;
 
   public:
     typedef csv_row<delimiter, str_delimiter> Row;
@@ -140,10 +142,12 @@ class csv_writer {
     }
 
     void write_row(csv_row<delimiter, str_delimiter> const &row) {
+        std::lock_guard<std::mutex> guard(write_lock);
         (*out) << row.str() << '\n';
     }
 
     void write_row(std::string const &row) {
+        std::lock_guard<std::mutex> guard(write_lock);
         (*out) << row << '\n';
     }
 
@@ -158,6 +162,7 @@ class csv_writer {
     }
 
     void flush() {
+        std::lock_guard<std::mutex> guard(write_lock);
         out->flush();
     }
 
@@ -173,6 +178,7 @@ template<char delimiter = ',', char str_delimiter = '"'>
 class csv_reader {
     std::string const path;
     std::ifstream in;
+    std::mutex read_lock;
 
     std::string next_line = "";
     bool eof = false;
@@ -186,16 +192,19 @@ class csv_reader {
     }
 
     bool has_next() const {
+        std::lock_guard<std::mutex> guard(read_lock);
         return !eof;
     }
 
     csv_row<delimiter, str_delimiter> next_row() {
+        std::lock_guard<std::mutex> guard(read_lock);
         auto row = csv_row<delimiter, str_delimiter>(next_line);
         if (has_next()) eof = !std::getline(in, next_line);
         return row;
     }
 
     void close() {
+        std::lock_guard<std::mutex> guard(read_lock);
         in.close();
     }
 

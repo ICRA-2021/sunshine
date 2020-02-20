@@ -19,6 +19,7 @@
 #include <iostream>
 #include <boost/filesystem.hpp>
 #include <chrono>
+#include <future>
 //#include <boost/sort/sort.hpp>
 #include "csv.hpp"
 #include "adrost_utils.hpp"
@@ -68,10 +69,13 @@ int main(int argc, char **argv) {
     std::copy(directory_iterator(in_dir), directory_iterator(), std::back_inserter(paths));
     std::sort(paths.begin(), paths.end());
 
-    std::map<std::string, Phi> model_map;
+    std::map<std::string, std::optional<Phi>> model_map;
+    auto constexpr num_threads = 8;
+    std::array<std::optional<std::future<void>>, num_threads> futures = {};
+    size_t next_thread = 0;
     for (auto const &topic_bin : paths) {
         if (topic_bin.extension() != ".bin") continue;
-        std::cerr << "Processing " << topic_bin.string() << std::endl;
+        std::cerr << "Processing " << topic_bin.string() << " on thread " << next_thread << std::endl;
 
         auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
         auto const ms_idx = stem.find('_');
@@ -87,58 +91,63 @@ int main(int argc, char **argv) {
         std::string const name = std::string(stem.substr(name_idx + 1));
 
         std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
-        auto iter = model_map.find(name);
-        if (iter != model_map.end()) {
-            iter->second = Phi(file_reader, name, V);
-        } else {
-            model_map.emplace(name, Phi{file_reader, name, V});
-        }
+        model_map[name].emplace(file_reader, name, V);
         assert(file_reader.eof());
         file_reader.close();
 
         std::vector<Phi> topic_models;
         topic_models.reserve(model_map.size());
-        for (auto const &entry : model_map) topic_models.push_back(entry.second);
+        for (auto const &entry : model_map) topic_models.push_back(*(entry.second));
 
-        for (auto const &match_alg : match_algs) {
-            auto const start = std::chrono::steady_clock::now();
-            auto const results = match_topics(match_alg, topic_models);
-            auto const match_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start);
-            match_scores scores(topic_models, results.lifting);
-            assert(scores.K == results.num_unique);
-
-            csv_writer<>::Row row{};
-            row.append(timestamp);
-            row.append(match_duration.count());
-            row.append(topic_models.size());
-            row.append(results.num_unique);
-            row.append(scores.cluster_sizes);
-            row.append(results.ssd);
-            row.append(match_alg);
-
-            scores.compute_scores(l2_distance<double>);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-
-            scores.compute_scores(jensen_shannon_dist<double>);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-
-            scores.compute_scores(angular_distance<double>);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-
-            scores.compute_scores(hellinger_dist<double>);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-
-            scores.compute_scores(l1_distance<double>);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-
-            writer.write_row(row);
+        for (auto const cur_thread = next_thread; next_thread != cur_thread; next_thread = (next_thread + 1) % futures.size()) {
+            if (!futures[next_thread].has_value()
+                  || futures[next_thread]->wait_for(std::chrono::microseconds(100)) == std::future_status::ready) {
+                break;
+            }
+            assert(next_thread >= 0 && next_thread < futures.size());
         }
-        writer.flush();
+        futures[next_thread].emplace(std::async(std::launch::async, [match_algs, topic_models, timestamp, &writer]() {
+            for (auto const &match_alg : match_algs) {
+                auto const start = std::chrono::steady_clock::now();
+                auto const results = match_topics(match_alg, topic_models);
+                auto const match_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start);
+                match_scores scores(topic_models, results.lifting);
+                assert(scores.K == results.num_unique);
+
+                csv_writer<>::Row row{};
+                row.append(timestamp);
+                row.append(match_duration.count());
+                row.append(topic_models.size());
+                row.append(results.num_unique);
+                row.append(scores.cluster_sizes);
+                row.append(results.ssd);
+                row.append(match_alg);
+
+                scores.compute_scores(l2_distance<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
+
+                scores.compute_scores(jensen_shannon_dist<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
+
+                scores.compute_scores(angular_distance<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
+
+                scores.compute_scores(hellinger_dist<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
+
+                scores.compute_scores(l1_distance<double>);
+                row.append(scores.mscd);
+                row.append(scores.silhouette);
+
+                writer.write_row(row);
+            }
+            writer.flush();
+        }));
+        next_thread = (next_thread + 1) % futures.size();
     }
 
     return 0;

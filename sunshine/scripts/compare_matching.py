@@ -12,6 +12,8 @@ def read_csv(path):
         reader = csv.DictReader(infile)
         start_time = None
         for line in reader:
+            if "clear-l2" in line.values():
+                continue
             metrics = {}
             exp_keys = {}
             cluster_sizes = ast.literal_eval(line["Cluster Size"])
