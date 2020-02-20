@@ -26,7 +26,7 @@ static std::string const NO_PPX = "none";
 static std::string const CELL_PPX = "cell";
 static std::string const NEIGHBORHOOD_PPX = "neighborhood";
 static std::string const GLOBAL_PPX = "global";
-std::vector <std::string> const topic_model_node::VALID_MAP_PPX_TYPES = {NO_PPX, CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX};
+std::vector<std::string> const topic_model_node::VALID_MAP_PPX_TYPES = {NO_PPX, CELL_PPX, NEIGHBORHOOD_PPX, /*"scene" ,*/ GLOBAL_PPX};
 
 template<typename T>
 long record_lap(T &time_checkpoint) {
@@ -126,7 +126,7 @@ bool _get_topic_map(topic_model_node const *topic_model, GetTopicMapRequest &, G
 }
 
 bool _get_topic_model(topic_model_node *topic_model,
-                      std::unique_ptr <activity_manager::WriteToken> const &rostLock,
+                      std::unique_ptr<activity_manager::WriteToken> const &rostLock,
                       std::string name,
                       GetTopicModelRequest &,
                       GetTopicModelResponse &response) {
@@ -138,7 +138,7 @@ bool _get_topic_model(topic_model_node *topic_model,
     response.topic_model.identifier = name;
 
     auto &rost = topic_model->get_rost();
-    std::unique_ptr <activity_manager::ReadToken> readToken;
+    std::unique_ptr<activity_manager::ReadToken> readToken;
     if (!rostLock) readToken = rost.get_read_token();
     assert(readToken || rostLock);
     auto const weights = rost.get_topic_weights();
@@ -162,7 +162,7 @@ bool _get_topic_model(topic_model_node *topic_model,
 }
 
 bool _set_topic_model(topic_model_node *topic_model,
-                      std::unique_ptr <activity_manager::WriteToken> const &rostLock,
+                      std::unique_ptr<activity_manager::WriteToken> const &rostLock,
                       SetTopicModelRequest &request,
                       SetTopicModelResponse &) {
     ROS_INFO("New topic model received. Global lock held: %s",
@@ -172,7 +172,7 @@ bool _set_topic_model(topic_model_node *topic_model,
     std::stringstream weights;
     for (auto const &weight : request.topic_model.topic_weights) weights << weight << " ";
     ROS_INFO("New topic weights: %s", weights.str().c_str());
-    std::vector <std::vector<int>> nZW;
+    std::vector<std::vector<int>> nZW;
     assert(request.topic_model.K > 0);
     nZW.reserve(request.topic_model.K);
     auto const V = request.topic_model.V;
@@ -214,7 +214,7 @@ bool _set_topic_model(topic_model_node *topic_model,
 }
 
 bool _pause_topic_model(topic_model_node *topic_model,
-                        std::unique_ptr <activity_manager::WriteToken> &rostLock,
+                        std::unique_ptr<activity_manager::WriteToken> &rostLock,
                         PauseRequest &request,
                         PauseResponse &) {
     ROS_DEBUG("Changing topic model global pause state");
@@ -306,14 +306,22 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
     cell_pose_t G{{G_time, G_space, G_space, G_space}};
     if (is_hierarchical) {
         ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
-        rost = std::make_unique < hROST < cell_pose_t, neighbors_t, hash_container < cell_pose_t >>
-              > (static_cast<size_t>(V), static_cast<size_t>(K), static_cast<size_t>(num_levels), k_alpha, k_beta, k_gamma, neighbors_t(G));
+        rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+                                                                                               static_cast<size_t>(K),
+                                                                                               static_cast<size_t>(num_levels),
+                                                                                               k_alpha,
+                                                                                               k_beta,
+                                                                                               k_gamma,
+                                                                                               neighbors_t(G));
     } else {
-        rost = std::make_unique < ROST < cell_pose_t, neighbors_t, hash_container < cell_pose_t >>
-              > (static_cast<size_t>(V), static_cast<size_t>(K), k_alpha, k_beta, neighbors_t(G));
+        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+                                                                                              static_cast<size_t>(K),
+                                                                                              k_alpha,
+                                                                                              k_beta,
+                                                                                              neighbors_t(G));
         if (k_gamma > 0) {
             ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
-            auto rost_concrete = dynamic_cast<ROST <cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
+            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
             rost_concrete->gamma = k_gamma;
             rost_concrete->enable_auto_topics_size(true);
         }
@@ -349,11 +357,14 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
                                                                : last_slash + 1);
         save_topics_timer = nh->createTimer(ros::Duration(save_topics_period), [this, nodeName](ros::TimerEvent const &) {
             GetTopicModel serviceObj{};
-            std::unique_ptr <activity_manager::WriteToken> nptr{};
+            std::unique_ptr<activity_manager::WriteToken> nptr{};
             auto const success = _get_topic_model(this, nptr, ros::this_node::getName(), serviceObj.request, serviceObj.response);
             if (success) {
-                std::string filename = save_topics_path + "/" + std::to_string(ros::Time::now().sec) + "_"
-                      + std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6)) + "_" + nodeName + ".bin";
+                auto const millis = std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6));
+                assert(millis.size() <= 3);
+                std::string const filename =
+                      save_topics_path + "/" + std::to_string(ros::Time::now().sec) + "_" + std::string(3 - millis.size(), '0') + millis
+                            + "_" + nodeName + ".bin";
                 std::fstream writer(filename, std::ios::out | std::ios::binary);
                 if (writer.good()) {
                     writer.write(reinterpret_cast<char *>(serviceObj.response.topic_model.phi.data()),
@@ -377,10 +388,10 @@ topic_model_node::~topic_model_node() {
     if (broadcast_thread && broadcast_thread->joinable()) broadcast_thread->join();
 }
 
-std::map <ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_time() const {
+std::map<ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_time() const {
     auto rostReadToken = rost->get_read_token();
     auto const poses_by_time = rost->get_poses_by_time();
-    std::map <ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
+    std::map<ROST_t::pose_dim_t, std::vector<int>> topics_by_time;
     for (auto const &entry : poses_by_time) {
         std::vector<int> topics(static_cast<size_t>(K), 0);
         for (auto const &pose : entry.second) {
@@ -393,10 +404,10 @@ std::map <ROST_t::pose_dim_t, std::vector<int>> topic_model_node::get_topics_by_
     return topics_by_time;
 }
 
-std::map <cell_pose_t, std::vector<int>> topic_model_node::get_topics_by_cell() const {
+std::map<cell_pose_t, std::vector<int>> topic_model_node::get_topics_by_cell() const {
     auto rostReadToken = rost->get_read_token();
     auto const &poses = rost->cell_pose;
-    std::map <cell_pose_t, std::vector<int>> topics_by_cell;
+    std::map<cell_pose_t, std::vector<int>> topics_by_cell;
     for (auto const &pose : poses) {
         auto const cell = rost->get_cell(pose);
         if (cell->nZ.size() == this->K) {
@@ -409,10 +420,9 @@ std::map <cell_pose_t, std::vector<int>> topic_model_node::get_topics_by_cell() 
     return topics_by_cell;
 }
 
-static std::map <cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservation const &wordObs,
-                                                                     std::array<double, POSEDIM> cell_size) {
+static std::map<cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservation const &wordObs, std::array<double, POSEDIM> cell_size) {
     using namespace std;
-    map <cell_pose_t, vector<int>> words_by_cell_pose;
+    map<cell_pose_t, vector<int>> words_by_cell_pose;
 
     for (size_t i = 0; i < wordObs.words.size(); ++i) {
         geometry_msgs::Point word_point;
@@ -453,7 +463,7 @@ void topic_model_node::words_callback(const WordObservation::ConstPtr &wordObs) 
     auto const time_start = time_checkpoint;
 
     using namespace std;
-    lock_guard <mutex> guard(wordsReceivedLock);
+    lock_guard<mutex> guard(wordsReceivedLock);
     auto duration_words_lock = record_lap(time_checkpoint);
     long duration_write_lock;
 
@@ -576,7 +586,7 @@ TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
     return topic_map;
 }
 
-void topic_model_node::broadcast_topics(int const obs_time, const std::vector <cell_pose_t> &broadcast_poses) const {
+void topic_model_node::broadcast_topics(int const obs_time, const std::vector<cell_pose_t> &broadcast_poses) const {
     if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) {
         return;
     }

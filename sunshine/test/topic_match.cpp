@@ -35,7 +35,7 @@ std::vector<std::string> split_algs(const std::string &arg) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) throw std::invalid_argument("Usage: [TOPIC_BIN_DIR] [VOCAB_SIZE] [MATCHING_ALGORITHM]");
+    if (argc != 4) throw std::invalid_argument("Usage: <TOPIC_BIN_DIR> <VOCAB_SIZE> <MATCHING_ALGORITHM>");
     std::string const in_dir(argv[1]);
     int const V = std::stoi(argv[2]);
     auto const match_algs = split_algs(argv[3]);
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
             continue;
         }
         assert(name_idx > ms_idx && name_idx <= ms_idx + 4);
-        long const timestamp = std::stol(stem.substr(0, ms_idx)) * 1000000000 + std::stol(stem.substr(ms_idx + 1, name_idx)) * 1000000;
+        int64_t const timestamp = std::stol(stem.substr(0, ms_idx)) * 1000000000 + std::stol(stem.substr(ms_idx + 1, name_idx)) * 1000000;
         std::string const name = std::string(stem.substr(name_idx + 1));
 
         std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);

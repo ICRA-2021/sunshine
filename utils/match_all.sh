@@ -27,10 +27,10 @@ N=4
 open_sem $N
 for d in $1*/ ; do
 	if [[ $d != *"matched"* ]]; then
-		if [[ $d != *"-T1-"* ]]; then
+#		if [[ $d != *"-T1-"* ]]; then
 			echo "$d"
 			run_with_lock rosrun sunshine test.topic_match "$d" "16180" "clear-l1,clear-js,clear-l2,hungarian-l1,hungarian-js,hungarian-l2" > ${d::-1}-processed.csv
-		fi
+#		fi
 	fi
 done
 #python compare_matching.py $1/*-processed.csv
