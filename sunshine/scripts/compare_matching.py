@@ -26,8 +26,8 @@ def read_csv(path):
                         values = ast.literal_eval(line[key])
                         score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
                         dist = str(key).replace(metric, '').replace('JS', 'Jensen-Shannon').strip()
-                        # if dist in ['Hellinger', 'Angular']:
-                        #     continue
+                        if dist in ['Hellinger', 'Angular']:
+                            continue
                         if dist in metrics:
                             metrics[dist][metric] = score
                         else:
@@ -59,16 +59,17 @@ for arg in sys.argv[1:]:
     data.extend(read_csv(arg))
 df = pd.DataFrame(data)
 
-g = sns.FacetGrid(df, col="Distance Metric", hue="Match Method", legend_out=True)
-# g.map(sns.regplot, "Time", "SI", x_bins=10, x_ci='sd', scatter=True, ci=None, robust=True)
-g.map(sns.regplot, "Time", "DB", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
-# g.map(sns.regplot, "Time", "SSD", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
-g.add_legend(loc='lower center')
-g.map(plt.axhline, y=0, ls='--', c='k')
-g.set_axis_labels('Time', 'Davies-Bouldin Index')
-# sns.lineplot(x='Time', y='SI', hue='Match Method', style='Distance Metric', data=df)
-plt.tight_layout()
-plt.show()
+sns.set(font_scale=1.5)
+# g = sns.FacetGrid(df, col="Distance Metric", hue="Match Method", legend_out=True)
+# # g.map(sns.regplot, "Time", "SI", x_bins=10, x_ci='sd', scatter=True, ci=None, robust=True)
+# g.map(sns.regplot, "Time", "DB", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
+# # g.map(sns.regplot, "Time", "SSD", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
+# g.add_legend(loc='lower center')
+# g.map(plt.axhline, y=0, ls='--', c='k')
+# g.set_axis_labels('Time', 'Davies-Bouldin Index')
+# # sns.lineplot(x='Time', y='SI', hue='Match Method', style='Distance Metric', data=df)
+# plt.tight_layout()
+# plt.show()
 
 g = sns.FacetGrid(df, col="Distance Metric", hue="Match Method", legend_out=True)
 # g.map(sns.regplot, "Time", "SI", x_bins=10, x_ci='sd', scatter=True, ci=None, robust=True)
