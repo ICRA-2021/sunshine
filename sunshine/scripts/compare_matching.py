@@ -21,16 +21,17 @@ def read_csv(path):
                 if start_time is None:
                     start_time = int(line['Timestamp'])
                 for key in line.keys():
-                    if "SI" in key or "SSD" in key and 'Initial' not in key:
+                    metric = "SI" if "SI" in key else "SSD" if "SSD" in key else "DB" if "DB" in key else None
+                    if metric is not None and 'Initial' not in key:
                         values = ast.literal_eval(line[key])
                         score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
-                        dist = str(key).replace('SI', '').replace('SSD', '').replace('JS', 'Jensen-Shannon').strip()
-                        if dist in ['Hellinger', 'Angular']:
-                            continue
+                        dist = str(key).replace(metric, '').replace('JS', 'Jensen-Shannon').strip()
+                        # if dist in ['Hellinger', 'Angular']:
+                        #     continue
                         if dist in metrics:
-                            metrics[dist]['SI' if 'SI' in key else 'SSD'] = score
+                            metrics[dist][metric] = score
                         else:
-                            metrics[dist] = {'SI' if 'SI' in key else 'SSD': score, 'Distance Metric': dist}
+                            metrics[dist] = {metric: score, 'Distance Metric': dist}
                     elif key == "Cluster Size":
                         values = ast.literal_eval(line[key])
                         score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
@@ -57,6 +58,17 @@ for arg in sys.argv[1:]:
     print("Processing " + arg)
     data.extend(read_csv(arg))
 df = pd.DataFrame(data)
+
+g = sns.FacetGrid(df, col="Distance Metric", hue="Match Method", legend_out=True)
+# g.map(sns.regplot, "Time", "SI", x_bins=10, x_ci='sd', scatter=True, ci=None, robust=True)
+g.map(sns.regplot, "Time", "DB", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
+# g.map(sns.regplot, "Time", "SSD", x_bins=[50*i for i in range(1000//50+1)], fit_reg=False, scatter=True, ci=None, robust=True)
+g.add_legend(loc='lower center')
+g.map(plt.axhline, y=0, ls='--', c='k')
+g.set_axis_labels('Time', 'Davies-Bouldin Index')
+# sns.lineplot(x='Time', y='SI', hue='Match Method', style='Distance Metric', data=df)
+plt.tight_layout()
+plt.show()
 
 g = sns.FacetGrid(df, col="Distance Metric", hue="Match Method", legend_out=True)
 # g.map(sns.regplot, "Time", "SI", x_bins=10, x_ci='sd', scatter=True, ci=None, robust=True)
