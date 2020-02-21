@@ -60,7 +60,7 @@ bool _save_topics_by_cell_csv(topic_model_node const *topic_model, SaveObservati
         writer << ",pose_dim_" + std::to_string(i);
     }
     for (auto k = 0; k < topic_model->get_num_topics(); k++) {
-        writer << ",topic_" << std::to_string(k) << "_count";
+        writer << ",k_" << std::to_string(k);
     }
     auto const topics = topic_model->get_topics_by_cell();
     for (auto const &entry : topics) {

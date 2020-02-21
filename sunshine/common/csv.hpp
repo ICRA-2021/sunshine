@@ -166,11 +166,16 @@ class csv_writer {
         out->flush();
     }
 
-    ~csv_writer() {
+    void close() {
+        std::lock_guard<std::mutex> guard(write_lock);
         if (_constructed) {
             auto *ofstream_ptr = dynamic_cast<std::ofstream *>(out);
             ofstream_ptr->close();
         }
+    }
+
+    ~csv_writer() {
+        close();
     }
 };
 
