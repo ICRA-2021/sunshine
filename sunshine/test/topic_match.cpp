@@ -55,14 +55,17 @@ int main(int argc, char **argv) {
     header.append("Match Method");
     header.append("SSD L2");
     header.append("SI L2");
+    header.append("DB L2");
     header.append("SSD JS");
     header.append("SI JS");
-    header.append("SSD Angular");
-    header.append("SI Angular");
-    header.append("SSD Hellinger");
-    header.append("SI Hellinger");
+    header.append("DB JS");
+//    header.append("SSD Angular");
+//    header.append("SI Angular");
+//    header.append("SSD Hellinger");
+//    header.append("SI Hellinger");
     header.append("SSD L1");
     header.append("SI L1");
+    header.append("DB L1");
     writer.write_header(header);
 
     std::vector<path> paths;
@@ -98,14 +101,15 @@ int main(int argc, char **argv) {
         std::vector<Phi> topic_models;
         topic_models.reserve(model_map.size());
         for (auto const &entry : model_map) topic_models.push_back(*(entry.second));
-
-        for (auto const cur_thread = next_thread; next_thread != cur_thread; next_thread = (next_thread + 1) % futures.size()) {
+        auto const cur_thread = next_thread;
+        do {
             if (!futures[next_thread].has_value()
                   || futures[next_thread]->wait_for(std::chrono::microseconds(100)) == std::future_status::ready) {
                 break;
             }
+            next_thread = (next_thread + 1) % futures.size();
             assert(next_thread >= 0 && next_thread < futures.size());
-        }
+        } while (next_thread != cur_thread);
         futures[next_thread].emplace(std::async(std::launch::async, [match_algs, topic_models, timestamp, &writer]() {
             for (auto const &match_alg : match_algs) {
                 auto const start = std::chrono::steady_clock::now();
@@ -126,22 +130,25 @@ int main(int argc, char **argv) {
                 scores.compute_scores(l2_distance<double>);
                 row.append(scores.mscd);
                 row.append(scores.silhouette);
+                row.append(scores.davies_bouldin);
 
                 scores.compute_scores(jensen_shannon_dist<double>);
                 row.append(scores.mscd);
                 row.append(scores.silhouette);
+                row.append(scores.davies_bouldin);
 
-                scores.compute_scores(angular_distance<double>);
-                row.append(scores.mscd);
-                row.append(scores.silhouette);
+//                scores.compute_scores(angular_distance<double>);
+//                row.append(scores.mscd);
+//                row.append(scores.silhouette);
 
-                scores.compute_scores(hellinger_dist<double>);
-                row.append(scores.mscd);
-                row.append(scores.silhouette);
+//                scores.compute_scores(hellinger_dist<double>);
+//                row.append(scores.mscd);
+//                row.append(scores.silhouette);
 
                 scores.compute_scores(l1_distance<double>);
                 row.append(scores.mscd);
                 row.append(scores.silhouette);
+                row.append(scores.davies_bouldin);
 
                 writer.write_row(row);
             }

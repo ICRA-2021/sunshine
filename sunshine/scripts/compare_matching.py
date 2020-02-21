@@ -11,36 +11,41 @@ def read_csv(path):
     with open(path) as infile:
         reader = csv.DictReader(infile)
         start_time = None
-        for line in reader:
-            if "clear-l2" in line.values():
-                continue
-            metrics = {}
-            exp_keys = {}
-            cluster_sizes = ast.literal_eval(line["Cluster Size"])
-            if start_time is None:
-                start_time = int(line['Timestamp'])
-            for key in line.keys():
-                if "SI" in key or "SSD" in key and 'Initial' not in key:
-                    values = ast.literal_eval(line[key])
-                    score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
-                    dist = str(key).replace('SI', '').replace('SSD', '').replace('JS', 'Jensen-Shannon').strip()
-                    if dist in ['Hellinger', 'Angular']:
-                        continue
-                    if dist in metrics:
-                        metrics[dist]['SI' if 'SI' in key else 'SSD'] = score
+        try:
+            for line in reader:
+                if "clear-l2" in line.values():
+                    continue
+                metrics = {}
+                exp_keys = {}
+                cluster_sizes = ast.literal_eval(line["Cluster Size"])
+                if start_time is None:
+                    start_time = int(line['Timestamp'])
+                for key in line.keys():
+                    if "SI" in key or "SSD" in key and 'Initial' not in key:
+                        values = ast.literal_eval(line[key])
+                        score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
+                        dist = str(key).replace('SI', '').replace('SSD', '').replace('JS', 'Jensen-Shannon').strip()
+                        if dist in ['Hellinger', 'Angular']:
+                            continue
+                        if dist in metrics:
+                            metrics[dist]['SI' if 'SI' in key else 'SSD'] = score
+                        else:
+                            metrics[dist] = {'SI' if 'SI' in key else 'SSD': score, 'Distance Metric': dist}
+                    elif key == "Cluster Size":
+                        values = ast.literal_eval(line[key])
+                        score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
+                        exp_keys["Average Cluster Size"] = score
+                        exp_keys[key] = line[key]
                     else:
-                        metrics[dist] = {'SI' if 'SI' in key else 'SSD': score, 'Distance Metric': dist}
-                elif key == "Cluster Size":
-                    values = ast.literal_eval(line[key])
-                    score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
-                    exp_keys["Average Cluster Size"] = score
-                    exp_keys[key] = line[key]
-                else:
-                    exp_keys[key] = line[key]
-            for metric in metrics.values():
-                exp_keys.update(metric)
-                data.append(exp_keys.copy())
-            end_time = int(line['Timestamp'])
+                        exp_keys[key] = line[key]
+                for metric in metrics.values():
+                    exp_keys.update(metric)
+                    data.append(exp_keys.copy())
+                end_time = int(line['Timestamp'])
+        except SyntaxError:
+            print("Failed to process all rows! File may be corrupt")
+        except ValueError:
+            print("Failed to process all rows! File may be corrupt")
     for row in data:
         row['Time'] = (float(row['Timestamp']) - start_time) / 1E9 #/ (end_time - start_time)
         # print(row['Time'])

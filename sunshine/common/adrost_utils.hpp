@@ -15,6 +15,13 @@
 template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 template<typename L, typename R = L> using DistanceMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 
+double unit_round(double value, double epsilon = 2e-3) {
+    if (value >= 0 && value <= 1) return value;
+    if (std::abs(value) <= epsilon) return 0;
+    if (std::abs(value - 1) <= epsilon) return 1;
+    throw std::logic_error("Value is not within [0,1]");
+}
+
 struct Phi {
   std::string id;
   int K = 0, V = 0;
@@ -98,7 +105,7 @@ struct Phi {
       while (!in.eof()) {
           in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) / sizeof(char) * V);
           if (in.gcount() == 0) break;
-          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size of corrupt data");
+          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size or corrupt data");
 
           K += 1;
           topic_weights.push_back(std::accumulate(row.begin(), row.end(), 0));
@@ -114,7 +121,7 @@ struct match_scores {
     std::vector<size_t> cluster_sizes = {}; // number of elements in each cluster (Kx1)
     std::vector<double> mscd = {}; // mean of squared cluster distances; closer to 0 is better
     std::vector<double> silhouette = {}; // closer to +1 is better
-//    std::vector<double> davies_bouldin = {}; // closer to 0 is better // TODO: implement
+    std::vector<double> davies_bouldin = {}; // closer to 0 is better // TODO: implement
 //    std::vector<double> calinski_harabasz = {}; // TODO: decide whether to use (this metric isn't great because it is unbounded above)
 
     match_scores(std::vector<Phi> const &topic_models,
@@ -139,12 +146,12 @@ struct match_scores {
                 point_scales.insert(clusterEnd(point_scales, cluster), scale);
 
                 cluster_sizes[cluster]++;
-                std::transform(data[topic].begin(),
-                               data[topic].end(),
+                std::transform(cluster_centers[cluster].begin(),
+                               cluster_centers[cluster].end(),
+                               data[topic].begin(),
                                cluster_centers[cluster].begin(),
-                               cluster_centers[cluster].begin(),
-                               std::plus<double>());
-                cluster_scales[cluster] += scale;
+                               [scale](double const& sum, int const& val){return sum + (static_cast<double>(val) / ((scale > 0) ? scale : 1.));});
+                cluster_scales[cluster] += (scale > 0) ? 1 : 0;
             }
         }
 
@@ -157,6 +164,8 @@ struct match_scores {
         this->mscd.reserve(K);
         this->silhouette.resize(0);
         this->silhouette.reserve(K);
+        this->davies_bouldin.resize(0);
+        this->davies_bouldin.reserve(K);
 
         dispersion_matrix.resize(sorted_points.size(), std::vector<double>(sorted_points.size(), 0.0));
         for (auto i = 0ul; i < sorted_points.size(); ++i) {
@@ -171,6 +180,7 @@ struct match_scores {
             cluster_end += cluster_sizes[k];
             double mscd_k = 0;
             double silhouette_k = 0;
+            assert(std::abs(std::accumulate(cluster_centers[k].begin(), cluster_centers[k].end(), 0.0) - cluster_scales[k]) <= 1e-3);
             if (!cluster_sizes[k]) ROS_WARN("Empty cluster detected when computing metrics!");
             if (cluster_sizes[k] > 1) {
                 for (auto i = cluster_start; i < cluster_end; ++i) {
@@ -207,6 +217,16 @@ struct match_scores {
             mscd.push_back(mscd_k / std::max(cluster_sizes[k], 1ul));
             silhouette.push_back(silhouette_k / std::max(cluster_sizes[k], 1ul));
         }
+
+        for (auto k = 0; k < K; k++) {
+            double db_k = 0;
+            for (auto k2 = 0; k2 < K; k2++) {
+                if (k == k2) continue;
+                auto const R = (mscd[k] + mscd[k2]) / metric(cluster_centers[k], cluster_centers[k2], cluster_scales[k], cluster_scales[k2]);
+                db_k = std::max(db_k, R);
+            }
+            davies_bouldin.push_back(db_k);
+        }
     }
 
   private:
@@ -232,13 +252,6 @@ struct match_results {
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
 };
-
-double unit_round(double value, double epsilon = 2e-3) {
-    if (value >= 0 && value <= 1) return value;
-    if (std::abs(value) <= epsilon) return 0;
-    if (std::abs(value - 1) <= epsilon) return 1;
-    throw std::logic_error("Value is not within [0,1]");
-}
 
 /**
  * Computes the squared euclidean distance between two vectors, v and w
@@ -718,17 +731,29 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
     } else if (method == "hungarian-hg") {
         return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
     } else if (method == "clear-l1") {
-        return clear_matching(topic_models, l1_similarity<int>);
+        return clear_matching(topic_models, l1_similarity<int>, false);
     } else if (method == "clear-l2") {
-        return clear_matching(topic_models, l2_similarity<int>);
+        return clear_matching(topic_models, l2_similarity<int>, false);
     } else if (method == "clear-gk") {
-        return clear_matching(topic_models, gaussian_kernel_similarity<int>);
+        return clear_matching(topic_models, gaussian_kernel_similarity<int>, false);
     } else if (method == "clear-bh") {
-        return clear_matching(topic_models, bhattacharyya_coeff<int>);
+        return clear_matching(topic_models, bhattacharyya_coeff<int>, false);
     } else if (method == "clear-cosine") {
-        return clear_matching(topic_models, cosine_similarity<int>);
+        return clear_matching(topic_models, cosine_similarity<int>, false);
     } else if (method == "clear-js") {
-        return clear_matching(topic_models, jensen_shannon_similarity<int>);
+        return clear_matching(topic_models, jensen_shannon_similarity<int>, false);
+    } else if (method == "clear-distinct-l1") {
+        return clear_matching(topic_models, l1_similarity<int>, true);
+    } else if (method == "clear-distinct-l2") {
+        return clear_matching(topic_models, l2_similarity<int>, true);
+    } else if (method == "clear-distinct-gk") {
+        return clear_matching(topic_models, gaussian_kernel_similarity<int>, true);
+    } else if (method == "clear-distinct-bh") {
+        return clear_matching(topic_models, bhattacharyya_coeff<int>, true);
+    } else if (method == "clear-distinct-cosine") {
+        return clear_matching(topic_models, cosine_similarity<int>, true);
+    } else if (method == "clear-distinct-js") {
+        return clear_matching(topic_models, jensen_shannon_similarity<int>, true);
     } else {
         throw std::logic_error(method + " is not recognized.");
     }

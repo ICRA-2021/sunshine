@@ -29,7 +29,7 @@ for d in $1*/ ; do
 	if [[ $d != *"matched"* ]]; then
 #		if [[ $d != *"-T1-"* ]]; then
 			echo "$d"
-			run_with_lock rosrun sunshine test.topic_match "$d" "16180" "clear-l1,clear-js,clear-l2,hungarian-l1,hungarian-js,hungarian-l2" > ${d::-1}-processed.csv
+			run_with_lock rosrun sunshine test.topic_match "$d" "16180" "clear-l1,clear-js,clear-l2,hungarian-l1,hungarian-js,hungarian-l2,clear-distinct-l1,clear-distinct-l2,clear-distinct-js" > ${d::-1}-processed.csv
 #		fi
 	fi
 done
