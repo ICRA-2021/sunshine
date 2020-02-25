@@ -49,7 +49,7 @@ def change_to_delta(name, pattern=None, starts=None):
 
 
 if len(sys.argv) < 2:
-    raise UserWarning("Usage: timestamps_to_deltas.py <file/dir/string> [pattern]")
+    raise UserWarning("Usage: timestamps_to_deltas.py <dir> [pattern]")
 elif os.path.isdir(sys.argv[1]):
     while True:
         files = sorted(os.listdir(sys.argv[1]))
