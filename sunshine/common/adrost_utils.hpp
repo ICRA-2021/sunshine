@@ -372,6 +372,11 @@ double jensen_shannon_similarity(std::vector<T> const &v, std::vector<T> const &
     return 1. - jensen_shannon_dist(v, w, scale_v, scale_w);
 }
 
+template<typename T>
+double jensen_shannon_similarity_v2(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return 1. - jensen_shannon_div(v, w, scale_v, scale_w);
+}
+
 /**
  * Computes the cosine similarity two vectors, v and w
  * @param v the first vector<float>
@@ -726,6 +731,8 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
         return sequential_hungarian_matching(topic_models, l1_distance<int>);
     } else if (method == "hungarian-js") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
+    } else if (method == "hungarian-js2") {
+        return sequential_hungarian_matching(topic_models, jensen_shannon_div<int>);
     } else if (method == "hungarian-angle") {
         return sequential_hungarian_matching(topic_models, angular_distance<int>);
     } else if (method == "hungarian-hg") {
@@ -742,6 +749,8 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
         return clear_matching(topic_models, cosine_similarity<int>, false);
     } else if (method == "clear-js") {
         return clear_matching(topic_models, jensen_shannon_similarity<int>, false);
+    } else if (method == "clear-js2") {
+        return clear_matching(topic_models, jensen_shannon_similarity_v2<int>, false);
     } else if (method == "clear-distinct-l1") {
         return clear_matching(topic_models, l1_similarity<int>, true);
     } else if (method == "clear-distinct-l2") {
@@ -754,6 +763,8 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
         return clear_matching(topic_models, cosine_similarity<int>, true);
     } else if (method == "clear-distinct-js") {
         return clear_matching(topic_models, jensen_shannon_similarity<int>, true);
+    } else if (method == "clear-distinct-js2") {
+        return clear_matching(topic_models, jensen_shannon_similarity_v2<int>, true);
     } else {
         throw std::logic_error(method + " is not recognized.");
     }
