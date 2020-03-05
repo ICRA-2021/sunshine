@@ -29,12 +29,14 @@ def aggregate_cells(cell_file):
     dists_by_pose = {}
     min_x, max_x = np.inf, -np.inf
     min_y, max_y = np.inf, -np.inf
+    outofrange_count = 0
+    old_count = 0
     with open(cell_file, "r") as infile:
         reader = DictReader(infile)
         for row in reader:
             pose = (int(row["pose_dim_1"]), int(row["pose_dim_2"]))
             if not (-1000 <= pose[0] <= 1000 and -1000 <= pose[1] <= 1000):
-                print("Skipping out of range pose " + str(pose))
+                outofrange_count += 1
                 continue
             min_x, max_x = min(min_x, pose[0]), max(max_x, pose[0])
             min_y, max_y = min(min_y, pose[1]), max(max_y, pose[1])
@@ -45,9 +47,10 @@ def aggregate_cells(cell_file):
             elif pose not in dists_by_pose or int(row["pose_dim_0"]) > dists_by_pose[pose][0]:
                 dists_by_pose[pose] = [int(row["pose_dim_0"]), dist]
             else:
-                print("Skipping old pose " + str(pose))
+                old_count += 1
         for key in dists_by_pose.keys():
             dists_by_pose[key][1] /= dists_by_pose[key][1].sum()
+    print("Skipped {} out of range cells and {} outdated cells".format(outofrange_count, old_count))
     return dists_by_pose, (min_x, max_x), (min_y, max_y)
 
 
@@ -178,10 +181,12 @@ def match_distance(dists_by_pose_a, dists_by_pose_b):
             v2 = dists_by_pose_b[k1]
             if dists is None:
                 dists = np.zeros((v1[1].size, v2[1].size))
-            for k1 in range(v1[1].size):
-                dists[k1, :] = dists[k1, :] + np.abs(v2[1] - float(v1[1][k1]))
+            dists += np.abs(v1[1].reshape((-1, 1)) - v2[1].reshape((1, -1)))
     rows, cols = linear_sum_assignment(dists)
-    return dists[rows, cols].sum() / (2*total)
+    with np.printoptions(precision=3, linewidth=200):
+        print(dists)
+        print(dists[rows, cols])
+    return dists[rows, cols].sum() / (2*total), total
 
 
 if __name__ == "__main__":
@@ -208,10 +213,13 @@ if __name__ == "__main__":
             layers=True,
             filename=args.output_dir + "/{}reference-img.png".format(args.name + "-" if args.name is not None else "")
         )
+        partial_match_results = []
         min_x, max_x = aggregate[1]
         min_y, max_y = aggregate[2]
     else:
         min_x, max_x, min_y, max_y = np.inf, -np.inf, np.inf, -np.inf
+        partial_match_results = None
+        aggregate = None
 
     aggregates = []
     liftings = []
@@ -220,6 +228,8 @@ if __name__ == "__main__":
         if not os.path.isfile(cells_file):
             raise ValueError("Failed to find " + cells_file)
         aggregates.append(aggregate_cells(cells_file))
+        if args.full is not None:
+            partial_match_results.append(match_distance(aggregates[-1][0], aggregate[0]))
         min_x = min(min_x, aggregates[-1][1][0])
         min_y = min(min_y, aggregates[-1][2][0])
         max_x = max(max_x, aggregates[-1][1][1])
@@ -243,7 +253,7 @@ if __name__ == "__main__":
             filename=file.replace("modelweights.bin", "aligned-img.png"),
         )
 
-    merged_cells = merge_cells([aggregate[0] for aggregate in aggregates], liftings)
+    merged_cells = merge_cells([a[0] for a in aggregates], liftings)
     aligned_img = cells_to_image(
         merged_cells,
         (min_x, max_x),
@@ -266,5 +276,6 @@ if __name__ == "__main__":
     )
 
     if args.full is not None:
-        print("Merged distance: {}".format(match_distance(merged_cells, aggregate[0])))
-        print("Naive distance: {}".format(match_distance(naive_cells, aggregate[0])))
+        print("Merged distance: {}".format(match_distance(merged_cells, aggregate[0])[0]))
+        print("Naive distance: {}".format(match_distance(naive_cells, aggregate[0])[0]))
+        print("Min Distance: {}".format(sum([a[0] * a[1] for a in partial_match_results]) / sum([a[1] for a in partial_match_results])))

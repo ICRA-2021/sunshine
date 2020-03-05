@@ -26,7 +26,7 @@ def read_csv(path):
                         values = ast.literal_eval(line[key])
                         score = sum([a * b for a, b in zip(values, cluster_sizes)]) / sum(cluster_sizes)
                         dist = str(key).replace(metric, '').replace('JS', 'Jensen-Shannon').strip()
-                        if dist in ['Hellinger', 'Angular']:
+                        if dist in ['Hellinger', 'Angular', "NonMatch Probability"]:
                             continue
                         if dist in metrics:
                             metrics[dist][metric] = score
