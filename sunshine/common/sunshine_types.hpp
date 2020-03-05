@@ -15,10 +15,11 @@ namespace sunshine {
 
 struct Observation {
   std::string frame;
+  std::string source;
   double timestamp;
   uint32_t id;
 
-  Observation(std::string frame, long timestamp, int32_t id)
+  Observation(decltype(Observation::frame) frame, decltype(Observation::timestamp) timestamp, decltype(Observation::id) id)
         : frame(std::move(frame))
         , timestamp(timestamp)
         , id(id) {}
@@ -29,7 +30,10 @@ struct Observation {
 struct ImageObservation : public Observation {
   cv::Mat image;
 
-  ImageObservation(std::string frame, long timestamp, int32_t id, cv::Mat image)
+  ImageObservation(decltype(Observation::frame) frame,
+                   decltype(Observation::timestamp) timestamp,
+                   decltype(Observation::id) id,
+                   cv::Mat image)
         : Observation(std::move(frame), timestamp, id)
         , image(std::move(image)) {}
 
@@ -41,9 +45,9 @@ struct SemanticObservation : public Observation {
   std::vector<ObservationType> observations;
   std::vector<std::array<PoseType, PoseDim>> observation_poses;
 
-  SemanticObservation(std::string const &frame,
-                      long timestamp,
-                      int32_t id,
+  SemanticObservation(decltype(Observation::frame) const &frame,
+                      decltype(Observation::timestamp) timestamp,
+                      decltype(Observation::id) id,
                       std::vector<ObservationType> const &observations,
                       std::vector<std::array<PoseType, PoseDim>> const &observationPoses)
         : Observation(frame, timestamp, id)
@@ -58,9 +62,9 @@ struct CategoricalObservation : public SemanticObservation<WordType, PoseDim, Po
   uint64_t vocabulary_start;
   uint64_t vocabulary_size;
 
-  CategoricalObservation(std::string const &frame,
-                         long timestamp,
-                         int32_t id,
+  CategoricalObservation(decltype(Observation::frame) const &frame,
+                         decltype(Observation::timestamp) timestamp,
+                         decltype(Observation::id) id,
                          std::vector<WordType> const &observations,
                          std::vector<std::array<PoseType, PoseDim>> const &observationPoses,
                          uint64_t vocabularyStart,

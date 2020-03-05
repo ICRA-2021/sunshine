@@ -3,20 +3,20 @@
 //
 
 #include "sunshine_adapters.hpp"
-#include "../topic_model/topic_model_node.hpp"
+#include "../topic_model/rost_adapter.hpp"
 
 using namespace sunshine;
 
 class DummyFeatureExtractor : public FeatureExtractorAdapter<DummyFeatureExtractor, int, 4, double> {
   public:
-    Output operator()(Input const &imgObs) const {
+    Output operator()(const Input& imgObs) {
         return Output(imgObs.frame, imgObs.timestamp, imgObs.id, {0}, {{0, 10, 20, 30}}, 0, 1);
     }
 };
 
 class DummyTopicModel : public TopicModelAdapter<DummyTopicModel, int, int, 4, double, int> {
   public:
-    Output operator()(Input const &wordObs) const {
+    Output operator()(const Input& wordObs) {
         std::vector<cell_pose_t> cellPoses;
         for (auto const &wordPose : wordObs.observation_poses) cellPoses.push_back(toCellId(wordPose, {10, 10, 10, 10}));
         return Output(wordObs.frame,

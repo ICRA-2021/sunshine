@@ -20,6 +20,7 @@ sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim
     out.header.seq = in.id; // deprecate?
     out.header.stamp = ros::Time(in.timestamp);
     out.seq = in.id;
+    out.source = in.source;
     out.vocabulary_start = in.vocabulary_start;
     out.vocabulary_size = in.vocabulary_size;
     out.observation_transform = {}; // uninitialized

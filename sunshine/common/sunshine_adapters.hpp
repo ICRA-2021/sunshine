@@ -19,7 +19,7 @@ class Adapter {
     virtual ~Adapter() = default;
 //    virtual Output operator()(Input const &input) const = 0; // Not needed with CRTP
 
-    friend Output operator>>(Input const &input, ImplClass const &adapter) {
+    friend Output operator>>(Input input, ImplClass adapter) {
         return adapter(input);
     }
 };
@@ -45,16 +45,16 @@ class LogAdapter : public Adapter<LogAdapter<Input>, Input, Input> {
 
 template <typename Input>
 class UnaryOpAdapter : public Adapter<UnaryOpAdapter<Input>, Input, Input> {
-  std::function<Input(Input const&)> unary_op;
+  std::function<Input(Input)> unary_op;
   public:
-    explicit UnaryOpAdapter(std::function<Input(Input const&)> unary_op) : unary_op(unary_op) {}
-    Input operator()(Input const& input) {
+    explicit UnaryOpAdapter(std::function<Input(Input)> unary_op) : unary_op(unary_op) {}
+    Input operator()(Input input) {
         return unary_op(input);
     }
 };
 
 template<typename Init, class... Adapter>
-auto process(Init const &i, Adapter const &... adapters) {
+auto process(Init i, Adapter... adapters) {
     return (i >> ... >> adapters);
 }
 

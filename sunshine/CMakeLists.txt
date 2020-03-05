@@ -157,14 +157,16 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
+add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp)
+
 add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
-add_executable(topic_model topic_model/topic_model_node.cpp)
-add_executable(model_translator topic_model/model_translator.cpp)
-add_executable(visualize visualize/visualize2d.cpp)
-add_executable(visualize3d visualize/visualize3d.cpp)
-add_executable(save_topic_map visualize/save_topic_map.cpp)
-add_executable(save_point_cloud_2d visualize/save_point_cloud_2d.cpp)
-add_executable(perplexity_viz visualize/perplexity_viz.cpp)
+add_executable(topic_model nodes/topic_model_node.cpp)
+add_executable(model_translator nodes/model_translator.cpp)
+add_executable(visualize nodes/visualize/visualize2d.cpp)
+add_executable(visualize3d nodes/visualize/visualize3d.cpp)
+add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
+add_executable(save_point_cloud_2d nodes/visualize/save_point_cloud_2d.cpp)
+add_executable(perplexity_viz nodes/visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher utilities/image_publisher.cpp)
 add_executable(test.image_walker utilities/image_walk.cpp)
 add_executable(test.sunshine_eval utilities/sunshine_eval.cpp)
@@ -183,6 +185,7 @@ add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -203,8 +206,11 @@ add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
+target_include_directories(sunshine_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(sunshine_adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(topic_model ${catkin_LIBRARIES})
+target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_adapters)
 
 target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
@@ -240,8 +246,7 @@ target_include_directories(test.find_lifting PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
 target_compile_features(test.find_lifting PRIVATE cxx_std_17)
 
-target_include_directories(test.adapters PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.adapters ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_compile_features(test.adapters PRIVATE cxx_std_17)
 
 #############

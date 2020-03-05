@@ -1,6 +1,6 @@
-#include "../topic_model/topic_model_node.hpp"
 #include "utils.hpp"
 #include "word_coloring.hpp"
+#include <fstream>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>

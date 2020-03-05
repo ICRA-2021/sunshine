@@ -2,6 +2,7 @@
 #define IMAGE_UTILS_HPP
 
 #include "utils.hpp"
+#include "ros_utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <exception>
 #include <sensor_msgs/PointCloud2.h>
