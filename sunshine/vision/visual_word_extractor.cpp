@@ -123,7 +123,8 @@ namespace sunshine {
 
         sunshine_msgs::WordObservation::Ptr sz(new sunshine_msgs::WordObservation());
         sz->source = /** std::to_string(msg->header.seq) + "-" + **/
-              std::to_string(msg->header.stamp.toNSec());
+//              std::to_string(msg->header.stamp.toNSec());
+                ros::this_node::getName();
         if (sunshine::seq_start == 0) {
             sunshine::seq_start = msg->header.stamp.sec;
         }
@@ -201,6 +202,9 @@ namespace sunshine {
                 sz->observation_transform = latest_transform;
                 sz->observation_transform.header = msg->header;
             }
+
+            sz->observation_transform.header.frame_id = world_frame_name;
+            sz->observation_transform.child_frame_id = sensor_frame_name;
 
             words_pub.publish(sz);
         }

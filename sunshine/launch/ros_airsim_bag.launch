@@ -7,9 +7,9 @@
   <arg name="images_dir" default="" />
   <arg name="out_bag" default="" />
 
-  <arg name="visualize_2d" default="false" />
-  <arg name="visualize_3d" default="false" />
   <arg name="use_rviz" default="false" />
+  <arg name="visualize_3d" default="$(arg use_rviz)" />
+  <arg name="visualize_2d" default="false" />
   
   <param name="/use_sim_time" value="true"/>
   <arg name="camera_info_topic" default="/camera/camera_info" /> <!--unused?-->

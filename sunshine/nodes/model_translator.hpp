@@ -14,8 +14,6 @@
 #include "csv.hpp"
 
 namespace sunshine {
-    using namespace sunshine_msgs;
-
     class model_translator {
       ros::NodeHandle *nh;
       std::string match_method;
@@ -36,7 +34,7 @@ namespace sunshine {
       Phi global_model;
       long total_num_observations = 0;
 
-      boost::function<bool(MatchModelsRequest &, MatchModelsResponse &)> match_models_service;
+      boost::function<bool(sunshine_msgs::MatchModelsRequest &, sunshine_msgs::MatchModelsResponse &)> match_models_service;
       std::vector<Phi> fetch_topic_models(bool pause_models = false);
       void broadcast_global_model(bool unpause_models);
       void pause_topic_models(bool new_pause_state);

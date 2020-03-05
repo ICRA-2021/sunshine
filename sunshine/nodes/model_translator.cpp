@@ -12,6 +12,7 @@
 #include <numeric>
 
 using namespace sunshine;
+using namespace sunshine_msgs;
 
 int main(int argc, char **argv) {
 //    std::this_thread::sleep_for(std::chrono::seconds(5));

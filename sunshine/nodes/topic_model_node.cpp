@@ -11,6 +11,7 @@
 #include <sunshine_msgs/TopicWeights.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/transform_storage.h>
+#include "ros_conversions.hpp"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
@@ -34,13 +35,14 @@ long record_lap(T &time_checkpoint) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
-bool _save_topics_by_time_csv(ROSTAdapter const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+bool _save_topics_by_time_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+    auto const& rost = topic_model->get_adapter();
     std::ofstream writer(req.filename);
     writer << "time";
-    for (auto k = 0; k < topic_model->get_num_topics(); k++) {
+    for (auto k = 0; k < rost.get_num_topics(); k++) {
         writer << ",topic_" << std::to_string(k) << "_count";
     }
-    auto const topics = topic_model->get_topics_by_time();
+    auto const topics = rost.get_topics_by_time();
     for (auto const &entry : topics) {
         writer << "\n";
         writer << std::to_string(entry.first);
@@ -52,16 +54,17 @@ bool _save_topics_by_time_csv(ROSTAdapter const *topic_model, SaveObservationMod
     return true;
 }
 
-bool _save_topics_by_cell_csv(ROSTAdapter const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+bool _save_topics_by_cell_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
+    auto const& rost = topic_model->get_adapter();
     std::ofstream writer(req.filename);
     writer << "pose_dim_0";
     for (auto i = 1; i < POSEDIM; i++) {
         writer << ",pose_dim_" + std::to_string(i);
     }
-    for (auto k = 0; k < topic_model->get_num_topics(); k++) {
+    for (auto k = 0; k < rost.get_num_topics(); k++) {
         writer << ",k_" << std::to_string(k);
     }
-    auto const topics = topic_model->get_topics_by_cell();
+    auto const topics = rost.get_topics_by_cell();
     for (auto const &entry : topics) {
         writer << "\n";
         writer << std::to_string(entry.first[0]);
@@ -76,32 +79,33 @@ bool _save_topics_by_cell_csv(ROSTAdapter const *topic_model, SaveObservationMod
     return true;
 }
 
-bool _generate_topic_summary(ROSTAdapter const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
-    response.num_topics = topic_model->get_num_topics();
-    response.last_seq = topic_model->get_last_observation_time();
+bool _generate_topic_summary(topic_model_node const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
+    auto const& rost = topic_model->get_adapter();
+    response.num_topics = rost.get_num_topics();
+    response.last_seq = rost.get_last_observation_time();
     response.header.stamp = ros::Time::now();
     if (request.grouping == "cell") {
-        auto const topics = topic_model->get_topics_by_cell();
+        auto const topics = rost.get_topics_by_cell();
         response.num_observations = topics.size();
         response.pose_fields = "t,x,y,z";
-        response.topic_counts.reserve(topic_model->get_num_topics() * topics.size());
+        response.topic_counts.reserve(rost.get_num_topics() * topics.size());
         response.topic_pose.reserve(POSEDIM * topics.size());
         for (auto const &entry : topics) {
             response.topic_pose.insert(response.topic_pose.end(), entry.first.begin(), entry.first.end());
             response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
         }
     } else if (request.grouping == "time") {
-        auto const topics = topic_model->get_topics_by_time();
+        auto const topics = rost.get_topics_by_time();
         response.num_observations = topics.size();
         response.pose_fields = "t";
-        response.topic_counts.reserve(topic_model->get_num_topics() * topics.size());
+        response.topic_counts.reserve(rost.get_num_topics() * topics.size());
         response.topic_pose.reserve(topics.size());
         for (auto const &entry : topics) {
             response.topic_pose.push_back(entry.first);
             response.topic_counts.insert(response.topic_counts.end(), entry.second.begin(), entry.second.end());
         }
     } else if (request.grouping == "global") {
-        auto const topics = topic_model->get_rost().get_topic_weights();
+        auto const topics = rost.get_rost().get_topic_weights();
         response.num_observations = 1;
         response.pose_fields = "";
         assert(topics.size() == topic_model->get_num_topics());
@@ -124,7 +128,7 @@ bool _get_topic_map(topic_model_node const *topic_model, GetTopicMapRequest &, G
     return true;
 }
 
-bool _get_topic_model(ROSTAdapter *topic_model,
+bool _get_topic_model(topic_model_node *topic_model,
                       std::unique_ptr<activity_manager::WriteToken> const &rostLock,
                       std::string name,
                       GetTopicModelRequest &,
@@ -136,7 +140,7 @@ bool _get_topic_model(ROSTAdapter *topic_model,
     response.topic_model = sunshine_msgs::TopicModel();
     response.topic_model.identifier = name;
 
-    auto &rost = topic_model->get_rost();
+    auto &rost = topic_model->get_adapter().get_rost();
     std::unique_ptr<activity_manager::ReadToken> readToken;
     if (!rostLock) readToken = rost.get_read_token();
     assert(readToken || rostLock);
@@ -160,7 +164,7 @@ bool _get_topic_model(ROSTAdapter *topic_model,
     return response.topic_model.K >= 1;
 }
 
-bool _set_topic_model(ROSTAdapter *topic_model,
+bool _set_topic_model(topic_model_node *topic_model,
                       std::unique_ptr<activity_manager::WriteToken> const &rostLock,
                       SetTopicModelRequest &request,
                       SetTopicModelResponse &) {
@@ -178,7 +182,7 @@ bool _set_topic_model(ROSTAdapter *topic_model,
     for (auto k = 0ul; k < request.topic_model.K; ++k) {
         nZW.emplace_back(request.topic_model.phi.cbegin() + k * V, request.topic_model.phi.cbegin() + (k + 1) * V);
     }
-    auto &rost = topic_model->get_rost();
+    auto &rost = topic_model->get_adapter().get_rost();
     auto writeLock = (rostLock)
                      ? std::unique_ptr<activity_manager::WriteToken>()
                      : rost.get_write_token();
@@ -205,19 +209,19 @@ bool _set_topic_model(ROSTAdapter *topic_model,
 #endif
 
     ROS_DEBUG("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
-    topic_model->get_rost()
+    topic_model->get_adapter().get_rost()
                .set_topic_model((rostLock)
                                 ? rostLock
                                 : writeLock, nZW, request.topic_model.topic_weights);
     return true;
 }
 
-bool _pause_topic_model(ROSTAdapter *topic_model,
+bool _pause_topic_model(topic_model_node *topic_model,
                         std::unique_ptr<activity_manager::WriteToken> &rostLock,
                         PauseRequest &request,
                         PauseResponse &) {
     ROS_DEBUG("Changing topic model global pause state");
-    auto &rost = topic_model->get_rost();
+    auto &rost = topic_model->get_adapter().get_rost();
     if (request.pause == (bool) rostLock) return false;
     if (request.pause) rostLock = rost.get_write_token();
     if (!request.pause) rostLock.reset();
@@ -302,7 +306,7 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
         save_topics_timer = nh->createTimer(ros::Duration(save_topics_period), [this, nodeName](ros::TimerEvent const &) {
             GetTopicModel serviceObj{};
             std::unique_ptr<activity_manager::WriteToken> nptr{};
-            auto const success = _get_topic_model(&rostAdapter, nptr, ros::this_node::getName(), serviceObj.request, serviceObj.response);
+            auto const success = _get_topic_model(this, nptr, ros::this_node::getName(), serviceObj.request, serviceObj.response);
             if (success) {
                 auto const millis = std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6));
                 assert(millis.size() <= 3);
@@ -332,7 +336,7 @@ void topic_model_node::words_callback(const sunshine_msgs::WordObservation::Cons
     if (current_source.empty()) { current_source = wordObs->source; }
     else if (current_source != wordObs->source)
         ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordObs->source.c_str());
-    // TODO Convert to sunshine observation type
+    rostAdapter(fromRosMsg<int, POSEDIM, WordDimType>(*wordObs));
 }
 
 TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {

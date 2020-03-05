@@ -19,11 +19,11 @@
   <!-- Words are binned based on their spatial location.
        That needs to be done in a map-like frame, and Sentry bags already had
        this info in odom_dr. -->
-  <arg name="world_frame_name" default=""/>
+  <arg name="world_frame_name" default="map"/>
   <!-- This enables Sunshine to change point cloud frames for compatability
        with BlueROV. For sentry, this must match point clouds that are published,
        so this 'if' replicates the logic in pc_publisher -->
-  <arg name="sensor_frame_name" default="" />
+  <arg name="sensor_frame_name" default="camera" />
   <!-- Whether to use tf lookup to get differences between frames. For compatibility
        with other lab systems that aren't yet TF-ified. -->
   <arg name="use_tf" default="false"/>

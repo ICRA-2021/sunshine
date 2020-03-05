@@ -22,10 +22,7 @@ typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<
 using warp::ROST;
 using warp::hROST;
 
-typedef CategoricalObservation<int, POSEDIM, WordDimType> WordObservation;
-typedef CategoricalObservation<int, POSEDIM, CellDimType> TopicObservation;
-
-class ROSTAdapter : public Adapter<ROSTAdapter, WordObservation, void> {
+class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, POSEDIM, WordDimType>, void> {
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
     mutable int consecutive_rate_violations = 0;
@@ -43,13 +40,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter, WordObservation, void> {
 
     std::vector<double> observation_times; //list of all time seq ids observed thus far.
     std::vector<cell_pose_t> current_cell_poses, last_poses;
-    std::string current_source;
 
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
     std::function<void(ROSTAdapter*)> newObservationCallback;
-
-    void operator()(WordObservation const &words);
 
   public:
 #ifndef NDEBUG
@@ -78,7 +72,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, WordObservation, void> {
         update_topic_model = nh->template param<bool>("update_topic_model", true);
         min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
-        world_frame = nh->template param<std::string>("world_frame", "map");
+        world_frame = nh->template param<std::string>("world_frame", "");
 
         if (!cell_size_string.empty()) {
             cell_size = readNumbers<POSEDIM, 'x'>(cell_size_string);
@@ -123,6 +117,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter, WordObservation, void> {
     }
 
     ~ROSTAdapter();
+
+    void operator()(CategoricalObservation<int, POSEDIM, WordDimType> const &words);
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
 

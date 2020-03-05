@@ -4,8 +4,6 @@
 #include <array>
 #include <memory>
 #include <ros/ros.h>
-#include <rost/hlda.hpp>
-#include <rost/rost.hpp>
 #include <sunshine_msgs/WordObservation.h>
 #include <sunshine_msgs/TopicMap.h>
 #include <sunshine_msgs/SaveObservationModel.h>
@@ -14,8 +12,6 @@
 #include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/SetTopicModel.h>
 #include <sunshine_msgs/Pause.h>
-#include "sunshine_types.hpp"
-#include "sunshine_adapters.hpp"
 #include "../topic_model/rost_adapter.hpp"
 
 #define POSEDIM 4

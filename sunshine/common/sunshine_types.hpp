@@ -15,7 +15,6 @@ namespace sunshine {
 
 struct Observation {
   std::string frame;
-  std::string source;
   double timestamp;
   uint32_t id;
 

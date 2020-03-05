@@ -10,6 +10,7 @@
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 using namespace sunshine;
+using WordObservation = CategoricalObservation<int, POSEDIM, WordDimType>;
 
 template<typename T>
 long record_lap(T &time_checkpoint) {
@@ -100,7 +101,10 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
     auto time_checkpoint = std::chrono::steady_clock::now();
     auto const time_start = time_checkpoint;
 
-    if (wordObs.frame != world_frame) {
+    if (wordObs.frame.empty()) ROS_WARN("Received WordObservation with empty frame!");
+
+    if (world_frame.empty()) world_frame = wordObs.frame;
+    else if (wordObs.frame != world_frame) {
         ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs.frame.c_str(), world_frame.c_str());
         return;
     }
@@ -130,14 +134,11 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
         current_cell_poses.clear();
-        current_source.clear();
     }
     last_time = observation_time;
     auto const duration_broadcast = record_lap(time_checkpoint);
 
     ROS_DEBUG("Adding %lu word observations from time %f", wordObs.observations.size(), observation_time);
-    ROS_ERROR_COND(!current_source.empty() && current_source != wordObs.source,
-                   "Words received from different source with same observation time!");
     {
         auto rostWriteGuard = rost->get_write_token();
         duration_write_lock = record_lap(time_checkpoint);
@@ -149,7 +150,6 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
             auto const &cell_words = entry.second;
             rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
             current_cell_poses.push_back(cell_pose);
-            current_source = wordObs.source;
         }
     }
     auto const duration_add_observations = record_lap(time_checkpoint);

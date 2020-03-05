@@ -3,36 +3,37 @@
 
 #include "colors.hpp"
 #include <exception>
+#include <array>
 #include <opencv2/core.hpp>
 
 namespace sunshine {
 
-template <typename ValType>
+template<typename ValType>
 struct cvType {
 };
-template <>
+template<>
 struct cvType<float> {
-    static int const value = CV_32F;
+  static int const value = CV_32F;
 };
-template <>
+template<>
 struct cvType<double> {
-    static int const value = CV_64F;
+  static int const value = CV_64F;
 };
-template <>
+template<>
 struct cvType<uint8_t> {
-    static int const value = CV_8U;
+  static int const value = CV_8U;
 };
-template <>
+template<>
 struct cvType<uint16_t> {
-    static int const value = CV_16U;
+  static int const value = CV_16U;
 };
-template <>
+template<>
 struct cvType<cv::Vec4b> {
-    static int const value = CV_8UC4;
+  static int const value = CV_8UC4;
 };
-template <>
+template<>
 struct cvType<cv::Vec3b> {
-    static int const value = CV_8UC3;
+  static int const value = CV_8UC3;
 };
 
 /**
@@ -41,9 +42,8 @@ struct cvType<cv::Vec3b> {
  * @param values Scalar values corresponding to each pose of the form [f1,...,fN] (size of N)
  * @return cv::Mat where mat.at<MatValueType>(yI, xI) = fI
  */
-template <typename IdxType, typename ValueType, typename MatValueType = ValueType>
-cv::Mat toMat(std::vector<IdxType> const& idxes, std::vector<ValueType> const& values)
-{
+template<typename IdxType, typename ValueType, typename MatValueType = ValueType>
+cv::Mat toMat(std::vector<IdxType> const &idxes, std::vector<ValueType> const &values) {
     assert(idxes.size() == (values.size() * 3) || idxes.size() == (values.size() * 2));
     auto const poseDim = static_cast<int>(values.size() / idxes.size());
 
@@ -62,13 +62,14 @@ cv::Mat toMat(std::vector<IdxType> const& idxes, std::vector<ValueType> const& v
     return mat;
 }
 
-template <int COUNT, char DELIM='x'>
-static inline std::array<double, COUNT> readNumbers(std::string const &str)
-{
+template<int COUNT, char DELIM = 'x'>
+static inline std::array<double, COUNT> readNumbers(std::string const &str) {
     std::array<double, COUNT> nums = {0};
     size_t idx = 0;
     for (size_t i = 1; i <= COUNT; i++) {
-        auto const next = (i < COUNT) ? str.find(DELIM, idx) : str.size();
+        auto const next = (i < COUNT)
+                          ? str.find(DELIM, idx)
+                          : str.size();
         if (next == std::string::npos) {
             throw std::invalid_argument("String '" + str + "' contains too few numbers!");
         }
@@ -78,9 +79,8 @@ static inline std::array<double, COUNT> readNumbers(std::string const &str)
     return nums;
 }
 
-template <int POSE_DIM>
-static inline std::array<double, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space)
-{
+template<int POSE_DIM>
+static inline std::array<double, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space) {
     std::array<double, POSE_DIM> cell_size = {};
     cell_size[0] = cell_size_time;
     for (size_t i = 1; i < POSE_DIM; i++) {
@@ -88,6 +88,35 @@ static inline std::array<double, POSE_DIM> computeCellSize(double cell_size_time
     }
     return cell_size;
 }
+
+namespace _make_array {
+template<std::size_t... Indices>
+struct indices {
+  using next = indices<Indices..., sizeof...(Indices)>;
+};
+template<std::size_t N>
+struct build_indices {
+  using type = typename build_indices<N - 1>::type::next;
+};
+
+template<>
+struct build_indices<0> {
+  using type = indices<>;
+};
+template<std::size_t N> using BuildIndices = typename build_indices<N>::type;
+
+template<std::size_t... I, typename Iter, typename ValueType=typename Iter::value_type, typename Array = std::array<ValueType, sizeof...(I)>>
+Array make_array(Iter first, indices<I...>) {
+    return Array{{first[I]...}};
+}
+}
+
+template<std::size_t N, typename Iter, typename ValueType=typename Iter::value_type>
+std::array<ValueType, N> make_array(Iter start) {
+    using namespace _make_array;
+    return make_array(start, BuildIndices<N>{});
+}
+
 }
 
 #endif // UTILS_HPP
