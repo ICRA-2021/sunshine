@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(sunshine)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -165,11 +165,12 @@ add_executable(visualize3d visualize/visualize3d.cpp)
 add_executable(save_topic_map visualize/save_topic_map.cpp)
 add_executable(save_point_cloud_2d visualize/save_point_cloud_2d.cpp)
 add_executable(perplexity_viz visualize/perplexity_viz.cpp)
-add_executable(test.image_publisher test/image_publisher.cpp)
-add_executable(test.image_walker test/image_walk.cpp)
-add_executable(test.sunshine_eval test/sunshine_eval.cpp)
-add_executable(test.topic_match test/topic_match.cpp)
-add_executable(test.find_lifting test/find_lifting.cpp)
+add_executable(test.image_publisher utilities/image_publisher.cpp)
+add_executable(test.image_walker utilities/image_walk.cpp)
+add_executable(test.sunshine_eval utilities/sunshine_eval.cpp)
+add_executable(test.topic_match utilities/topic_match.cpp)
+add_executable(test.find_lifting utilities/find_lifting.cpp)
+add_executable(test.adapters test/test_adapters.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
@@ -238,6 +239,10 @@ target_compile_features(test.topic_match PRIVATE cxx_std_17)
 target_include_directories(test.find_lifting PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
 target_compile_features(test.find_lifting PRIVATE cxx_std_17)
+
+target_include_directories(test.adapters PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.adapters ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+target_compile_features(test.adapters PRIVATE cxx_std_17)
 
 #############
 ## Install ##

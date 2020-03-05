@@ -14,6 +14,8 @@
 #include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/SetTopicModel.h>
 #include <sunshine_msgs/Pause.h>
+#include "sunshine_types.hpp"
+#include "sunshine_adapters.hpp"
 
 #define POSEDIM 4
 
