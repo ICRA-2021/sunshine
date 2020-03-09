@@ -10,7 +10,7 @@
 #include "sunshine_msgs/LocalSurprise.h"
 #include "rost_visualize/draw_keypoints.hpp"
 #include "rost_visualize/draw_local_surprise.hpp"
-#include "utils.hpp"
+#include "sunshine/common/utils.hpp"
 
 #include <iostream>
 #include <algorithm>

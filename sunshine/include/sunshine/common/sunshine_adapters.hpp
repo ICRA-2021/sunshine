@@ -6,7 +6,7 @@
 #define SUNSHINE_PROJECT_SUNSHINE_ADAPTERS_HPP
 
 #include <functional>
-#include "sunshine_types.hpp"
+#include "sunshine/common/sunshine_types.hpp"
 
 namespace sunshine {
 

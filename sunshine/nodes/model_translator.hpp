@@ -10,8 +10,8 @@
 #include <sunshine_msgs/MatchModels.h>
 #include <list>
 #include <utility>
-#include "adrost_utils.hpp"
-#include "csv.hpp"
+#include "sunshine/common/adrost_utils.hpp"
+#include "sunshine/common/csv.hpp"
 
 namespace sunshine {
     class model_translator {

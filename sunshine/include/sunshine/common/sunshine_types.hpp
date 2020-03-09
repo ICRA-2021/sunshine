@@ -39,8 +39,12 @@ struct ImageObservation : public Observation {
   ~ImageObservation() override = default;
 };
 
-template<typename ObservationType, uint32_t PoseDim, typename PoseType = double>
+template<typename _ObservationType, uint32_t _PoseDim, typename _PoseType = double>
 struct SemanticObservation : public Observation {
+  typedef _ObservationType ObservationType;
+  typedef _PoseType PoseType;
+  static uint32_t constexpr PoseDim = _PoseDim;
+
   std::vector<ObservationType> observations;
   std::vector<std::array<PoseType, PoseDim>> observation_poses;
 
@@ -52,6 +56,15 @@ struct SemanticObservation : public Observation {
         : Observation(frame, timestamp, id)
         , observations(observations)
         , observation_poses(observationPoses) {}
+
+  SemanticObservation(decltype(Observation::frame) const &frame,
+                      decltype(Observation::timestamp) timestamp,
+                      decltype(Observation::id) id,
+                      std::vector<ObservationType> &&observations,
+                      std::vector<std::array<PoseType, PoseDim>> &&observationPoses)
+        : Observation(frame, timestamp, id)
+        , observations(std::move(observations))
+        , observation_poses(std::move(observationPoses)) {}
 
   ~SemanticObservation() override = default;
 };
@@ -69,6 +82,17 @@ struct CategoricalObservation : public SemanticObservation<WordType, PoseDim, Po
                          uint64_t vocabularyStart,
                          uint64_t vocabularySize)
         : SemanticObservation<WordType, PoseDim, PoseType>(frame, timestamp, id, observations, observationPoses)
+        , vocabulary_start(vocabularyStart)
+        , vocabulary_size(vocabularySize) {}
+
+  CategoricalObservation(decltype(Observation::frame) const &frame,
+                         decltype(Observation::timestamp) timestamp,
+                         decltype(Observation::id) id,
+                         std::vector<WordType>&& observations,
+                         std::vector<std::array<PoseType, PoseDim>>&& observationPoses,
+                         uint64_t vocabularyStart,
+                         uint64_t vocabularySize)
+        : SemanticObservation<WordType, PoseDim, PoseType>(frame, timestamp, id, std::move(observations), std::move(observationPoses))
         , vocabulary_start(vocabularyStart)
         , vocabulary_size(vocabularySize) {}
 

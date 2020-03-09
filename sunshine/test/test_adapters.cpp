@@ -2,8 +2,8 @@
 // Created by stewart on 3/4/20.
 //
 
-#include "sunshine_adapters.hpp"
-#include "../topic_model/rost_adapter.hpp"
+#include "sunshine/common/sunshine_adapters.hpp"
+#include "sunshine/rost_adapter.hpp"
 
 using namespace sunshine;
 

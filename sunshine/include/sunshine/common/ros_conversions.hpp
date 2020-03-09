@@ -5,36 +5,40 @@
 #ifndef SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 #define SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 
-#include "sunshine_types.hpp"
+#include "sunshine/common/sunshine_types.hpp"
 #include <sunshine_msgs/WordObservation.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Point.h>
+#include <tf2/convert.h>
 
 namespace sunshine {
 
-template<typename WordType, uint32_t PoseDim, typename WordPoseType, typename WordObservation = CategoricalObservation <WordType, PoseDim, WordPoseType>>
-sunshine_msgs::WordObservation toRosMsg(WordObservation const &in) {
-    static_assert(std::is_integral<WordType>::value, "Only integral word types are supported!");
-    static_assert(sizeof(WordType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type), "WordType is too large!");
+template<typename WordObservation>
+sunshine_msgs::WordObservation toRosMsg(WordObservation const &in, geometry_msgs::TransformStamped observationTransform = {}) {
+    static_assert(std::is_integral<typename WordObservation::ObservationType>::value, "Only integral word types are supported!");
+    static_assert(sizeof(typename WordObservation::ObservationType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type),
+                  "WordType is too large!");
+    auto constexpr poseDim = WordObservation::PoseDim;
 
     sunshine_msgs::WordObservation out{};
     out.header.frame_id = in.frame;
-    out.header.seq = in.id; // deprecate?
+//    out.header.seq = in.id; // deprecate?
     out.header.stamp = ros::Time(in.timestamp);
     out.seq = in.id;
     out.source = ""; // unused
     out.vocabulary_begin = in.vocabulary_start;
     out.vocabulary_size = in.vocabulary_size;
-    out.observation_transform = {}; // uninitialized
+    out.observation_transform = observationTransform;
 
     out.words.reserve(in.observations.size());
-    out.word_pose.reserve(in.observations.size() * PoseDim);
+    out.word_pose.reserve(in.observations.size() * poseDim);
     out.word_scale = {}; // uninitialized
 
-    for (auto i = 0ul, j = 0ul; i < in.observations.size(); ++i, j += PoseDim) {
+    for (auto i = 0ul, j = 0ul; i < in.observations.size(); ++i) {
         out.words.emplace_back(in.observations[i]);
-        assert(j + PoseDim <= in.observation_poses.size());
-        for (auto d = 0u; d < PoseDim; ++d) {
-            out.word_pose.emplace_back(in.observation_poses[j + d]);
+        assert(in.observation_poses[i].size() == poseDim);
+        for (auto d = 0u; d < poseDim; ++d) {
+            out.word_pose.emplace_back(static_cast<double>(in.observation_poses[i][d]));
         }
     }
     return out;
@@ -42,13 +46,13 @@ sunshine_msgs::WordObservation toRosMsg(WordObservation const &in) {
 
 template<typename WordType, uint32_t PoseDim, typename WordPoseType>
 CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msgs::WordObservation const &in) {
-    static_assert(PoseDim == 4, "Only 4-d poses are currently supported for ROS conversion");
+    static_assert(PoseDim <= 4, "Only up to 4-d poses are currently supported for ROS conversion");
     static_assert(std::is_integral<WordType>::value, "Only integral word types are supported!");
     static_assert(sizeof(WordType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type), "WordType is too large!");
 
-    auto out = CategoricalObservation<WordType, PoseDim, WordPoseType>((in.observation_transform.header.frame_id.empty())
+    auto out = CategoricalObservation<WordType, PoseDim, WordPoseType>((in.observation_transform.child_frame_id.empty())
                                                                        ? in.header.frame_id
-                                                                       : in.observation_transform.header.frame_id,
+                                                                       : in.observation_transform.child_frame_id,
                                                                        in.header.stamp.toSec(),
                                                                        in.seq,
                                                                        {},
@@ -62,8 +66,8 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
     uint32_t const inputDim = (in.words.empty())
                               ? 0
                               : in.word_pose.size() / in.words.size();
+    if (inputDim != PoseDim) throw std::logic_error("PoseDim does not match pose dimension of input message!");
     if (in.words.size() * inputDim != in.word_pose.size()) { throw std::invalid_argument("Malformed sunshine_msgs::WordObservation"); }
-    else if (inputDim > 3) throw std::invalid_argument("Incorrect pose dimension for sunshine_msgs::WordObservation");
 
     for (auto i = 0ul, j = 0ul; i < in.words.size(); ++i, j += inputDim) {
         out.observations.emplace_back(in.words[i]);
@@ -79,22 +83,20 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
                 point.x = in.word_pose[j];
                 break;
             default:
-                throw std::logic_error("Should be unreachable");
+                throw std::logic_error("Cannot handle more than 3 input dimensions");
         }
-        word_pose_t wordPose = {0};
+        std::array<WordPoseType, PoseDim> wordPose = {0};
         tf2::doTransform(point, point, in.observation_transform);
         switch (inputDim) {
             case 3:
-                wordPose[3] = point.z;
+                wordPose[2] = point.z;
             case 2:
-                wordPose[2] = point.y;
+                wordPose[1] = point.y;
             case 1:
-                wordPose[1] = point.x;
-            case 0:
-                wordPose[0] = in.observation_transform.header.stamp.toSec();
+                wordPose[0] = point.x;
                 break;
             default:
-                throw std::logic_error("Should be unreachable");
+                throw std::logic_error("Cannot handle more than 3 input dimensions");
         }
         out.observation_poses.push_back(wordPose);
     }

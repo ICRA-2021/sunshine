@@ -112,6 +112,7 @@
   <arg name="word_obs_queue_size" default="1" />
   <!-- Map perplexity type. Perplexity can be computed globally or based on neighborhood. If globally, it causes both rare and different-from-neighbors cells to stand out. If neighborhood, only different-from-neighbor cells stand out. Only affects publication. -->
   <arg name="map_ppx_type" default="global" />
+  <arg name="map_publish_period" default="4" />
 
   <!-- Visualization arguments -->
   <arg name="map_topic" default="/rost/topic_map" />
@@ -168,7 +169,7 @@
   </node>
 
   <!-- Launch topic model -->
-  <node pkg="sunshine" type="topic_model" name="rost">
+  <node pkg="sunshine" type="topic_model" name="rost" output="screen" >
     <param name="K" type="int" value="$(arg K)" />
     <param name="V" type="int" value="$(arg V)" />
     <param name="alpha" type="double" value="$(arg alpha)" />
@@ -188,6 +189,7 @@
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
     <param name="publish_map" type="bool" value="true" />
     <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
+    <param name="map_publish_period" type="double" value="$(arg map_publish_period)" />
   </node>
 
   <node pkg="sunshine" type="visualize" name="word_visualizer">

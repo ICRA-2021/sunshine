@@ -1,5 +1,5 @@
-#include "ros_utils.hpp"
-#include "word_coloring.hpp"
+#include "sunshine/common/ros_utils.hpp"
+#include "sunshine/common/word_coloring.hpp"
 #include <cstdlib>
 #include <map>
 #include <utility>

@@ -1,6 +1,6 @@
 // From http://wiki.ros.org/image_transport/Tutorials/PublishingImages
 
-#include "ros_utils.hpp"
+#include "sunshine/common/ros_utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>

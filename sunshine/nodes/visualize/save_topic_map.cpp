@@ -1,5 +1,5 @@
-#include "utils.hpp"
-#include "word_coloring.hpp"
+#include "sunshine/common/utils.hpp"
+#include "sunshine/common/word_coloring.hpp"
 #include <fstream>
 #include <iostream>
 #include <opencv2/core.hpp>

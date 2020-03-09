@@ -21,8 +21,8 @@
 #include <chrono>
 #include <future>
 //#include <boost/sort/sort.hpp>
-#include "csv.hpp"
-#include "adrost_utils.hpp"
+#include "sunshine/common/csv.hpp"
+#include "sunshine/common/adrost_utils.hpp"
 
 std::vector<std::string> split_algs(const std::string &arg) {
     std::vector<std::string> algs;

@@ -1,4 +1,4 @@
-#include "rost_adapter.hpp"
+#include "sunshine/rost_adapter.hpp"
 
 #include <fstream>
 #include <exception>
@@ -10,7 +10,7 @@
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 
 using namespace sunshine;
-using WordObservation = CategoricalObservation<int, POSEDIM, WordDimType>;
+using WordObservation = CategoricalObservation<int, 3, WordDimType>;
 
 template<typename T>
 long record_lap(T &time_checkpoint) {
@@ -72,7 +72,8 @@ static std::map<cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservat
 //        word_stamped_point[2] = static_cast<WordDimType>(word_point.y);
 //        word_stamped_point[3] = static_cast<WordDimType>(word_point.z);
 
-        cell_pose_t const cell_stamped_point = toCellId(wordObs.observation_poses[i], cell_size);
+        cell_pose_t const cell_stamped_point = toCellId({wordObs.timestamp, wordObs.observation_poses[i][0],
+                                                              wordObs.observation_poses[i][1], wordObs.observation_poses[i][2]}, cell_size);
         words_by_cell_pose[cell_stamped_point].emplace_back(wordObs.observations[i]);
     }
     return words_by_cell_pose;
@@ -103,7 +104,7 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
 
     if (wordObs.frame.empty()) ROS_WARN("Received WordObservation with empty frame!");
 
-    if (world_frame.empty()) world_frame = wordObs.frame;
+    if (world_frame.empty()) { world_frame = wordObs.frame; }
     else if (wordObs.frame != world_frame) {
         ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs.frame.c_str(), world_frame.c_str());
         return;

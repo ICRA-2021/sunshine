@@ -1,7 +1,7 @@
 #ifndef WORD_COLORING_HPP
 #define WORD_COLORING_HPP
 
-#include "utils.hpp"
+#include "sunshine/common/utils.hpp"
 #include <cstdlib>
 #include <map>
 

@@ -1,6 +1,7 @@
 #include "topic_model_node.hpp"
 
-#include "ros_utils.hpp"
+#include "sunshine/common/ros_utils.hpp"
+#include "sunshine/common/ros_conversions.hpp"
 #include <fstream>
 #include <exception>
 #include <functional>
@@ -11,7 +12,6 @@
 #include <sunshine_msgs/TopicWeights.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2/transform_storage.h>
-#include "ros_conversions.hpp"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
@@ -108,7 +108,7 @@ bool _generate_topic_summary(topic_model_node const *topic_model, GetTopicSummar
         auto const topics = rost.get_rost().get_topic_weights();
         response.num_observations = 1;
         response.pose_fields = "";
-        assert(topics.size() == topic_model->get_num_topics());
+        assert(topics.size() == rost.get_num_topics());
         response.topic_counts.reserve(topics.size());
         for (auto const &entry : topics) {
             response.topic_counts = topics;
@@ -336,7 +336,7 @@ void topic_model_node::words_callback(const sunshine_msgs::WordObservation::Cons
     if (current_source.empty()) { current_source = wordObs->source; }
     else if (current_source != wordObs->source)
         ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordObs->source.c_str());
-    rostAdapter(fromRosMsg<int, POSEDIM, WordDimType>(*wordObs));
+    rostAdapter(fromRosMsg<int, 3, WordDimType>(*wordObs));
 }
 
 TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {

@@ -12,7 +12,7 @@
 #include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/SetTopicModel.h>
 #include <sunshine_msgs/Pause.h>
-#include "../topic_model/rost_adapter.hpp"
+#include "sunshine/rost_adapter.hpp"
 
 #define POSEDIM 4
 
@@ -33,7 +33,6 @@ class topic_model_node {
     ros::Timer map_publish_timer, save_topics_timer;
     std::string save_topics_path;
     std::string map_ppx_type, current_source = "";
-    sunshine_msgs::WordObservation topicObs;
 
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;

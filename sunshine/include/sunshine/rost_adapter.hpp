@@ -5,9 +5,10 @@
 #include <memory>
 #include <rost/hlda.hpp>
 #include <rost/rost.hpp>
-#include <utils.hpp>
-#include "sunshine_types.hpp"
-#include "sunshine_adapters.hpp"
+#include <utility>
+#include "sunshine/common/utils.hpp"
+#include "sunshine/common/sunshine_types.hpp"
+#include "sunshine/common/sunshine_adapters.hpp"
 
 #define POSEDIM 4
 
@@ -22,7 +23,7 @@ typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<
 using warp::ROST;
 using warp::hROST;
 
-class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, POSEDIM, WordDimType>, void> {
+class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, WordDimType>, void> {
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
     mutable int consecutive_rate_violations = 0;
@@ -34,7 +35,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, POSE
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool polled_refine, update_topic_model;
-    size_t last_refine_count;
+    size_t last_refine_count = 0;
     std::unique_ptr<ROST_t> rost;
     std::string world_frame;
 
@@ -51,7 +52,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, POSE
 #endif
 
     template<typename ParamServer>
-    ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr) : newObservationCallback(callback) {
+    ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr) : newObservationCallback(std::move(callback)) {
         K = nh->template param<int>("K", 100); // number of topics
         V = nh->template param<int>("V", 1500); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
@@ -116,9 +117,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, POSE
         }
     }
 
-    ~ROSTAdapter();
+    ~ROSTAdapter() override;
 
-    void operator()(CategoricalObservation<int, POSEDIM, WordDimType> const &words);
+    void operator()(CategoricalObservation<int, 3, WordDimType> const &words);
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
 
