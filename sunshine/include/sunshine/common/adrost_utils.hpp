@@ -10,7 +10,10 @@
 #include <istream>
 #include <utility>
 #include <ros/console.h> // TODO remove? only needed for logging
+#include "sunshine_types.hpp"
 // #include "adapters/boostmatrixadapter.h"
+
+namespace sunshine {
 
 template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 template<typename L, typename R = L> using DistanceMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
@@ -21,99 +24,6 @@ double unit_round(double value, double epsilon = 2e-3) {
     if (std::abs(value - 1) <= epsilon) return 1;
     throw std::logic_error("Value is not within [0,1]");
 }
-
-struct Phi {
-  std::string id;
-  int K = 0, V = 0;
-  std::vector<std::vector<int>> counts = {};
-  std::vector<int> topic_weights = {};
-
-  explicit Phi()
-        : id("") {}
-
-  explicit Phi(std::string id)
-        : id(std::move(id)) {}
-
-  Phi(std::string id, int K, int V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
-        : id(std::move(id))
-        , K(K)
-        , V(V)
-        , counts(std::move(counts))
-        , topic_weights(std::move(topic_weights)) {
-  }
-
-  bool validate(bool verbose = true) {
-      bool flag = true;
-      if (K != counts.size() || K != topic_weights.size()) {
-          if (verbose)
-              ROS_WARN("Mismatch between K=%d, counts.size()=%lu, and topic_weights.size()=%lu", K, counts.size(), topic_weights.size());
-          flag = false;
-          K = counts.size();
-          topic_weights.resize(K, 0);
-      }
-      for (auto k = 0; k < K; ++k) {
-          assert(k == 0 || V == counts[k].size());
-          if (V != counts[k].size()) {
-              if (verbose) ROS_WARN("Mismatch between V=%d, counts[k].size()=%lu", K, counts[k].size());
-              flag = false;
-              V = counts[k].size();
-          }
-          int weight = 0;
-          for (auto w = 0; w < V; ++w) weight += counts[k][w];
-          if (weight != topic_weights[k]) {
-              if (verbose) ROS_WARN("Mismatch between computed topic weight %d and topic_weights[k]=%d", weight, topic_weights[k]);
-              flag = false;
-              topic_weights[k] = weight;
-          }
-      }
-      return flag;
-  }
-
-  void serialize(std::ostream &out) {
-      if (!out.good()) throw std::logic_error("Output stream in invalid state");
-      validate();
-      constexpr int VERSION = INT_MIN + 1; // increment added constant whenever serialization format changes
-      static_assert(VERSION < 0, "Version number must be negative!");
-      out.write(reinterpret_cast<char const *>(&VERSION), sizeof(VERSION) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&K), sizeof(K) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&V), sizeof(V) / sizeof(char));
-      out.write(reinterpret_cast<char const *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) / sizeof(char) * K);
-      for (auto word_dist : counts) {
-          out.write(reinterpret_cast<char const *>(word_dist.data()), sizeof(decltype(word_dist)::value_type) / sizeof(char) * V);
-      }
-  }
-
-  explicit Phi(std::istream &in) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      throw std::logic_error("Not yet implemented");
-  }
-
-//  explicit Phi(Phi &&other)
-//        : id(other.id)
-//        , K(other.K)
-//        , V(other.V)
-//        , counts(other.counts)
-//        , topic_weights(other.topic_weights) {
-//  }
-
-  explicit Phi(std::istream &in, std::string id, int const &vocab_size)
-        : id(std::move(id))
-        , K(0)
-        , V(vocab_size) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      std::vector<int> row(V, 0);
-      while (!in.eof()) {
-          in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) / sizeof(char) * V);
-          if (in.gcount() == 0) break;
-          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size or corrupt data");
-
-          K += 1;
-          topic_weights.push_back(std::accumulate(row.begin(), row.end(), 0));
-          counts.push_back(row);
-      }
-      assert(validate(false));
-  }
-};
 
 struct match_scores {
   public:
@@ -768,6 +678,7 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
     } else {
         throw std::logic_error(method + " is not recognized.");
     }
+}
 }
 
 #endif //SUNSHINE_PROJECT_ADROST_UTILS_HPP

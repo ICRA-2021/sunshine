@@ -7,8 +7,9 @@
 #include <rost/rost.hpp>
 #include <utility>
 #include "sunshine/common/utils.hpp"
+#include "sunshine/common/observation_types.hpp"
+#include "sunshine/common/observation_adapters.hpp"
 #include "sunshine/common/sunshine_types.hpp"
-#include "sunshine/common/sunshine_adapters.hpp"
 
 #define POSEDIM 4
 
@@ -44,7 +45,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
 
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
-    std::function<void(ROSTAdapter*)> newObservationCallback;
+    std::function<void(ROSTAdapter *)> newObservationCallback;
 
   public:
 #ifndef NDEBUG
@@ -52,7 +53,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
 #endif
 
     template<typename ParamServer>
-    ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr) : newObservationCallback(std::move(callback)) {
+    ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
+          : newObservationCallback(std::move(callback)) {
         K = nh->template param<int>("K", 100); // number of topics
         V = nh->template param<int>("V", 1500); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
@@ -125,6 +127,16 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
 
     std::map<cell_pose_t, std::vector<int>> get_topics_by_cell() const;
 
+    Phi get_topic_model(activity_manager::ReadToken const &read_token) const {
+        Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights());
+        phi.validate(false);
+        return phi;
+    }
+
+    void set_topic_model(activity_manager::WriteToken const &write_token, Phi const &phi) {
+        rost->set_topic_model(write_token, phi.counts, phi.topic_weights);
+    }
+
     void wait_for_processing(bool new_data = true) const;
 
     decltype(K) get_num_topics() const {
@@ -135,11 +147,11 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
         return last_time;
     }
 
-    decltype(current_cell_poses) const& get_current_cell_poses() const {
+    decltype(current_cell_poses) const &get_current_cell_poses() const {
         return current_cell_poses;
     }
 
-    decltype(cell_size) const& get_cell_size() const {
+    decltype(cell_size) const &get_cell_size() const {
         return cell_size;
     }
 
@@ -147,8 +159,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
         return *rost;
     }
 
-    ROST_t &get_rost() {
-        return *rost;
+    auto get_cell_topics_and_ppx(activity_manager::ReadToken const& read_token, cell_pose_t const& pose) {
+        return rost->get_ml_topics_and_ppx_for_pose(pose);
     }
 };
 

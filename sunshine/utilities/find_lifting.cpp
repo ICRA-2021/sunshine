@@ -24,6 +24,8 @@
 #include "sunshine/common/csv.hpp"
 #include "sunshine/common/adrost_utils.hpp"
 
+using namespace sunshine;
+
 std::vector<std::string> split_algs(const std::string &arg) {
     std::vector<std::string> algs;
     size_t next, idx = 0;

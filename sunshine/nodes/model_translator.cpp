@@ -7,7 +7,6 @@
 #include "sunshine_msgs/SetTopicModel.h"
 #include "sunshine_msgs/Pause.h"
 #include <fstream>
-#include <utility>
 #include <thread>
 #include <numeric>
 

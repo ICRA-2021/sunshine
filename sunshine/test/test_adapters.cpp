@@ -2,7 +2,7 @@
 // Created by stewart on 3/4/20.
 //
 
-#include "sunshine/common/sunshine_adapters.hpp"
+#include "sunshine/common/observation_adapters.hpp"
 #include "sunshine/rost_adapter.hpp"
 
 using namespace sunshine;

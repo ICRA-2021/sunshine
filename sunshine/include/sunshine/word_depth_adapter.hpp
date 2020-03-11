@@ -7,7 +7,7 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include "sunshine/common/sunshine_adapters.hpp"
+#include "sunshine/common/observation_adapters.hpp"
 
 namespace sunshine {
 class WordDepthAdapter : public Adapter<WordDepthAdapter, CategoricalObservation<int, 2, int>, CategoricalObservation<int, 3, double>> {

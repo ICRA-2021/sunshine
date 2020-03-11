@@ -267,7 +267,7 @@ target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdpa
 target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
 
 target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/")
-target_link_libraries(test.test_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
+target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})
 
 #############
 ## Install ##

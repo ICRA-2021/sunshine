@@ -10,7 +10,7 @@
 #include <visualwords/feature_words.hpp>
 #include <visualwords/texton_words.hpp>
 
-#include "sunshine/common/sunshine_adapters.hpp"
+#include "sunshine/common/observation_adapters.hpp"
 #include "sunshine/common/utils.hpp"
 
 namespace sunshine {

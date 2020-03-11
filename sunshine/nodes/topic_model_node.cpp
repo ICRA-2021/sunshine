@@ -182,7 +182,7 @@ bool _set_topic_model(topic_model_node *topic_model,
     for (auto k = 0ul; k < request.topic_model.K; ++k) {
         nZW.emplace_back(request.topic_model.phi.cbegin() + k * V, request.topic_model.phi.cbegin() + (k + 1) * V);
     }
-    auto &rost = topic_model->get_adapter().get_rost();
+    auto const &rost = topic_model->get_adapter().get_rost();
     auto writeLock = (rostLock)
                      ? std::unique_ptr<activity_manager::WriteToken>()
                      : rost.get_write_token();
@@ -210,10 +210,10 @@ bool _set_topic_model(topic_model_node *topic_model,
 
     ROS_DEBUG("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
     topic_model->get_adapter()
-               .get_rost()
                .set_topic_model((rostLock)
-                                ? rostLock
-                                : writeLock, nZW, request.topic_model.topic_weights);
+                                ? *rostLock
+                                : *writeLock,
+                                Phi("", rost.get_num_topics(), rost.get_num_words(), std::move(nZW), request.topic_model.topic_weights));
     return true;
 }
 
@@ -222,7 +222,7 @@ bool _pause_topic_model(topic_model_node *topic_model,
                         PauseRequest &request,
                         PauseResponse &) {
     ROS_DEBUG("Changing topic model global pause state");
-    auto &rost = topic_model->get_adapter().get_rost();
+    auto const& rost = topic_model->get_adapter().get_rost();
     if (request.pause == (bool) rostLock) return false;
     if (request.pause) rostLock = rost.get_write_token();
     if (!request.pause) rostLock.reset();
@@ -453,7 +453,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<ce
             double cell_ppx, neighborhood_ppx, global_ppx;
 
             if (topics_required || cell_ppx_required) {
-                tie(topics, cell_log_likelihood) = rost.get_ml_topics_and_ppx_for_pose(cell_pose);
+                tie(topics, cell_log_likelihood) = rostAdapter.get_cell_topics_and_ppx(*rostReadToken, cell_pose);
 
                 if (publish_topics) {
                     //populate the topic label message

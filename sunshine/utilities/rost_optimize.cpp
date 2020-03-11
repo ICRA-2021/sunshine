@@ -3,10 +3,12 @@
 //
 #include <iostream>
 
-// you can also include <limbo/limbo.hpp> but it will slow down the compilation
 #define USE_NLOPT
 
-#include <limbo/bayes_opt/boptimizer.hpp>
+#include <limbo/bayes_opt/boptimizer.hpp> // you can also include <limbo/limbo.hpp> but it will slow down the compilation
+#include "sunshine/rost_adapter.hpp"
+#include "sunshine/visual_word_adapter.hpp"
+#include "sunshine/word_depth_adapter.hpp"
 
 using namespace limbo;
 
@@ -56,15 +58,13 @@ struct Params {
 
 struct Eval {
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 2);
+  BO_PARAM(size_t, dim_in, 3);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
   // the function to be optimized
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
-      double y = -((5 * x(0) - 2.5) * (5 * x(0) - 2.5)) + x(1) * (1 - x(1)) * 5;
-      // we return a 1-dimensional vector
-      return tools::make_vector(y);
+
   }
 };
 

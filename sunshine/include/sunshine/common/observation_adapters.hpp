@@ -2,11 +2,11 @@
 // Created by stewart on 3/4/20.
 //
 
-#ifndef SUNSHINE_PROJECT_SUNSHINE_ADAPTERS_HPP
-#define SUNSHINE_PROJECT_SUNSHINE_ADAPTERS_HPP
+#ifndef SUNSHINE_PROJECT_OBSERVATION_ADAPTERS_HPP
+#define SUNSHINE_PROJECT_OBSERVATION_ADAPTERS_HPP
 
 #include <functional>
-#include "sunshine/common/sunshine_types.hpp"
+#include "sunshine/common/observation_types.hpp"
 
 namespace sunshine {
 
@@ -60,4 +60,4 @@ auto process(Init i, Adapter... adapters) {
 
 }
 
-#endif //SUNSHINE_PROJECT_SUNSHINE_ADAPTERS_HPP
+#endif //SUNSHINE_PROJECT_OBSERVATION_ADAPTERS_HPP

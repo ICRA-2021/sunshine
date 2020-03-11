@@ -5,7 +5,7 @@
 #ifndef SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 #define SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 
-#include "sunshine/common/sunshine_types.hpp"
+#include "sunshine/common/observation_types.hpp"
 #include <sunshine_msgs/WordObservation.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
