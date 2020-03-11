@@ -41,6 +41,9 @@ find_package(Eigen3 REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
 find_library(libclear libclear.so)
+find_library(liblimbo liblimbo.a PATHS /home/stewart/devel/3rdparty/limbo/build/src)
+find_library(libnlopt libnlopt_cxx.so)
+#message(WARNING ${liblimbo})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -178,9 +181,11 @@ add_executable(save_point_cloud_2d nodes/visualize/save_point_cloud_2d.cpp)
 add_executable(perplexity_viz nodes/visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher nodes/image_publisher.cpp)
 add_executable(test.image_walker nodes/image_walk.cpp)
-add_executable(test.sunshine_eval utilities/sunshine_eval.cpp)
-add_executable(test.topic_match utilities/topic_match.cpp)
-add_executable(test.find_lifting utilities/find_lifting.cpp)
+add_executable(test.test_optimize test/test_optimize.cpp)
+add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp)
+add_executable(utils.topic_match utilities/topic_match.cpp)
+add_executable(utils.find_lifting utilities/find_lifting.cpp)
+add_executable(utils.rost_optimize utilities/rost_optimize.cpp)
 add_executable(test.adapters test/test_adapters.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
@@ -193,7 +198,7 @@ add_dependencies(save_point_cloud_2d sunshine_msgs_generate_messages_cpp)
 add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
-add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
+add_dependencies(utils.sunshine_eval sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
@@ -244,19 +249,25 @@ target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
 target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(test.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(test.topic_match PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-target_compile_features(test.topic_match PRIVATE cxx_std_17)
+target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+target_compile_features(utils.topic_match PRIVATE cxx_std_17)
 
-target_include_directories(test.find_lifting PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-target_compile_features(test.find_lifting PRIVATE cxx_std_17)
+target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 
 target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_compile_features(test.adapters PRIVATE cxx_std_17)
+
+target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/")
+target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
+
+target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/")
+target_link_libraries(test.test_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
 
 #############
 ## Install ##

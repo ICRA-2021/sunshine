@@ -36,7 +36,7 @@ long record_lap(T &time_checkpoint) {
 }
 
 bool _save_topics_by_time_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
-    auto const& rost = topic_model->get_adapter();
+    auto const &rost = topic_model->get_adapter();
     std::ofstream writer(req.filename);
     writer << "time";
     for (auto k = 0; k < rost.get_num_topics(); k++) {
@@ -55,7 +55,7 @@ bool _save_topics_by_time_csv(topic_model_node const *topic_model, SaveObservati
 }
 
 bool _save_topics_by_cell_csv(topic_model_node const *topic_model, SaveObservationModelRequest &req, SaveObservationModelResponse &) {
-    auto const& rost = topic_model->get_adapter();
+    auto const &rost = topic_model->get_adapter();
     std::ofstream writer(req.filename);
     writer << "pose_dim_0";
     for (auto i = 1; i < POSEDIM; i++) {
@@ -80,7 +80,7 @@ bool _save_topics_by_cell_csv(topic_model_node const *topic_model, SaveObservati
 }
 
 bool _generate_topic_summary(topic_model_node const *topic_model, GetTopicSummaryRequest &request, GetTopicSummaryResponse &response) {
-    auto const& rost = topic_model->get_adapter();
+    auto const &rost = topic_model->get_adapter();
     response.num_topics = rost.get_num_topics();
     response.last_seq = rost.get_last_observation_time();
     response.header.stamp = ros::Time::now();
@@ -209,7 +209,8 @@ bool _set_topic_model(topic_model_node *topic_model,
 #endif
 
     ROS_DEBUG("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
-    topic_model->get_adapter().get_rost()
+    topic_model->get_adapter()
+               .get_rost()
                .set_topic_model((rostLock)
                                 ? rostLock
                                 : writeLock, nZW, request.topic_model.topic_weights);
@@ -410,8 +411,8 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<ce
     global_perplexity->seq = static_cast<uint32_t>(obs_time);
     global_perplexity->perplexity = -1;
 
-    auto const& cell_size = rostAdapter.get_cell_size();
-    auto const& current_cell_poses = rostAdapter.get_current_cell_poses();
+    auto const &cell_size = rostAdapter.get_cell_size();
+    auto const &current_cell_poses = rostAdapter.get_current_cell_poses();
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq = static_cast<uint32_t>(obs_time);
@@ -471,21 +472,14 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<ce
                 assert(n_words * (POSEDIM - 1) == topicObs->word_pose.size());
             }
 
-            if (neighborhood_ppx_required) {
-                neighborhood_ppx = rost.cell_perplexity_word(cell->W, rost.neighborhood(*cell));
+            if (publish_local_surprise) {
+                for (size_t i = 1; i < POSEDIM; i++) local_surprise->surprise_poses.push_back(cell_pose[i]);
+                local_surprise->surprise.push_back(rost.cell_perplexity_word(cell->W, rost.neighborhood(*cell)));
             }
 
-            if (global_ppx_required) {
-                global_ppx = rost.cell_perplexity_word(cell->W, rost.get_topic_weights());
-            }
-
-            if (publish_local_surprise || publish_global_surprise) {
-                for (size_t i = 1; i < POSEDIM; i++) {
-                    local_surprise->surprise_poses.push_back(cell_pose[i]);
-                    global_surprise->surprise_poses.push_back(cell_pose[i]);
-                }
-                local_surprise->surprise.push_back(neighborhood_ppx);
-                global_surprise->surprise.push_back(global_ppx);
+            if (publish_global_surprise) {
+                for (size_t i = 1; i < POSEDIM; i++) global_surprise->surprise_poses.push_back(cell_pose[i]);
+                global_surprise->surprise.push_back(rost.cell_perplexity_word(cell->W, rost.get_topic_weights()));
             }
 
             sum_log_p_word += cell_log_likelihood;
