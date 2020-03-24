@@ -31,6 +31,7 @@ add_service_files(
   GetImage.srv
   GetModelPerplexity.srv
   GetTopicModel.srv
+  GetTopicMap.srv
   GetTopicsForTime.srv
   GetTopicSummary.srv
   LoadFile.srv

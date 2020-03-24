@@ -169,6 +169,33 @@ sensor_msgs::PointCloud2Ptr toRGBAPointCloud(PointContainer const& points, std::
     }
     return pc;
 }
+
+template <int COUNT, char DELIM='x'>
+static inline std::array<double, COUNT> readNumbers(std::string const &str)
+{
+    std::array<double, COUNT> nums = {0};
+    size_t idx = 0;
+    for (size_t i = 1; i <= COUNT; i++) {
+        auto const next = (i < COUNT) ? str.find(DELIM, idx) : str.size();
+        if (next == std::string::npos) {
+            throw std::invalid_argument("String '" + str + "' contains too few numbers!");
+        }
+        nums[i - 1] = std::stod(str.substr(idx, next));
+        idx = next + 1;
+    }
+    return nums;
+}
+
+template <int POSE_DIM>
+static inline std::array<double, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space)
+{
+    std::array<double, POSE_DIM> cell_size = {};
+    cell_size[0] = cell_size_time;
+    for (size_t i = 1; i < POSE_DIM; i++) {
+        cell_size[i] = cell_size_space;
+    }
+    return cell_size;
+}
 }
 
 #endif // UTILS_HPP
