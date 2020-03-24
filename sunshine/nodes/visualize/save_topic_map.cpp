@@ -1,11 +1,12 @@
-#include "../topic_model/topic_model.hpp"
-#include "utils.hpp"
-#include "word_coloring.hpp"
+#include "sunshine/common/utils.hpp"
+#include "sunshine/common/word_coloring.hpp"
+#include <fstream>
 #include <iostream>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <ros/ros.h>
 #include <sunshine_msgs/SaveObservationModel.h>
+#include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/TopicMap.h>
 
 using namespace sunshine_msgs;
@@ -34,19 +35,51 @@ int main(int argc, char** argv)
     auto const fixedBox = nh.param<std::string>("box", "");
     auto const useColor = nh.param<bool>("use_color", false);
     auto const continuous = nh.param<bool>("continuous", false);
-    auto const saveTopicTimeseries = nh.param<bool>("save_topic_timeseries", true);
+    auto const saveTopicTimeseries = nh.param<bool>("save_topic_timeseries", false);
+    auto const saveTopicModel = nh.param<bool>("save_topic_model", true);
+    auto const saveTopicCells = nh.param<bool>("save_topic_cells", true);
     sunshine::WordColorMap<decltype(TopicMap::cell_topics)::value_type> wordColorMap;
     ROS_INFO("Pixel scale: %f", pixel_scale);
     bool done = false;
 
     ros::ServiceClient client = nh.serviceClient<SaveObservationModel>("/" + rost_namespace + "/save_topics_by_time_csv");
+    ros::ServiceClient cellClient = nh.serviceClient<SaveObservationModel>("/" + rost_namespace + "/save_topics_by_cell_csv");
+    ros::ServiceClient modelClient = nh.serviceClient<GetTopicModel>("/" + rost_namespace + "/get_topic_model");
 
-    auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, &client, output_prefix, pixel_scale, minWidth,
-                                                          saveTopicTimeseries, minHeight, useColor, fixedBox](sunshine_msgs::TopicMapConstPtr const& msg) {
+    auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, &client, &modelClient, &cellClient, output_prefix, pixel_scale, minWidth,
+                                                          saveTopicTimeseries, saveTopicModel, saveTopicCells, minHeight, useColor, fixedBox](sunshine_msgs::TopicMapConstPtr const& msg) {
+        if (saveTopicModel) {
+            GetTopicModel getTopicModel;
+            if (modelClient.call(getTopicModel)) {
+                std::string const filename = output_prefix + "-" + std::to_string(msg->seq) + "-modelweights.bin";
+                std::fstream writer(filename, std::ios::out | std::ios::binary);
+                if (writer.good()) {
+                    writer.write(reinterpret_cast<char *>(getTopicModel.response.topic_model.phi.data()),
+                                 sizeof(decltype(getTopicModel.response.topic_model.phi)::value_type) / sizeof(char)
+                                 * getTopicModel.response.topic_model.phi.size());
+                    writer.close();
+                } else {
+                    ROS_ERROR("Failed to save topic model to file %s", filename.c_str());
+                }
+            } else {
+                ROS_ERROR("Failed to save topic model!");
+            }
+        }
+
         if (saveTopicTimeseries) {
             SaveObservationModel saveObservationModel;
             saveObservationModel.request.filename = output_prefix + "-" + std::to_string(msg->seq) + "-timeseries.csv";
             if (client.call(saveObservationModel)) {
+                ROS_INFO("Saved timeseries to %s", saveObservationModel.request.filename.c_str());
+            } else {
+                ROS_ERROR("Failed to save topic timeseries to %s!", saveObservationModel.request.filename.c_str());
+            }
+        }
+
+        if (saveTopicCells) {
+            SaveObservationModel saveObservationModel;
+            saveObservationModel.request.filename = output_prefix + "-" + std::to_string(msg->seq) + "-cells.csv";
+            if (cellClient.call(saveObservationModel)) {
                 ROS_INFO("Saved timeseries to %s", saveObservationModel.request.filename.c_str());
             } else {
                 ROS_ERROR("Failed to save topic timeseries to %s!", saveObservationModel.request.filename.c_str());
@@ -102,7 +135,7 @@ int main(int argc, char** argv)
             } else {
                 topicMapImg.at<double>(point) = msg->cell_topics[i] + 1;
             }
-            ppxMapImg.at<double>(point) = msg->cell_ppx[i];
+            if (msg->cell_ppx.size() > i) ppxMapImg.at<double>(point) = msg->cell_ppx[i];
         }
         ROS_INFO_COND(outliers > 0, "Discarded %lu points outside of %s", outliers, fixedBox.c_str());
         ROS_WARN_COND(overlaps > 0, "Dicarded %lu overlapped points.", overlaps);

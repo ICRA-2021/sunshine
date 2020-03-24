@@ -1,7 +1,8 @@
 #ifndef IMAGE_UTILS_HPP
 #define IMAGE_UTILS_HPP
 
-#include "utils.hpp"
+#include "sunshine/common/utils.hpp"
+#include "sunshine/common/ros_utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <exception>
 #include <sensor_msgs/PointCloud2.h>

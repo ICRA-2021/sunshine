@@ -1,0 +1,147 @@
+<launch>
+  <arg name="bagfile" />
+  <arg name="bag_rate" default="1" />
+  <arg name="bag_start" default="0" />
+  <arg name="file_prefix" default="" />
+  <arg name="maps_dir" default="" />
+  <arg name="images_dir" default="" />
+  <arg name="out_bag" default="" />
+
+  <arg name="use_rviz" default="false" />
+  <arg name="visualize_3d" default="$(arg use_rviz)" />
+  <arg name="visualize_2d" default="false" />
+  
+  <param name="/use_sim_time" value="true"/>
+  <arg name="camera_info_topic" default="/camera/camera_info" /> <!--unused?-->
+  <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
+  <arg name="depth_cloud_topic" default="/camera/points" />
+
+  <!-- Vision arguments -->
+  <arg name="transform_topic" default="" />
+  <arg name="world_frame" default="map" />
+  <arg name="sensor_frame" default="bottom_camera" />
+  <arg name="scale" default="1.0" />
+  <arg name="rate" default="3" />
+  <arg name="hue" default="true" />
+  <arg name="intensity" default="true" />
+  <arg name="texton" default="true" />
+  <arg name="orb" default="true" />
+  <arg name="surf" default="false" />
+  <arg name="use_pc" default="true" />
+  <arg name="use_tf" default="true" />
+  
+  <!-- Topic model arguments -->
+  <arg name="K" default="20" />
+  <arg name="V" default="16180" />
+  <arg name="alpha" default="0.073" />
+  <arg name="beta" default="0.15" />
+  <arg name="gamma" default="0.00001" />
+  <arg name="tau" default="0.5" />
+  <arg name="p_refine_last_observation" default="0.5" />
+  <arg name="num_threads" default="4" />
+  <arg name="cell_space" default="1" />
+  <arg name="cell_time" default="1" />
+  <arg name="cell_size" default="1x1x1x1.0" />
+  <arg name="G_time" default="1" />
+  <arg name="G_space" default="1" />
+  <arg name="polled_refine" default="false" />
+  <arg name="words_topic" default="/rost_vision/words" />
+  <arg name="min_obs_refine_time" default="200" />
+  <arg name="word_obs_queue_size" default="1" />
+  <arg name="map_ppx_type" default="global" />
+  <arg name="map_publish_period" default="2" />
+
+  <!-- Visualization arguments -->
+  <arg name="map_topic" default="/rost/topic_map" />
+  <arg name="ppx_topic" default="/ppx_cloud" />
+  <arg name="map_type" default="TopicMap" />
+  <arg name="show_topics" default="false" />
+  <arg name="2d_words_topic" default="/rost_vision/words_2d" />
+  <arg name="show_words" default="true" />
+  <arg name="show_perplexity" default="false" />
+  <arg name="show_equalized" default="true" />
+  <arg name="ppx_display_factor" default="0.75" />
+
+  <!-- Launch word extractor -->
+  <node pkg="sunshine" type="visual_word_extractor" name="rost_vision">
+    <!--param name="vocabulary" type="string" value="$(find summarizer)/share/vocab/underwater1k.yml"/-->
+    <!--<param name="vocabulary" type="string" value="$(find rost_vision)/data/orb_vocab/barbados2010_5000.yml"/>-->
+    <param name="feature_descriptor" type="string" value="ORB"/>
+    <param name="scale" type="double" value="$(arg scale)"/>
+    <param name="rate" type="double" value="$(arg rate)"/>
+    <param name="use_hue" value="$(arg hue)"/>
+    <param name="use_intensity" value="$(arg intensity)"/>
+    <param name="use_orb" value="$(arg orb)"/>
+    <param name="use_surf" value="$(arg surf)"/>
+    <param name="use_texton" value="$(arg texton)" />
+    <param name="image" value="$(arg image_topic)"/>
+    <param name="transform" value="$(arg transform_topic)"/>
+    <param name="sensor_frame" value="$(arg sensor_frame)" />
+    <param name="world_frame" value="$(arg world_frame)" />
+    <param name="pc" value="$(arg depth_cloud_topic)" />
+    <param name="use_pc" value="$(arg use_pc)" />
+    <param name="use_tf" value="$(arg use_tf)" />
+    <param name="publish_2d_words" value="true" />
+  </node>
+
+  <!-- Launch topic model -->
+  <node pkg="sunshine" type="topic_model" name="rost" output="screen">
+    <param name="K" type="int" value="$(arg K)" />
+    <param name="V" type="int" value="$(arg V)" />
+    <param name="alpha" type="double" value="$(arg alpha)" />
+    <param name="beta" type="double" value="$(arg beta)" />
+    <param name="gamma" type="double" value="$(arg gamma)" />
+    <param name="tau" type="double" value="$(arg tau)" />
+    <param name="p_refine_last_observation" type="double" value="$(arg p_refine_last_observation)" />
+    <param name="num_threads" type="int" value="$(arg num_threads)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+    <param name="G_time" type="int" value="$(arg G_time)" />
+    <param name="G_space" type="int" value="$(arg G_space)" />
+    <param name="polled_refine" value="$(arg polled_refine)" />
+    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="map_publish_period" type="int" value="$(arg map_publish_period)" />
+    <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
+  </node>
+
+  <node pkg="sunshine" type="visualize" name="word_visualizer" if="$(arg visualize_2d)">
+    <param name="words_topic" type="string" value="$(arg 2d_words_topic)" />
+    <param name="topics_topic" type="string" value="/rost/topics" />
+    <param name="image" type="string" value="$(arg image_topic)"/>
+    <param name="show_topics" type="bool" value="$(arg show_topics)" />
+    <param name="show_words" type="bool" value="$(arg show_words)" />
+    <param name="show_perplexity" type="bool" value="false" />
+    <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
+   </node>
+
+  <node pkg="sunshine" type="visualize3d" name="visualizer" if="$(arg visualize_3d)">
+    <param name="input_topic" type="string" value="$(arg map_topic)" />
+    <param name="input_type" type="string" value="$(arg map_type)" />
+    <param name="output_topic" type="string" value="/topic_cloud" />
+    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
+    <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
+    <param name="world_frame" type="string" value="$(arg world_frame)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+  </node>
+
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/sunshine-bag.rviz" if="$(arg use_rviz)" />
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock --start $(arg bag_start) --rate $(arg bag_rate) $(arg bagfile)"/>
+  <node pkg="rosbag" type="record" name="record_topics" output="screen" args="-a -x '/camera/(.*)' --output-name $(arg out_bag)" if="$(eval out_bag != '')" />
+  <node pkg="sunshine" type="save_topic_map" name="save_topic_map" respawn="true" if="$(eval maps_dir != '')" >
+  	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map" />
+	<param name="continuous" value="true" />
+	<param name="use_color" value="false" />
+        <param name="box" value="-50x-50x100x100" />
+        <param name="pixel_scale" value="$(arg cell_space)" />
+  </node>
+
+  <node pkg="image_view" type="extract_images" name="extract_images" respawn="true" if="$(eval images_dir != '')" >
+    <remap from="image" to="$(arg image_topic)" />
+    <param name="filename_format" type="string" value="$(arg images_dir)/$(arg file_prefix)images-%04d.png" />
+  </node>
+</launch>

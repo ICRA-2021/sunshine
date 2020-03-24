@@ -30,7 +30,7 @@ def plot_topics(topics_csv, colors_csv=None, repeat_start=True):
     data = pd.read_csv(topics_csv, index_col=0)
     fig, ax = plt.subplots()
 
-    dist = data.to_numpy()
+    dist = data.to_numpy(dtype=np.float)
     if repeat_start:
         start = dist[0,:].reshape((1, -1))
         start = start * 1000
