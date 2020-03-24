@@ -1,0 +1,17 @@
+# one of "cell", "time", "global", "image"
+string grouping
+
+---
+
+Header header
+uint32 last_seq
+# list of fields, comma separated
+string pose_fields
+# Number of distinct topics, K
+int32 num_topics
+# Number of observations, N
+int32 num_observations
+# list of topics counts (size K*N): topic_counts[K*n + k] is count of k'th topic in n'th observation
+int32[] topic_counts
+# position of each observation in the world frame
+float64[] topic_pose

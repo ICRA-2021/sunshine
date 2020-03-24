@@ -154,28 +154,6 @@ cv::Mat getFlatHeightMap(uint32_t width, uint32_t height, DepthType z)
 }
 
 template <typename DepthType = double>
-sensor_msgs::PointCloud2Ptr getFlatPointCloud(cv::Mat const& rgbImage, double const width, double const height, DepthType const z, std_msgs::Header const& header = {})
-{
-    cv::Mat const heightView = getFlatHeightMap<DepthType>(rgbImage.rows, rgbImage.cols, z);
-    sensor_msgs::PointCloud2Ptr pc = createPointCloud(static_cast<uint32_t>(rgbImage.cols), static_cast<uint32_t>(rgbImage.rows), "rgb", header);
-
-    auto* pcIterator = reinterpret_cast<RGBPointCloudElement*>(pc->data.data());
-    for (auto row = 0; row < rgbImage.rows; row++) {
-        for (auto col = 0; col < rgbImage.cols; col++) {
-            pcIterator->data.x = static_cast<float>((width * col) / rgbImage.cols);
-            pcIterator->data.y = static_cast<float>((height * row) / rgbImage.rows);
-            pcIterator->data.z = static_cast<float>(heightView.at<DepthType>(row, col));
-            auto const& rgb = rgbImage.at<cv::Vec3b>(row, col);
-            for (auto i = 0; i < 3; i++) {
-                pcIterator->data.rgb[i] = rgb[i]; // pc is actually bgr...
-            }
-            pcIterator++;
-        }
-    }
-    return pc;
-}
-
-template <typename DepthType = double>
 class ImageScanner3D : public ImageScanner {
 protected:
     cv::Mat const heightMap;

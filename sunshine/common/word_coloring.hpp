@@ -16,7 +16,7 @@ public:
     {
         auto const hueIter = hueMapBackward.find(word);
         if (hueIter != hueMapBackward.end()) {
-            return HSV_TO_RGBA({ hueIter->second, saturation, value });
+            return HSV_TO_RGBA({ hueIter->second, saturation, value }, alpha);
         }
 
         double hue = double(rand()) * 360. / double(RAND_MAX);
@@ -35,6 +35,16 @@ public:
         hueMapBackward.insert({ word, hue });
 
         return sunshine::HSV_TO_RGBA({ hue, saturation, value }, alpha);
+    }
+
+    std::map<WordType, std::array<uint8_t, 3>> getAllColors(double saturation = 1, double value = 1)
+    {
+        std::map<WordType, std::array<uint8_t, 3>> colorMap;
+        for (auto const& entry : hueMapBackward) {
+            RGBA const colorVal = sunshine::HSV_TO_RGBA({entry.second, saturation, value});
+            colorMap.insert({entry.first, {colorVal.r, colorVal.g, colorVal.b}});
+        }
+        return colorMap;
     }
 
     inline size_t getNumColors() const {

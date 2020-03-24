@@ -1,3 +1,4 @@
+**/__pycache__/
 **/.idea/
 devel/
 build/
@@ -8,6 +9,7 @@ src/bin/
 *.autosave
 *.swp
 **/*.txt.user*
+*.pyc
 
 # CMake
 CMakeCache.txt
