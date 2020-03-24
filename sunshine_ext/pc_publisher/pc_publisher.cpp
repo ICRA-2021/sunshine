@@ -1,18 +1,91 @@
 // From http://wiki.ros.org/image_transport/Tutorials/PublishingImages
 
-#include "image_utils.hpp"
 #include <cv_bridge/cv_bridge.h>
 #include <tf2_ros/transform_listener.h>
-//#if __has_include(<ds_sensor_msgs/Dvl.h>)
 #include <cmath>
 #include <ds_sensor_msgs/Dvl.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_broadcaster.h>
-//#endif
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/PointField.h>
 #include <ros/ros.h>
 #include <numeric>
+
+// TODO: use the implementations at sunshine/common/image_utils.hpp?
+
+union RGBPointCloudElement {
+  uint8_t bytes[sizeof(float) * 3 + sizeof(uint32_t)]; // to enforce size
+  struct {
+    float x;
+    float y;
+    float z;
+    uint8_t rgb[3];
+  } data;
+};
+
+sensor_msgs::PointCloud2Ptr createPointCloud(uint32_t width, uint32_t height, std::string colorFieldName = "rgba", std_msgs::Header const& header = {})
+{
+    sensor_msgs::PointCloud2Ptr pc(new sensor_msgs::PointCloud2());
+    sensor_msgs::PointField basePointField;
+    basePointField.datatype = basePointField.FLOAT32;
+    basePointField.count = 1;
+
+    auto offset = 0u;
+    for (auto const& field : { "x", "y", "z" }) {
+        sensor_msgs::PointField pointField(basePointField);
+        pointField.name = field;
+        pointField.offset = offset;
+        pc->fields.push_back(pointField);
+        pc->point_step += sizeof(float);
+        offset += sizeof(float);
+    }
+
+    if (!colorFieldName.empty()) {
+        sensor_msgs::PointField colorField;
+        colorField.datatype = colorField.UINT32;
+        colorField.count = 1;
+        colorField.offset = offset;
+        colorField.name = colorFieldName;
+        pc->fields.push_back(colorField);
+        pc->point_step += sizeof(uint32_t);
+    }
+
+    pc->width = width;
+    pc->height = height;
+    pc->is_dense = true;
+    pc->row_step = pc->point_step * pc->width;
+    pc->data = std::vector<uint8_t>(pc->row_step * pc->height);
+    pc->header = header;
+    return pc;
+}
+
+sensor_msgs::PointCloud2Ptr getFlatPointCloud(cv::Mat const& rgbImage, double const width, double const height, double const z, std_msgs::Header const& header = {}, double xOffset = 0, double yOffset = 0)
+{
+    cv::Mat const heightView(rgbImage.rows, rgbImage.cols, CV_64F, cv::Scalar(z));
+    sensor_msgs::PointCloud2Ptr pc = createPointCloud(static_cast<uint32_t>(rgbImage.cols), static_cast<uint32_t>(rgbImage.rows), "rgb", header);
+
+    double const widthStep = width / rgbImage.cols;
+    double const widthOffset = -width / 2. + xOffset;
+    double const heightStep = height / rgbImage.rows;
+    double const heightOffset = -height / 2. + yOffset;
+
+    auto* pcIterator = reinterpret_cast<RGBPointCloudElement*>(pc->data.data());
+    for (auto row = 0; row < rgbImage.rows; row++) {
+        for (auto col = 0; col < rgbImage.cols; col++) {
+            pcIterator->data.x = static_cast<float>(col * widthStep + widthOffset);
+            pcIterator->data.y = static_cast<float>(row * heightStep + heightOffset);
+            pcIterator->data.z = static_cast<float>(heightView.at<double>(row, col));
+            auto const& rgb = rgbImage.at<cv::Vec3b>(row, col);
+            for (auto i = 0; i < 3; i++) {
+                pcIterator->data.rgb[i] = rgb[i]; // pc is actually bgr...
+            }
+            pcIterator++;
+        }
+    }
+    return pc;
+}
 
 int main(int argc, char** argv)
 {
@@ -84,14 +157,14 @@ int main(int argc, char** argv)
                 fakeSensorTransform.transform.translation.z = 0.0;
                 fakeSensorTransform.header.stamp = msg->header.stamp;
                 tf_broadcaster.sendTransform(fakeSensorTransform);
-                pc = sunshine::getFlatPointCloud(img->image, width, height, 0.0, msg->header);
+                pc = getFlatPointCloud(img->image, width, height, 0.0, msg->header);
                 pc->header.frame_id = zeroz_frame_id;
             } catch (tf2::ExtrapolationException) {
                 ROS_ERROR("Failed to find transform from %s to %s!", map_frame_id.c_str(), (frame_id.empty()) ? msg->header.frame_id.c_str() : frame_id.c_str());
                 return;
             }
         } else {
-            pc = sunshine::getFlatPointCloud(img->image, width, height, altitude, msg->header);
+            pc = getFlatPointCloud(img->image, width, height, altitude, msg->header);
             if (!frame_id.empty()) {
                 pc->header.frame_id = frame_id;
             }

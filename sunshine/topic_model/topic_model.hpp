@@ -21,7 +21,7 @@ namespace sunshine {
     typedef std::array<CellDimType, POSEDIM> cell_pose_t;
     typedef std::array<WordDimType, POSEDIM> word_pose_t;
     typedef neighbors<cell_pose_t> neighbors_t;
-    typedef SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
 
     class topic_model {
         static std::vector<std::string> const VALID_MAP_PPX_TYPES;

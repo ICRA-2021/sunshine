@@ -129,7 +129,7 @@
   <node pkg="tf" type="static_transform_publisher" name="dvl_frame_publisher" args="-0.462 0.0 -0.829 -2.35619449019 0 0 base_link dvl300_link 100"/>
   <node pkg="tf" type="static_transform_publisher" name="camera_frame_publisher" args="-0.6306 0 -0.7815 -1.57079633 0 3.14159265 base_link sentry_camera 100"/>
 
-  <node pkg="sunshine" type="test.pc_publisher" name="pc_publisher" output="screen">
+  <node pkg="sunshine_ext" type="pc_publisher" name="pc_publisher" output="screen">
     <param name="image_topic" type="string" value="$(arg image_topic)" />
     <param name="pc_topic" type="string" value="$(arg depth_cloud_topic)" />
     <param name="depth" type="double" value="$(arg pc_depth)" />

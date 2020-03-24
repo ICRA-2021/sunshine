@@ -12,3 +12,4 @@ LIST(APPEND CMAKE_PREFIX_PATH "/opt/ros/$ENV{ROS_DISTRO};$ENV{HOME}/warp_ws/deve
 set(CMAKE_VERBOSE_MAKEFILE ON)
 add_subdirectory(sunshine_msgs)
 add_subdirectory(sunshine)
+add_subdirectory(sunshine_ext)

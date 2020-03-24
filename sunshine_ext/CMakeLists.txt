@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(sunshine)
+cmake_minimum_required(VERSION 3.1)
+project(sunshine_ext)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_STANDARD 14)
@@ -13,11 +13,11 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   image_transport
-  sunshine_msgs
   geometry_msgs
   tf2
   tf2_ros
   tf
+  ds_sensor_msgs
   )
 find_package(tf2_geometry_msgs REQUIRED)
 
@@ -27,8 +27,6 @@ set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3.2 REQUIRED)
 find_package(roslaunch REQUIRED)
-
-find_library(libvisualwords libvisualwords.so)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -122,7 +120,7 @@ find_library(libvisualwords libvisualwords.so)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
+   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs tf2 tf2_ros tf2_geometry_msgs ds_sensor_msgs
 #  DEPENDS system_lib
 )
 
@@ -153,27 +151,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
-add_executable(visual_word_extractor vision/visual_word_extractor.cpp)
-add_executable(topic_model topic_model/topic_model.cpp)
-add_executable(visualize visualize/visualize2d.cpp)
-add_executable(visualize3d visualize/visualize3d.cpp)
-add_executable(save_topic_map visualize/save_topic_map.cpp)
-add_executable(save_point_cloud_2d visualize/save_point_cloud_2d.cpp)
-add_executable(perplexity_viz visualize/perplexity_viz.cpp)
-add_executable(test.image_publisher test/image_publisher.cpp)
-add_executable(test.image_walker test/image_walk.cpp)
-add_executable(test.sunshine_eval test/sunshine_eval.cpp)
-
-add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
-add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
-add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
-add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
-add_dependencies(save_topic_map sunshine_msgs_generate_messages_cpp)
-add_dependencies(save_point_cloud_2d sunshine_msgs_generate_messages_cpp)
-add_dependencies(perplexity_viz sunshine_msgs_generate_messages_cpp)
-add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
-add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
-add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
+add_executable(pc_publisher pc_publisher/pc_publisher.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -191,34 +169,8 @@ add_dependencies(test.sunshine_eval sunshine_msgs_generate_messages_cpp)
 # )
 
 
-target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
-
-target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(topic_model ${catkin_LIBRARIES})
-
-target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
-
-target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(save_topic_map ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
-
-target_include_directories(test.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(test.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_include_directories(pc_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(pc_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -268,4 +220,4 @@ target_link_libraries(test.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-roslaunch_add_file_check(launch)
+#roslaunch_add_file_check(launch)
