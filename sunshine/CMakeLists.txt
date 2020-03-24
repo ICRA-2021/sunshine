@@ -37,7 +37,6 @@ set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 3.2 REQUIRED)
 find_package(roslaunch REQUIRED)
-find_package(Eigen3 REQUIRED)
 
 find_library(libvisualwords libvisualwords.so)
 find_library(libclear libclear.so)
@@ -151,7 +150,6 @@ include_directories(
   include
 #  common
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -173,7 +171,6 @@ add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_
 
 add_executable(visual_word_extractor nodes/word_extractor_node.cpp)
 add_executable(topic_model nodes/topic_model_node.cpp)
-add_executable(model_translator nodes/model_translator.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
 add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
@@ -181,16 +178,11 @@ add_executable(save_point_cloud_2d nodes/visualize/save_point_cloud_2d.cpp)
 add_executable(perplexity_viz nodes/visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher nodes/image_publisher.cpp)
 add_executable(test.image_walker nodes/image_walk.cpp)
-add_executable(test.test_optimize test/test_optimize.cpp)
 add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp)
-add_executable(utils.topic_match utilities/topic_match.cpp)
-add_executable(utils.find_lifting utilities/find_lifting.cpp)
-add_executable(utils.rost_optimize utilities/rost_optimize.cpp)
 add_executable(test.adapters test/test_adapters.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
-add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
 add_dependencies(save_topic_map sunshine_msgs_generate_messages_cpp)
@@ -226,9 +218,6 @@ target_link_libraries(visual_word_extractor sunshine_adapters ${libvisualwords} 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_adapters)
 
-target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
-
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
 target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
@@ -252,22 +241,44 @@ target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-target_compile_features(utils.topic_match PRIVATE cxx_std_17)
-
-target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
-
 target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES})
 target_compile_features(test.adapters PRIVATE cxx_std_17)
 
-target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/")
-target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
+if (libclear)
+    find_package(Eigen3 REQUIRED)
+    message(STATUS "Found libclear -- building model_translator")
+    add_executable(model_translator nodes/model_translator.cpp)
+    add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
+    target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
+endif()
 
-target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/")
-target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})
+if (liblimbo)
+    message(STATUS "Found liblimbo -- building optimizers")
+    if (NOT libnlopt)
+        message(WARNING "Cannot build optimizers without libnlopt")
+    else()
+        find_package(Eigen3 REQUIRED)
+        add_executable(utils.topic_match utilities/topic_match.cpp)
+        add_executable(utils.find_lifting utilities/find_lifting.cpp)
+        add_executable(utils.rost_optimize utilities/rost_optimize.cpp)
+        add_executable(test.test_optimize test/test_optimize.cpp)
+
+        target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+        target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+        target_compile_features(utils.topic_match PRIVATE cxx_std_17)
+
+        target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+        target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+        target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
+
+        target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
+        target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
+
+        target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
+        target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})
+    endif()
+endif()
 
 #############
 ## Install ##
