@@ -22,7 +22,7 @@ long record_lap(T &time_checkpoint) {
 ROSTAdapter::~ROSTAdapter() {
     stopWork = true; //signal workers to stop
     for (auto const &t : workers) { //wait for them to stop
-        t->join();
+        if (t) t->join();
     }
 }
 
@@ -98,7 +98,7 @@ void ROSTAdapter::wait_for_processing(bool new_data) const {
     }
 }
 
-void ROSTAdapter::operator()(WordObservation const &wordObs) {
+std::future<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>> ROSTAdapter::operator()(WordObservation const &wordObs) {
     auto time_checkpoint = std::chrono::steady_clock::now();
     auto const time_start = time_checkpoint;
 
@@ -107,7 +107,7 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
     if (world_frame.empty()) { world_frame = wordObs.frame; }
     else if (wordObs.frame != world_frame) {
         ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs.frame.c_str(), world_frame.c_str());
-        return;
+        throw std::invalid_argument("Word observation in invalid frame.");
     }
 
     using namespace std;
@@ -119,24 +119,22 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
 
     double observation_time = wordObs.timestamp;
     //update the  list of observed time step ids
-    if (observation_times.empty() || observation_times.back() < observation_time) {
-        observation_times.push_back(observation_time);
-    } else if (observation_times.back() > observation_time) {
-        ROS_WARN("Observation received that is older than previous observation! Skipping...");
-        return;
+    observation_times.push_back(observation_time);
+    if (!observation_times.empty() && last_time > observation_time) {
+        ROS_WARN("Observation received that is older than previous observation!");
     }
 
     //if we are receiving observations from the next time step, then spit out
     //topics for the current time step.
-    if (last_time >= 0 && (last_time != observation_time)) {
-        ROS_DEBUG("Received newer word observations - broadcasting observations for time %f", last_time);
+    if (last_time >= 0) {
+        ROS_DEBUG("Received more word observations - broadcasting observations for time %f", last_time);
         newObservationCallback(this);
-        size_t refine_count = rost->get_refine_count();
+        size_t const refine_count = rost->get_refine_count();
         ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
         last_refine_count = refine_count;
         current_cell_poses.clear();
     }
-    last_time = observation_time;
+    last_time = std::max(last_time, observation_time);
     auto const duration_broadcast = record_lap(time_checkpoint);
 
     ROS_DEBUG("Adding %lu word observations from time %f", wordObs.observations.size(), observation_time);
@@ -177,4 +175,33 @@ void ROSTAdapter::operator()(WordObservation const &wordObs) {
     }
 
     lastWordsAdded = chrono::steady_clock::now();
+
+    typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
+    std::promise<Segmentation> promisedTopics;
+    auto futureTopics = promisedTopics.get_future();
+    observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs.id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+          std::move(promisedTopics)}]() mutable {
+        using namespace std::chrono;
+        wait_for_processing(false);
+        auto topics = getTopicDistsForPoses(cell_poses);
+        double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+        promisedTopics.set_value(Segmentation("map", timestamp, id, cell_size, topics, poses));
+    }));
+    return futureTopics;
+}
+
+std::vector<std::vector<int>> ROSTAdapter::getTopicDistsForPoses(const std::vector<cell_pose_t>& cell_poses) {
+    std::vector<std::vector<int>> topics;
+    topics.reserve(cell_poses.size());
+    for (auto const &pose : cell_poses) {
+        auto const cell = rost->get_cell(pose);
+        if (cell->nZ.size() == this->K) {
+            topics.push_back(cell->nZ);
+        } else {
+            ROS_WARN_THROTTLE(1, "ROSTAdapter::getObservationForPoses() : Skipping cells with wrong number of topics");
+            continue;
+        }
+    }
+
+    return topics;
 }

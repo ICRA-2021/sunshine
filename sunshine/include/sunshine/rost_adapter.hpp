@@ -6,6 +6,8 @@
 #include <rost/hlda.hpp>
 #include <rost/rost.hpp>
 #include <utility>
+#include <future>
+#include <list>
 #include "sunshine/common/utils.hpp"
 #include "sunshine/common/observation_types.hpp"
 #include "sunshine/common/observation_adapters.hpp"
@@ -24,7 +26,7 @@ typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<
 using warp::ROST;
 using warp::hROST;
 
-class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, WordDimType>, void> {
+class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, WordDimType>, std::future<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>> {
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
     mutable int consecutive_rate_violations = 0;
@@ -46,6 +48,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
     std::function<void(ROSTAdapter *)> newObservationCallback;
+    std::list<std::unique_ptr<std::thread>> observationThreads;
+
+    std::vector<std::vector<int>> getTopicDistsForPoses(const std::vector<cell_pose_t>& cell_poses);
 
   public:
 #ifndef NDEBUG
@@ -53,7 +58,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
 #endif
 
     template<typename ParamServer>
-    ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
+    explicit ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
           : newObservationCallback(std::move(callback)) {
         K = nh->template param<int>("K", 100); // number of topics
         V = nh->template param<int>("V", 1500); // vocabulary size
@@ -121,7 +126,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
 
     ~ROSTAdapter() override;
 
-    void operator()(CategoricalObservation<int, 3, WordDimType> const &words);
+    std::future<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>> operator()(CategoricalObservation<int, 3, WordDimType> const &words);
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const;
 
@@ -159,7 +164,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter, CategoricalObservation<int, 3, W
         return *rost;
     }
 
-    auto get_cell_topics_and_ppx(activity_manager::ReadToken const& read_token, cell_pose_t const& pose) {
+    auto get_cell_topics_and_ppx(activity_manager::ReadToken const &read_token, cell_pose_t const &pose) {
         return rost->get_ml_topics_and_ppx_for_pose(pose);
     }
 };

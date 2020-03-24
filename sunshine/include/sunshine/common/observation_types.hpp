@@ -99,6 +99,40 @@ struct CategoricalObservation : public SemanticObservation<WordType, PoseDim, Po
   ~CategoricalObservation() override = default;
 };
 
+template<typename _LabelType, uint32_t _PoseDim, typename _CellPoseType = int, typename _PoseType = double>
+struct Segmentation : public Observation {
+  typedef _LabelType LabelType;
+  typedef _PoseType PoseType;
+  typedef _CellPoseType CellPoseType;
+  static uint32_t constexpr PoseDim = _PoseDim;
+
+  std::array<PoseType, PoseDim> cell_size;
+  std::vector<LabelType> labels;
+  std::vector<std::array<CellPoseType, PoseDim>> poses;
+
+  Segmentation(decltype(Observation::frame) const &frame,
+               decltype(Observation::timestamp) timestamp,
+               decltype(Observation::id) id,
+               std::array<PoseType, PoseDim> cell_size,
+               std::vector<LabelType> const &labels,
+               std::vector<std::array<CellPoseType, PoseDim>> const &poses)
+        : Observation(frame, timestamp, id)
+        , cell_size(cell_size)
+        , labels(labels)
+        , poses(poses) {}
+
+  Segmentation(decltype(Observation::frame) const &frame,
+               decltype(Observation::timestamp) timestamp,
+               decltype(Observation::id) id,
+               std::array<PoseType, PoseDim> cell_size,
+               std::vector<LabelType> &&labels,
+               std::vector<std::array<CellPoseType, PoseDim>> &&poses)
+        : Observation(frame, timestamp, id)
+        , cell_size(cell_size)
+        , labels(std::move(labels))
+        , poses(std::move(poses)) {}
+};
+
 }
 
 #endif //SUNSHINE_PROJECT_OBSERVATION_TYPES_HPP
