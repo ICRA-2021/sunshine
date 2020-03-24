@@ -21,6 +21,9 @@
 using namespace sunshine;
 using namespace sunshine_msgs;
 
+using warp::ROST;
+using warp::hROST;
+
 static std::string const CELL_PPX = "cell";
 static std::string const NEIGHBORHOOD_PPX = "neighborhood";
 static std::string const GLOBAL_PPX = "global";

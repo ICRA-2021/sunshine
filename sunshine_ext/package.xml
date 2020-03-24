@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>sunshine</name>
+  <name>sunshine_ext</name>
   <version>0.0.0</version>
-  <description>The sunshine package</description>
+  <description>The sunshine extension package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -44,7 +44,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
-  <build_depend>sunshine_msgs</build_depend>
+  <build_depend>ds_sensor_msgs</build_depend>
   <build_depend>roslaunch</build_depend>
   <build_depend>tf2</build_depend>
   <build_depend>tf</build_depend>
@@ -54,7 +54,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
-  <run_depend>sunshine_msgs</run_depend>
+  <run_depend>ds_sensor_msgs</run_depend>
   <run_depend>roslaunch</run_depend>
   <run_depend>tf2</run_depend>
   <run_depend>tf</run_depend>
