@@ -246,11 +246,22 @@ target_compile_features(test.adapters PRIVATE cxx_std_17)
 
 if (libclear)
     find_package(Eigen3 REQUIRED)
-    message(STATUS "Found libclear -- building model_translator")
+    message(STATUS "Found libclear -- building model_translator and related utilities")
     add_executable(model_translator nodes/model_translator.cpp)
+    add_executable(utils.topic_match utilities/topic_match.cpp)
+    add_executable(utils.find_lifting utilities/find_lifting.cpp)
+
     add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
     target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
     target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
+
+    target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+    target_compile_features(utils.topic_match PRIVATE cxx_std_17)
+
+    target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+    target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 endif()
 
 if (liblimbo)
@@ -259,18 +270,8 @@ if (liblimbo)
         message(WARNING "Cannot build optimizers without libnlopt")
     else()
         find_package(Eigen3 REQUIRED)
-        add_executable(utils.topic_match utilities/topic_match.cpp)
-        add_executable(utils.find_lifting utilities/find_lifting.cpp)
         add_executable(utils.rost_optimize utilities/rost_optimize.cpp)
         add_executable(test.test_optimize test/test_optimize.cpp)
-
-        target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-        target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-        target_compile_features(utils.topic_match PRIVATE cxx_std_17)
-
-        target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-        target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
-        target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 
         target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
         target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt})
