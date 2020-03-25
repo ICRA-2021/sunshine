@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
 
 topic_model_node::topic_model_node(ros::NodeHandle *nh)
       : nh(nh)
-      , rostAdapter(nh, [this](ROSTAdapter *adapter) {
+      , rostAdapter(nh, [this](ROSTAdapter<POSEDIM> *adapter) {
           ROS_DEBUG("Received newer word observations - broadcasting observations for time %f", adapter->get_last_observation_time());
           if (broadcast_thread && broadcast_thread->joinable()) {
               broadcast_thread->join();
@@ -337,7 +337,7 @@ void topic_model_node::words_callback(const sunshine_msgs::WordObservation::Cons
     if (current_source.empty()) { current_source = wordObs->source; }
     else if (current_source != wordObs->source)
         ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordObs->source.c_str());
-    rostAdapter(fromRosMsg<int, 3, WordDimType>(*wordObs));
+    rostAdapter(fromRosMsg<int, POSEDIM - 1, ROSTAdapter<POSEDIM>::WordDimType>(*wordObs));
 }
 
 TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
@@ -363,7 +363,7 @@ TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
         for (; i < BATCH_END; ++i) {
             auto const &cell_pose = poses[i];
             auto const &cell = rost.get_cell(cell_pose);
-            auto const word_pose = toWordPose(cell_pose, rostAdapter.get_cell_size());
+            auto const word_pose = ROSTAdapter<POSEDIM>::toWordPose(cell_pose, rostAdapter.get_cell_size());
             auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
             if (ml_cell_topic == cell->nZ.cend()) {
                 ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
@@ -386,7 +386,7 @@ TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
     return topic_map;
 }
 
-void topic_model_node::broadcast_topics(int const obs_time, const std::vector<cell_pose_t> &broadcast_poses) {
+void topic_model_node::broadcast_topics(int const obs_time, const std::vector<ROSTAdapter<POSEDIM>::cell_pose_t> &broadcast_poses) {
     if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) {
         return;
     }
@@ -446,7 +446,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<ce
         duration_lock = record_lap(time_checkpoint);
         for (auto const &cell_pose : broadcast_poses) {
             auto const &cell = rost.get_cell(cell_pose);
-            auto const word_pose = toWordPose(cell_pose, cell_size);
+            auto const word_pose = ROSTAdapter<POSEDIM>::toWordPose(cell_pose, cell_size);
 
             vector<int> topics; //topic labels for each word in the cell
             double cell_log_likelihood = 0; //cell's sum_w log(p(w | model) = log p(cell | model)

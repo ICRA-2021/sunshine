@@ -17,8 +17,8 @@ class DummyFeatureExtractor : public FeatureExtractorAdapter<DummyFeatureExtract
 class DummyTopicModel : public TopicModelAdapter<DummyTopicModel, int, int, 4, double, int> {
   public:
     Output operator()(const Input& wordObs) {
-        std::vector<cell_pose_t> cellPoses;
-        for (auto const &wordPose : wordObs.observation_poses) cellPoses.push_back(toCellId(wordPose, {10, 10, 10, 10}));
+        std::vector<ROSTAdapter<4>::cell_pose_t> cellPoses;
+        for (auto const &wordPose : wordObs.observation_poses) cellPoses.push_back(ROSTAdapter<4>::toCellId(wordPose, {10, 10, 10, 10}));
         return Output(wordObs.frame,
                       wordObs.timestamp,
                       wordObs.id,

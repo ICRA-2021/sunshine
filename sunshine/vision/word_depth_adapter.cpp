@@ -4,11 +4,12 @@
 
 #include "../include/sunshine/word_depth_adapter.hpp"
 
+#include <utility>
+
 using namespace sunshine;
 
 CategoricalObservation<int, 3, double> WordDepthAdapter::operator()(CategoricalObservation<int, 2, int> &&wordObs2d) const {
     if (!pc) throw std::logic_error("Cannot process input without pointcloud");
-    size_t const poseDim = 3;
     auto const num_words = wordObs2d.observations.size();
 
     std::vector<std::array<double, 3>> observation_pose;
@@ -33,5 +34,5 @@ CategoricalObservation<int, 3, double> WordDepthAdapter::operator()(CategoricalO
 }
 
 void WordDepthAdapter::updatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr newPc) {
-    this->pc = newPc;
+    this->pc = std::move(newPc);
 }

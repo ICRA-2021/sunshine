@@ -4,9 +4,12 @@
 #include "colors.hpp"
 #include <exception>
 #include <array>
+#include <chrono>
 #include <opencv2/core.hpp>
 
 namespace sunshine {
+
+template <class...> constexpr std::false_type always_false{};
 
 template<typename ValType>
 struct cvType {
@@ -62,9 +65,9 @@ cv::Mat toMat(std::vector<IdxType> const &idxes, std::vector<ValueType> const &v
     return mat;
 }
 
-template<int COUNT, char DELIM = 'x'>
-static inline std::array<double, COUNT> readNumbers(std::string const &str) {
-    std::array<double, COUNT> nums = {0};
+template<int COUNT, char DELIM = 'x', typename WordDimType = double>
+static inline std::array<WordDimType, COUNT> readNumbers(std::string const &str) {
+    std::array<WordDimType, COUNT> nums = {0};
     size_t idx = 0;
     for (size_t i = 1; i <= COUNT; i++) {
         auto const next = (i < COUNT)
@@ -79,9 +82,9 @@ static inline std::array<double, COUNT> readNumbers(std::string const &str) {
     return nums;
 }
 
-template<int POSE_DIM>
-static inline std::array<double, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space) {
-    std::array<double, POSE_DIM> cell_size = {};
+template<int POSE_DIM, typename WordDimType = double>
+static inline std::array<WordDimType, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space) {
+    std::array<WordDimType, POSE_DIM> cell_size = {};
     cell_size[0] = cell_size_time;
     for (size_t i = 1; i < POSE_DIM; i++) {
         cell_size[i] = cell_size_space;
@@ -115,6 +118,13 @@ template<std::size_t N, typename Iter, typename ValueType=typename Iter::value_t
 std::array<ValueType, N> make_array(Iter start) {
     using namespace _make_array;
     return make_array(start, BuildIndices<N>{});
+}
+
+template<typename T>
+long record_lap(T &time_checkpoint) {
+    auto const duration = std::chrono::steady_clock::now() - time_checkpoint;
+    time_checkpoint = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
 }
