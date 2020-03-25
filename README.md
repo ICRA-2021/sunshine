@@ -28,7 +28,7 @@ Quick Start
 
 Common launchfiles:
  - `desktop.launch`: Uses webcam feed (requires gstreamer to be installed)
- - `sentry.launch`: Uses data from the Sentry503 mission
+ - `sentry.launch`: Uses data from the Sentry503 mission (requires `ds_msgs` dependency, see below)
  - TODO: Finish listing launchfiles
 
 
@@ -52,7 +52,8 @@ Required:
 - PCL
 - OpenCV 3.2+
 
-Optional (see below):
+Optional:
 - Eigen3
 - [Limbo](https://github.com/resibots/limbo) and [NLOpt](https://github.com/stevengj/nlopt)
 - [CLEAR](https://arxiv.org/abs/1902.02256) (ask [Stewart](mailto:sjamieson@whoi.edu))
+- [ds_msgs](https://bitbucket.org/whoidsl/ds_msgs/src/master/) (WHOI Deep Submergence Lab ROS message definitions)
