@@ -6,7 +6,7 @@ Sunshine
 Installation
 --------------------------
 
-```Shell
+```bash
 # Install rost-cli (including dependencies)
 sudo apt-get update
 sudo apt-get install libboost-all-dev libflann-dev libfftw3-dev libopencv-dev libsndfile1-dev cmake
