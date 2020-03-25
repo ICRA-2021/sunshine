@@ -55,4 +55,4 @@ Required:
 Optional (see below):
 - Eigen3
 - [Limbo](https://github.com/resibots/limbo) and [NLOpt](https://github.com/stevengj/nlopt)
-- [CLEAR](https://arxiv.org/abs/1902.02256) (ask [Stewart](sjamieson@whoi.edu))
+- [CLEAR](https://arxiv.org/abs/1902.02256) (ask [Stewart](mailto:sjamieson@whoi.edu))
