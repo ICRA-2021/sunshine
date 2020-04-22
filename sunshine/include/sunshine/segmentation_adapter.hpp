@@ -75,10 +75,10 @@ class ImageSegmentationAdapter : public Adapter<ImageSegmentationAdapter<LabelTy
         }
 
         if constexpr (std::is_integral_v<LabelType>) {
-
+            // TODO Find max count
         } else if constexpr (is_vector<LabelType>::value) {
             static_assert(std::is_integral_v<typename LabelType::value_type>);
-
+            // TODO densify counts
         } else {
             static_assert(always_false<LabelType>);
         }

@@ -100,13 +100,13 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     template<typename ParamServer>
     explicit ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
           : newObservationCallback(std::move(callback)) {
-        K = nh->template param<int>("K", 100); // number of topics
-        V = nh->template param<int>("V", 1500); // vocabulary size
+        K = nh->template param<int>("K", 10); // number of topics
+        V = nh->template param<int>("V", 16180); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
         int const num_levels = nh->template param<int>("num_levels", 3);
-        k_alpha = nh->template param<double>("alpha", 0.1);
-        k_beta = nh->template param<double>("beta", 1.0);
-        k_gamma = nh->template param<double>("gamma", 0.0001);
+        k_alpha = nh->template param<double>("alpha", 0.073);
+        k_beta = nh->template param<double>("beta", 0.15);
+        k_gamma = nh->template param<double>("gamma", 0);
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
@@ -120,7 +120,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         update_topic_model = nh->template param<bool>("update_topic_model", true);
         min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
-        world_frame = nh->template param<std::string>("world_frame", "");
+        world_frame = nh->template param<std::string>("world_frame", "map");
 
         if (!cell_size_string.empty()) {
             cell_size = readNumbers<POSEDIM, 'x', WordDimType>(cell_size_string);
@@ -169,6 +169,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         for (auto const &t : workers) { //wait for them to stop
             if (t) t->join();
         }
+        for (auto const &t : observationThreads) {
+            if (t) t->join();
+        }
     }
 
     std::future<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>> operator()(WordObservation const &wordObs) {
@@ -201,7 +204,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         //topics for the current time step.
         if (last_time >= 0) {
             ROS_DEBUG("Received more word observations - broadcasting observations for time %f", last_time);
-            newObservationCallback(this);
+            if (newObservationCallback) newObservationCallback(this);
             size_t const refine_count = rost->get_refine_count();
             ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
             last_refine_count = refine_count;

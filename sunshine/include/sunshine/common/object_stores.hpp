@@ -36,6 +36,10 @@ class UniqueStore {
             throw std::invalid_argument("Not found");
         }
     }
+
+    size_t size() const {
+        return items.size();
+    }
 };
 }
 
