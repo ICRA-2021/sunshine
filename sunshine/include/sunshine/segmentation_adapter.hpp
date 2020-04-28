@@ -29,13 +29,16 @@ class SegmentationAdapter : public Adapter<SegmentationAdapter<Input, LabelType,
 
     template<typename ParameterServer>
     static inline decltype(cell_size) computeCellSize(ParameterServer *nh) {
-        double const cell_size_space = nh->template param<double>("cell_space", 100);
+        double const cell_size_space = nh->template param<double>("cell_space", 1);
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         if (!cell_size_string.empty()) {
             return readNumbers<POSEDIM, 'x', PoseType>(cell_size_string);
-        } else {
+        } else if constexpr (POSEDIM == 2) {
             return {static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space)};
+        } else if constexpr (POSEDIM == 3) {
+            return {static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space)};
         }
+        return {};
     }
 
   public:
@@ -113,10 +116,6 @@ template<typename ObservationType, typename LabelType, uint32_t PoseDim = 3, typ
 class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType> {
     static size_t constexpr POSEDIM = PoseDim;
     UniqueStore<ObservationType> unique_obs;
-
-    std::array<uint8_t, 3> fromVec(cv::Vec3b const& vec) {
-        return {vec[0], vec[1], vec[2]};
-    }
 
   public:
     template<typename ParameterServer>

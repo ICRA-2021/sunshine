@@ -27,7 +27,7 @@ double computeMetric(std::string const &bagfile,
                      std::string const &depth_topic,
                      sunshine::Parameters const& parameters,
                      Metric const &metric,
-                     uint32_t warmup = 0) {
+                     uint32_t const warmup = 0) {
     using namespace sunshine;
 
     auto visualWordAdapter = VisualWordAdapter(&parameters);
@@ -37,6 +37,7 @@ double computeMetric(std::string const &bagfile,
     auto imageDepthAdapter = ImageDepthAdapter();
     auto wordTransformAdapter = ObservationTransformAdapter<WordDepthAdapter::Output>(&parameters);
     auto imageTransformAdapter = ObservationTransformAdapter<ImageDepthAdapter::Output>(&parameters);
+    uint32_t count = 0;
 
     std::unique_ptr<ImageObservation> rgb, segmentation;
     double depth_timestamp = -1;
@@ -47,7 +48,9 @@ double computeMetric(std::string const &bagfile,
         auto const segObs = imageTransformAdapter(imageDepthAdapter(segmentation));
         auto gtSeg = segmentationAdapter(segObs);
         auto topicsSeg = topicsFuture.get();
-        metric(*gtSeg, *topicsSeg);
+        if (count++ >= warmup) {
+            metric(*gtSeg, *topicsSeg);
+        }
     };
 
     auto const imageCallback = [&](sensor_msgs::Image::ConstPtr image){
@@ -71,6 +74,7 @@ double computeMetric(std::string const &bagfile,
         pcl::fromPCLPointCloud2(pcl_pc2, *pc);
 
         wordDepthAdapter.updatePointCloud(pc);
+        imageDepthAdapter.updatePointCloud(pc);
         depth_timestamp = msg->header.stamp.toSec();
     };
 
@@ -79,6 +83,7 @@ double computeMetric(std::string const &bagfile,
             tf::StampedTransform tfTransform;
             tf::transformStampedMsgToTF(transform, tfTransform);
             wordTransformAdapter.addTransform(tfTransform);
+            imageTransformAdapter.addTransform(tfTransform);
         }
     };
 
@@ -123,7 +128,71 @@ int main(int argc, char **argv) {
     std::string const segmentation_topic_name(argv[4]);
 
     computeMetric(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, sunshine::Parameters({}), [](sunshine::Segmentation<std::vector<int>, 3, int, double> const& labels, sunshine::Segmentation<std::vector<int>, 4, int, double> const& seg){
+        std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
+        std::vector<uint32_t> gt_weights(seg.observations[0].size(), 0), topic_weights(labels.observations[0].size(), 0);
+        std::vector<std::vector<uint32_t>> matches(seg.observations[0].size(), std::vector<uint32_t>(labels.observations[0].size(), 0));
+        double total_weight = 0;
+        auto const argmax = [](auto container){
+            uint32_t idx_max = 0;
+            auto max = container[0];
+            for (auto i = 1; i < container.size(); ++i) {
+                if (container[i] > max) {
+                    idx_max = i;
+                    max = container[i];
+                }
+            }
+            return idx_max;
+        };
+        for (auto i = 0; i < seg.observations.size(); ++i) {
+            std::array<int, 3> pose{seg.observation_poses[i][1], seg.observation_poses[i][2], seg.observation_poses[i][3]};
+            auto const label = argmax(seg.observations[i]);
+            gt_labels.insert({std::move(pose), label});
+        }
+        for (auto i = 0; i < labels.observations.size(); ++i) {
+            auto const label = argmax(labels.observations[i]);
+            topic_labels.insert({labels.observation_poses[i], label});
 
-        return 0;
-    }, 0);
+            auto iter = gt_labels.find(labels.observation_poses[i]);
+            if (iter != gt_labels.end()) {
+                matches[iter->second][label] += 1;
+                gt_weights[iter->second] += 1;
+                topic_weights[label] += 1;
+                total_weight += 1;
+            } else {
+                std::cerr << "Failed to find gt labels for pose!" << std::endl;
+            }
+        }
+
+        auto const entropy = [](auto container, double weight = 1.0){
+            double sum = 0;
+            for (auto const& val : container) {
+                if (val > 0) {
+                    double const pv = (weight == 1.0) ? val : (val / weight);
+                    sum += pv * log(pv);
+                } else {
+                    assert(val == 0);
+                }
+            }
+            return -sum;
+        };
+
+        double mi = 0;
+        double sum_pxy = 0;
+        for (auto i = 0; i < matches.size(); ++i) {
+            for (auto j = 0; j < matches[i].size(); ++j) {
+                auto const px = gt_weights[i] / total_weight;
+                auto const py = topic_weights[j] / total_weight;
+                auto const pxy = matches[i][j] / total_weight;
+                if (pxy > 0) {
+                    mi += pxy * log(pxy / (px * py));
+                }
+                sum_pxy += pxy;
+            }
+        }
+
+        double const ex = entropy(gt_weights, total_weight), ey = entropy(topic_weights, total_weight);
+        double const nmi = (mi == 0) ? 0. : (mi / sqrt(ex * ey));
+
+        return nmi;
+    }, 10);
 }
