@@ -242,7 +242,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                   duration_add_observations,
                   min_obs_refine_time);
         } else {
-            ROS_INFO("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
+            ROS_DEBUG("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
                      total_duration,
                      duration_words_lock,
                      duration_write_lock,

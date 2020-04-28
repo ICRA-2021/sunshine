@@ -24,16 +24,17 @@ class ObservationTransformAdapter : public Adapter<ObservationTransformAdapter<T
     }
 
     std::unique_ptr<Type> operator()(std::unique_ptr<Type>&& in) const {
-//        tf::StampedTransform transform;
-//        transformer.lookupTransform(target_frame, in->frame, ros::Time(in->timestamp), transform);
-        tf::Stamped<tf::Point> outputPoint;
+        tf::StampedTransform transform;
+        transformer.lookupTransform(target_frame, in->frame, ros::Time(0), transform);
+//        tf::Stamped<tf::Point> outputPoint;
         for (auto i = 0; i < in->observation_poses.size(); ++i) {
             // Using ros::Time(0) gets the latest transform
             tf::Stamped<tf::Point> inputPoint(tf::Point(in->observation_poses[i][0], in->observation_poses[i][1], in->observation_poses[i][2]), ros::Time(0), in->frame);
-            transformer.transformPoint(target_frame, inputPoint, outputPoint);
-            in->observation_poses[i][0] = outputPoint.x();
-            in->observation_poses[i][1] = outputPoint.y();
-            in->observation_poses[i][2] = outputPoint.z();
+//            transformer.transformPoint(target_frame, inputPoint, outputPoint);
+            tf::Point const output = transform * inputPoint;
+            in->observation_poses[i][0] = output.x();
+            in->observation_poses[i][1] = output.y();
+            in->observation_poses[i][2] = output.z();
         }
         in->frame = target_frame;
         return std::move(in);

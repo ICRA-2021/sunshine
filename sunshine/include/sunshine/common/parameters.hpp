@@ -13,8 +13,12 @@ namespace sunshine {
 class Parameters {
     std::map<std::string, std::variant<std::string, int, double, bool>> parameters;
   public:
-    Parameters(decltype(parameters) params)
+    explicit Parameters(decltype(parameters) params)
           : parameters(params) {}
+
+    std::variant<std::string, int, double, bool>& operator[](std::string const& key) {
+        return parameters[key];
+    }
 
     template<typename T>
     T param(std::string const &key, T default_value) const {

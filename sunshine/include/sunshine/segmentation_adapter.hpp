@@ -122,7 +122,7 @@ class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticObservati
     explicit SemanticSegmentationAdapter(ParameterServer *paramServer)
           : SegmentationAdapter<SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType>(paramServer) {}
 
-    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> const &obs) {
+    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> __attribute__((hot)) operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> const &obs) {
         typedef Segmentation<LabelType, POSEDIM, CellPoseType, PoseType> Output;
         auto segmentation = std::make_unique<Output>(obs->frame, obs->timestamp, obs->id, this->cell_size, std::vector<LabelType>(), std::vector<std::array<CellPoseType, PoseDim>>());
         if (obs->observations.empty()) return std::move(segmentation);
@@ -138,10 +138,7 @@ class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticObservati
                     iter->second.emplace(id, 1);
                 }
             } else {
-                counts.emplace(pose, std::map<size_t, size_t>{});
-                iter = counts.find(pose);
-                if (iter == counts.end()) throw std::logic_error("Failed to insert new pose");
-                iter->second.emplace(id, 1);
+                counts.emplace(pose, std::map<size_t, size_t>{{id, 1}});
             }
         }
 
