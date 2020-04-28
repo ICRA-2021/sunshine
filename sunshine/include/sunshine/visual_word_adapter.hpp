@@ -90,7 +90,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         }
     }
 
-    typename Parent::Output operator()(typename Parent::Input const &imgObs);
+    typename std::unique_ptr<Parent::Output> operator()(std::unique_ptr<typename Parent::Input> const &imgObs);
 };
 
 }

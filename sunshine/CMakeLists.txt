@@ -167,7 +167,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
-add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/word_depth_adapter.cpp include/sunshine/word_depth_adapter.hpp include/sunshine/segmentation_adapter.hpp)
+add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp)
 
 add_executable(visual_word_extractor nodes/word_extractor_node.cpp)
 add_executable(topic_model nodes/topic_model_node.cpp)

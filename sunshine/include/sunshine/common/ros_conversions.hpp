@@ -106,9 +106,8 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
 }
 
 ImageObservation fromRosMsg(sensor_msgs::ImageConstPtr msg) {
-    cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
-    cv::Mat const& img = img_ptr->image;
-    return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, img);
+    cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, std::move(img_ptr->image));
 }
 
 }

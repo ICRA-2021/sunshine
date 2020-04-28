@@ -174,15 +174,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         }
     }
 
-    std::future<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>> operator()(WordObservation const &wordObs) {
+    std::future<std::unique_ptr<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>> operator()(std::unique_ptr<WordObservation> const &wordObs) {
         auto time_checkpoint = std::chrono::steady_clock::now();
         auto const time_start = time_checkpoint;
 
-        if (wordObs.frame.empty()) ROS_WARN("Received WordObservation with empty frame!");
+        if (wordObs->frame.empty()) ROS_WARN("Received WordObservation with empty frame!");
 
-        if (world_frame.empty()) { world_frame = wordObs.frame; }
-        else if (wordObs.frame != world_frame) {
-            ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs.frame.c_str(), world_frame.c_str());
+        if (world_frame.empty()) { world_frame = wordObs->frame; }
+        else if (wordObs->frame != world_frame) {
+            ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs->frame.c_str(), world_frame.c_str());
             throw std::invalid_argument("Word observation in invalid frame.");
         }
 
@@ -193,7 +193,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 
         // TODO Can observation transform ever be invalid?
 
-        double observation_time = wordObs.timestamp;
+        double observation_time = wordObs->timestamp;
         //update the  list of observed time step ids
         observation_times.push_back(observation_time);
         if (!observation_times.empty() && last_time > observation_time) {
@@ -213,12 +213,12 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         last_time = std::max(last_time, observation_time);
         auto const duration_broadcast = record_lap(time_checkpoint);
 
-        ROS_DEBUG("Adding %lu word observations from time %f", wordObs.observations.size(), observation_time);
+        ROS_DEBUG("Adding %lu word observations from time %f", wordObs->observations.size(), observation_time);
         {
             auto rostWriteGuard = rost->get_write_token();
             duration_write_lock = record_lap(time_checkpoint);
 
-            auto const &words_by_cell_pose = words_for_cell_poses(wordObs, cell_size);
+            auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
             current_cell_poses.reserve(current_cell_poses.size() + words_by_cell_pose.size());
             for (auto const &entry : words_by_cell_pose) {
                 auto const &cell_pose = entry.first;
@@ -253,15 +253,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         lastWordsAdded = chrono::steady_clock::now();
 
         typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
-        std::promise<Segmentation> promisedTopics;
+        std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
-        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs.id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
               std::move(promisedTopics)}]() mutable {
             using namespace std::chrono;
             wait_for_processing(false);
             auto topics = getTopicDistsForPoses(cell_poses);
             double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
-            promisedTopics.set_value(Segmentation("map", timestamp, id, cell_size, std::move(topics), std::move(poses)));
+            promisedTopics.set_value(std::make_unique<Segmentation>("map", timestamp, id, cell_size, std::move(topics), std::move(poses)));
         }));
         return futureTopics;
     }

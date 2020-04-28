@@ -8,7 +8,7 @@
 #include <limbo/bayes_opt/boptimizer.hpp> // you can also include <limbo/limbo.hpp> but it will slow down the compilation
 #include "sunshine/rost_adapter.hpp"
 #include "sunshine/visual_word_adapter.hpp"
-#include "sunshine/word_depth_adapter.hpp"
+#include "sunshine/depth_adapter.hpp"
 
 using namespace limbo;
 

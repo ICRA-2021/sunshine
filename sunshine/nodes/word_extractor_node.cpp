@@ -3,7 +3,7 @@
 //
 
 #include "sunshine/visual_word_adapter.hpp"
-#include "sunshine/word_depth_adapter.hpp"
+#include "sunshine/depth_adapter.hpp"
 #include "sunshine/common/ros_conversions.hpp"
 
 #include <pcl_conversions/pcl_conversions.h>

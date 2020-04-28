@@ -19,37 +19,25 @@ class Adapter {
     virtual ~Adapter() = default;
 //    virtual Output operator()(Input const &input) const = 0; // Not needed with CRTP
 
-    friend Output operator>>(Input input, ImplClass adapter) {
+    friend std::unique_ptr<Output> operator>>(std::unique_ptr<Input>&& input, ImplClass adapter) {
+        return adapter(std::move(input));
+    }
+
+    friend std::unique_ptr<Output> operator>>(std::unique_ptr<Input> const& input, ImplClass adapter) {
         return adapter(input);
     }
 };
 
-template<typename ImplClass, typename FeatureType, uint32_t PoseDim, typename PoseType = double>
-class FeatureExtractorAdapter : public Adapter<ImplClass, ImageObservation, CategoricalObservation<FeatureType, PoseDim, PoseType>> {
-};
-
-template<typename ImplClass, typename WordType, typename TopicType, uint32_t PoseDim, typename WordPoseType = double, typename TopicPoseType=WordPoseType>
-class TopicModelAdapter : public Adapter<ImplClass, CategoricalObservation<WordType, PoseDim, WordPoseType>, CategoricalObservation<TopicType, PoseDim, TopicPoseType>> {
-};
-
-template <typename Input>
+template<typename Input>
 class LogAdapter : public Adapter<LogAdapter<Input>, Input, Input> {
-    std::function<void(Input const&)> log_function;
+    std::function<void(Input const &)> log_function;
   public:
-    explicit LogAdapter(std::function<void(Input const&)> log_function) : log_function(log_function) {}
-    Input operator()(Input const& input) const {
-        log_function(input);
-        return input;
-    }
-};
+    explicit LogAdapter(std::function<void(Input const &)> log_function)
+          : log_function(log_function) {}
 
-template <typename Input>
-class UnaryOpAdapter : public Adapter<UnaryOpAdapter<Input>, Input, Input> {
-  std::function<Input(Input)> unary_op;
-  public:
-    explicit UnaryOpAdapter(std::function<Input(Input)> unary_op) : unary_op(unary_op) {}
-    Input operator()(Input input) {
-        return unary_op(input);
+    std::unique_ptr<Input> operator()(std::unique_ptr<Input>&& input) const {
+        log_function(*input);
+        return std::move(input);
     }
 };
 
