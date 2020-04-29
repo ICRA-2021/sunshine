@@ -37,7 +37,7 @@ struct Params {
 
   // no noise
   struct kernel : public defaults::kernel {
-    BO_PARAM(double, noise, 0.04);
+    BO_PARAM(double, noise, 0.005);
   };
 
   struct kernel_maternfivehalves : public defaults::kernel_maternfivehalves {
@@ -45,12 +45,12 @@ struct Params {
 
   // we use 10 random samples to initialize the algorithm
   struct init_randomsampling {
-    BO_PARAM(int, samples, 5);
+    BO_PARAM(int, samples, 10);
   };
 
   // we stop after 40 iterations
   struct stop_maxiterations {
-    BO_PARAM(int, iterations, 40);
+    BO_PARAM(int, iterations, 50);
   };
 
   // we use the default parameters for acqui_ucb
@@ -62,7 +62,7 @@ struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 2);
+  BO_PARAM(size_t, dim_in, 3);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -75,8 +75,8 @@ struct Eval {
 
   // the function to be optimized
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
-      sunshine::Parameters params{{{"alpha", x(0)}, {"beta", x(1)}}};
-      double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
+      sunshine::Parameters params{{{"alpha", x(0)}, {"beta", x(1)}, {"gamma", pow(10.0, 2.0*log(x(2)))}}};
+      double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 100);
       return tools::make_vector(result);
   }
 };
