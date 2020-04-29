@@ -21,8 +21,8 @@ template<typename T, typename A>
 struct is_vector<std::vector<T, A>> : public std::true_type {
 };
 
-template<typename Input, typename LabelType, uint32_t PoseDim, typename CellPoseType = int, typename PoseType = int>
-class SegmentationAdapter : public Adapter<SegmentationAdapter<Input, LabelType, PoseDim, CellPoseType, PoseType>, Input, Segmentation<LabelType, PoseDim, CellPoseType, PoseType>> {
+template<typename ImplClass, typename Input, typename LabelType, uint32_t PoseDim, typename CellPoseType = int, typename PoseType = int>
+class SegmentationAdapter : public Adapter<ImplClass, Input, Segmentation<LabelType, PoseDim, CellPoseType, PoseType>> {
   protected:
     static size_t constexpr POSEDIM = PoseDim;
     std::array<PoseType, POSEDIM> const cell_size;
@@ -48,7 +48,7 @@ class SegmentationAdapter : public Adapter<SegmentationAdapter<Input, LabelType,
 };
 
 template<typename LabelType, typename CellPoseType = int, typename PoseType = int>
-class ImageSegmentationAdapter : public SegmentationAdapter<ImageObservation, LabelType, 2, CellPoseType, PoseType> {
+class ImageSegmentationAdapter : public SegmentationAdapter<ImageSegmentationAdapter<LabelType, CellPoseType, PoseType>, ImageObservation, LabelType, 2, CellPoseType, PoseType> {
     static size_t constexpr POSEDIM = 2;
     UniqueStore<std::array<uint8_t, 3>> unique_colors;
 
@@ -59,9 +59,9 @@ class ImageSegmentationAdapter : public SegmentationAdapter<ImageObservation, La
   public:
     template<typename ParameterServer>
     explicit ImageSegmentationAdapter(ParameterServer *paramServer)
-          : SegmentationAdapter<ImageObservation, LabelType, POSEDIM, CellPoseType, PoseType>(paramServer) {}
+          : SegmentationAdapter<ImageSegmentationAdapter<LabelType, CellPoseType, PoseType>, ImageObservation, LabelType, 2, CellPoseType, PoseType>(paramServer) {}
 
-    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> operator()(std::unique_ptr<ImageObservation> const &imageObs) {
+    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> operator()(ImageObservation const *imageObs) {
         typedef Segmentation<LabelType, POSEDIM, CellPoseType, PoseType> Output;
         auto segmentation = std::make_unique<Output>(imageObs->frame, imageObs->timestamp, imageObs->id, this->cell_size, {}, {});
         if (imageObs->image.rows == 0 || imageObs->image.cols == 0) return std::move(segmentation);
@@ -110,19 +110,21 @@ class ImageSegmentationAdapter : public SegmentationAdapter<ImageObservation, La
 
         return std::move(segmentation);
     }
+
+    using SegmentationAdapter<ImageSegmentationAdapter<LabelType, CellPoseType, PoseType>, ImageObservation, LabelType, 2, CellPoseType, PoseType>::operator();
 };
 
 template<typename ObservationType, typename LabelType, uint32_t PoseDim = 3, typename CellPoseType = int, typename PoseType = double>
-class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType> {
+class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticSegmentationAdapter<ObservationType, LabelType, PoseDim, CellPoseType, PoseType>, SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType> {
     static size_t constexpr POSEDIM = PoseDim;
     UniqueStore<ObservationType> unique_obs;
 
   public:
     template<typename ParameterServer>
     explicit SemanticSegmentationAdapter(ParameterServer *paramServer)
-          : SegmentationAdapter<SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType>(paramServer) {}
+          : SegmentationAdapter<SemanticSegmentationAdapter<ObservationType, LabelType, PoseDim, CellPoseType, PoseType>, SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType>(paramServer) {}
 
-    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> __attribute__((hot)) operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> const &obs) {
+    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> __attribute__((hot)) operator()(SemanticObservation<ObservationType, PoseDim, PoseType> const *obs) {
         typedef Segmentation<LabelType, POSEDIM, CellPoseType, PoseType> Output;
         auto segmentation = std::make_unique<Output>(obs->frame, obs->timestamp, obs->id, this->cell_size, std::vector<LabelType>(), std::vector<std::array<CellPoseType, PoseDim>>());
         if (obs->observations.empty()) return std::move(segmentation);
@@ -161,6 +163,7 @@ class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticObservati
 
         return segmentation;
     }
+    using SegmentationAdapter<SemanticSegmentationAdapter<ObservationType, LabelType, PoseDim, CellPoseType, PoseType>, SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType>::operator();
 };
 }
 

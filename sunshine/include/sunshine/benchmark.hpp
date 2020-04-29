@@ -52,11 +52,11 @@ double benchmark(std::string const &bagfile,
     std::unique_ptr<ImageObservation> rgb, segmentation;
     double depth_timestamp = -1;
     auto const processPair = [&]() {
-        auto wordObs = wordTransformAdapter(wordDepthAdapter(visualWordAdapter(rgb)));
-        auto topicsFuture = rostAdapter(wordObs);
+//        auto wordObs = wordTransformAdapter(wordDepthAdapter(visualWordAdapter(rgb.get())));
+        auto topicsFuture = rgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
 
-        auto const segObs = imageTransformAdapter(imageDepthAdapter(segmentation));
-        auto gtSeg = segmentationAdapter(segObs);
+//        auto const segObs = imageTransformAdapter(imageDepthAdapter(segmentation));
+        auto gtSeg = segmentation >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
         auto topicsSeg = topicsFuture.get();
         if (count >= warmup) {
             double const result = metric(*gtSeg, *topicsSeg);

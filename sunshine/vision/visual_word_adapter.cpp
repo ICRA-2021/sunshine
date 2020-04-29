@@ -30,7 +30,7 @@ cv::Mat VisualWordAdapter::apply_clahe(cv::Mat img) const {
     return img;
 }
 
-std::unique_ptr<CategoricalObservation<int, 2, int>> VisualWordAdapter::operator()(std::unique_ptr<ImageObservation> const &imgObs) {
+std::unique_ptr<CategoricalObservation<int, 2, int>> VisualWordAdapter::operator()(ImageObservation const * const imgObs) {
     cv::Mat const &img = (use_clahe)
                          ? apply_clahe(imgObs->image)
                          : imgObs->image;
@@ -47,7 +47,7 @@ std::unique_ptr<CategoricalObservation<int, 2, int>> VisualWordAdapter::operator
     }
 
     WordObservation const z = multi_bow(img);
-    size_t const num_words = z.words.size();
+//    size_t const num_words = z.words.size();
 
     if (seq_start == 0) {
         seq_start = imgObs->timestamp;
@@ -63,9 +63,9 @@ std::unique_ptr<CategoricalObservation<int, 2, int>> VisualWordAdapter::operator
     assert(z.word_pose.size() == observations.size() * 2);
     std::vector<std::array<int, 2>> observation_poses;
     for (auto i = 0ul; i < z.word_pose.size(); i += 2) observation_poses.push_back(make_array<2>(z.word_pose.begin() + i));
-    return std::make_unique<CategoricalObservation<int, 2, int>>(imgObs->frame,
-                                                                 imgObs->timestamp,
-                                                                 imgObs->id,
+    return std::make_unique<CategoricalObservation<int, 2, int>>(frame,
+                                                                 timestamp,
+                                                                 id,
                                                                  observations,
                                                                  observation_poses,
                                                                  vocabulary_start,

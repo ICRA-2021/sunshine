@@ -174,7 +174,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         }
     }
 
-    std::future<std::unique_ptr<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>> operator()(std::unique_ptr<WordObservation> const &wordObs) {
+    std::future<std::unique_ptr<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>> operator()(WordObservation const *wordObs) {
         auto time_checkpoint = std::chrono::steady_clock::now();
         auto const time_start = time_checkpoint;
 
@@ -265,6 +265,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         }));
         return futureTopics;
     }
+
+    using Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation<int,
+          _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>::operator();
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const {
         auto rostReadToken = rost->get_read_token();

@@ -24,13 +24,15 @@ class DepthAdapter {
 class WordDepthAdapter : public Adapter<WordDepthAdapter, CategoricalObservation<int, 2, int>, CategoricalObservation<int, 3, double>>, public DepthAdapter {
   public:
     WordDepthAdapter() = default;
-    std::unique_ptr<CategoricalObservation<int, 3, double>> operator()(std::unique_ptr<CategoricalObservation<int, 2, int>> const& wordObs2d) const;
+    std::unique_ptr<CategoricalObservation<int, 3, double>> operator()(CategoricalObservation<int, 2, int> const * wordObs2d) const;
+    using Adapter<WordDepthAdapter, CategoricalObservation<int, 2, int>, CategoricalObservation<int, 3, double>>::operator();
 };
 
 class ImageDepthAdapter : public Adapter<ImageDepthAdapter, ImageObservation, SemanticObservation<std::array<uint8_t, 3>, 3, double>>, public DepthAdapter {
     public:
     ImageDepthAdapter() = default;
-    std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> operator()(std::unique_ptr<ImageObservation> const& image) const;
+    std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> operator()(ImageObservation const* image) const;
+    using Adapter<ImageDepthAdapter, ImageObservation, SemanticObservation<std::array<uint8_t, 3>, 3, double>>::operator();
 };
 }
 

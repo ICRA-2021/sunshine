@@ -40,7 +40,7 @@ class ObservationTransformAdapter : public Adapter<ObservationTransformAdapter<T
         return std::move(in);
     }
 
-    std::unique_ptr<Type> operator()(std::unique_ptr<Type> const& in) const {
+    std::unique_ptr<Type> operator()(Type const* in) const {
         tf::StampedTransform transform;
         transformer.lookupTransform(target_frame, in->frame_id, ros::Time(in->timestamp), transform);
         tf::Stamped<tf::Point> outputPoint;

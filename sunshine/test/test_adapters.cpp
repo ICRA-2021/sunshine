@@ -17,14 +17,16 @@ class TopicModelAdapter : public Adapter<ImplClass, CategoricalObservation<WordT
 
 class DummyFeatureExtractor : public FeatureExtractorAdapter<DummyFeatureExtractor, int, 4, double> {
   public:
-    std::unique_ptr<Output> operator()(std::unique_ptr<Input> const& imgObs) {
+    std::unique_ptr<Output> operator()(Input const* imgObs) {
         return std::make_unique<Output>(imgObs->frame, imgObs->timestamp, imgObs->id, std::vector<int>{0}, std::vector<std::array<double, 4>>{{0, 10, 20, 30}}, 0, 1);
     }
+
+    using FeatureExtractorAdapter<DummyFeatureExtractor, int, 4, double>::operator();
 };
 
 class DummyTopicModel : public TopicModelAdapter<DummyTopicModel, int, int, 4, double, int> {
   public:
-    std::unique_ptr<Output> operator()(std::unique_ptr<Input> const& wordObs) {
+    std::unique_ptr<Output> operator()(Input const* wordObs) {
         std::vector<ROSTAdapter<4>::cell_pose_t> cellPoses;
         for (auto const &wordPose : wordObs->observation_poses) cellPoses.push_back(ROSTAdapter<4>::toCellId(wordPose, {10, 10, 10, 10}));
         return std::make_unique<Output>(wordObs->frame,
@@ -35,6 +37,7 @@ class DummyTopicModel : public TopicModelAdapter<DummyTopicModel, int, int, 4, d
                                         wordObs->vocabulary_start,
                                         wordObs->vocabulary_size);
     }
+    using TopicModelAdapter<DummyTopicModel, int, int, 4, double, int>::operator();
 };
 
 int main() {

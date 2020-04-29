@@ -333,11 +333,12 @@ topic_model_node::~topic_model_node() {
     if (broadcast_thread && broadcast_thread->joinable()) broadcast_thread->join();
 }
 
-void topic_model_node::words_callback(const sunshine_msgs::WordObservation::ConstPtr &wordObs) {
-    if (current_source.empty()) { current_source = wordObs->source; }
-    else if (current_source != wordObs->source)
-        ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordObs->source.c_str());
-    rostAdapter(fromRosMsg<int, POSEDIM - 1, ROSTAdapter<POSEDIM>::WordDimType>(*wordObs));
+void topic_model_node::words_callback(const sunshine_msgs::WordObservation::ConstPtr &wordMsg) {
+    if (current_source.empty()) { current_source = wordMsg->source; }
+    else if (current_source != wordMsg->source)
+        ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordMsg->source.c_str());
+    auto const wordObs = fromRosMsg<int, POSEDIM - 1, ROSTAdapter<POSEDIM>::WordDimType>(*wordMsg);
+    rostAdapter(&wordObs);
 }
 
 TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {

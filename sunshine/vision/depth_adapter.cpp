@@ -20,7 +20,7 @@ std::array<double, 3> DepthAdapter::get_pose(int u, int v) const {
     return {pcPose.x(), pcPose.y(), pcPose.z()};
 }
 
-std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operator()(std::unique_ptr<CategoricalObservation<int, 2, int>> const &wordObs2d) const {
+std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operator()(CategoricalObservation<int, 2, int> const * const wordObs2d) const {
     auto const num_words = wordObs2d->observations.size();
 
     std::vector<std::array<double, 3>> observation_pose;
@@ -39,7 +39,7 @@ std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operat
                                                                     wordObs2d->vocabulary_size);
 }
 
-std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> ImageDepthAdapter::operator()(std::unique_ptr<ImageObservation> const &wordObs2d) const {
+std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> ImageDepthAdapter::operator()(ImageObservation const * const wordObs2d) const {
     auto const num_words = wordObs2d->image.rows * wordObs2d->image.cols;
 
     std::vector<std::array<uint8_t, 3>> observations;

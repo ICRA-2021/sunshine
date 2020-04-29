@@ -50,7 +50,7 @@ class topic_model_node {
     boost::function<bool(sunshine_msgs::SetTopicModelRequest &, sunshine_msgs::SetTopicModelResponse &)> const set_topic_model;
     boost::function<bool(sunshine_msgs::PauseRequest &, sunshine_msgs::PauseResponse &)> const pause_topic_model;
 
-    void words_callback(const sunshine_msgs::WordObservation::ConstPtr &words);
+    void words_callback(const sunshine_msgs::WordObservation::ConstPtr &wordMsg);
 
     void broadcast_topics(int obs_time, std::vector<ROSTAdapter<POSEDIM>::cell_pose_t> const &broadcast_poses);
 

@@ -19,12 +19,19 @@ class Adapter {
     virtual ~Adapter() = default;
 //    virtual Output operator()(Input const &input) const = 0; // Not needed with CRTP
 
-    friend std::unique_ptr<Output> operator>>(std::unique_ptr<Input>&& input, ImplClass adapter) {
+    friend auto operator>>(std::unique_ptr<Input>&& input, ImplClass& adapter) {
         return adapter(std::move(input));
     }
 
-    friend std::unique_ptr<Output> operator>>(std::unique_ptr<Input> const& input, ImplClass adapter) {
-        return adapter(input);
+    friend auto operator>>(std::unique_ptr<Input> const& input, ImplClass& adapter) {
+        return adapter(input.get());
+    }
+
+  protected:
+    auto operator()(std::unique_ptr<Input>&& input) {
+        // TODO: should this exist? subclasses should implement a move version if there is a good reason to do so
+        Input const* const inputPtr = input.get();
+        return dynamic_cast<ImplClass*>(this)->operator()(inputPtr);
     }
 };
 
