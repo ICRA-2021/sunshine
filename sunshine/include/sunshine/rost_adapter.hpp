@@ -205,6 +205,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         if (last_time >= 0) {
             ROS_DEBUG("Received more word observations - broadcasting observations for time %f", last_time);
             if (newObservationCallback) newObservationCallback(this);
+            this->wait_for_processing(true);
             size_t const refine_count = rost->get_refine_count();
             ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
             last_refine_count = refine_count;
@@ -243,11 +244,11 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                   min_obs_refine_time);
         } else {
             ROS_DEBUG("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
-                     total_duration,
-                     duration_words_lock,
-                     duration_write_lock,
-                     duration_broadcast,
-                     duration_add_observations);
+                      total_duration,
+                      duration_words_lock,
+                      duration_write_lock,
+                      duration_broadcast,
+                      duration_add_observations);
         }
 
         lastWordsAdded = chrono::steady_clock::now();
@@ -311,22 +312,25 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         rost->set_topic_model(write_token, phi.counts, phi.topic_weights);
     }
 
-    void wait_for_processing(bool new_data = true) const {
+    void wait_for_processing(bool const new_data = true) const {
         using namespace std::chrono;
         auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
-        ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
-                  min_obs_refine_time,
-                  duration_cast<milliseconds>(elapsedSinceAdd).count());
-        if (duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time) {
-            consecutive_rate_violations++;
-            if (new_data) {
+        bool const delay = duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time;
+        if (new_data) {
+            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
+                      min_obs_refine_time,
+                      duration_cast<milliseconds>(elapsedSinceAdd).count());
+            if (delay) {
+                consecutive_rate_violations++;
                 ROS_WARN("New word observation received too soon! Delaying...");
                 ROS_ERROR_COND(consecutive_rate_violations > obs_queue_size,
                                "A word observation will likely be dropped. Increase queue size, or reduce observation rate or processing time.");
+            } else {
+                consecutive_rate_violations = 0;
             }
+        }
+        if (delay) {
             std::this_thread::sleep_for(milliseconds(min_obs_refine_time) - elapsedSinceAdd);
-        } else {
-            consecutive_rate_violations = 0;
         }
     }
 
