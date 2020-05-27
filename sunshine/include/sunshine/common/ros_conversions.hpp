@@ -9,6 +9,8 @@
 #include <sunshine_msgs/WordObservation.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
+#include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
 #include <tf2/convert.h>
 
 namespace sunshine {
@@ -101,6 +103,11 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
         out.observation_poses.push_back(wordPose);
     }
     return out;
+}
+
+ImageObservation fromRosMsg(sensor_msgs::ImageConstPtr msg) {
+    cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, std::move(img_ptr->image));
 }
 
 }

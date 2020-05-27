@@ -23,7 +23,7 @@ class topic_model_node {
     ros::NodeHandle *nh;
 
     std::shared_ptr<std::thread> broadcast_thread;
-    ROSTAdapter rostAdapter;
+    ROSTAdapter<POSEDIM> rostAdapter;
     std::unique_ptr<activity_manager::WriteToken> externalRostLock;
 
     std::string words_topic_name;
@@ -50,9 +50,9 @@ class topic_model_node {
     boost::function<bool(sunshine_msgs::SetTopicModelRequest &, sunshine_msgs::SetTopicModelResponse &)> const set_topic_model;
     boost::function<bool(sunshine_msgs::PauseRequest &, sunshine_msgs::PauseResponse &)> const pause_topic_model;
 
-    void words_callback(const sunshine_msgs::WordObservation::ConstPtr &words);
+    void words_callback(const sunshine_msgs::WordObservation::ConstPtr &wordMsg);
 
-    void broadcast_topics(int obs_time, std::vector<cell_pose_t> const &broadcast_poses);
+    void broadcast_topics(int obs_time, std::vector<ROSTAdapter<POSEDIM>::cell_pose_t> const &broadcast_poses);
 
   public:
 #ifndef NDEBUG
@@ -63,11 +63,11 @@ class topic_model_node {
 
     ~topic_model_node();
 
-    ROSTAdapter const &get_adapter() const {
+    ROSTAdapter<POSEDIM> const &get_adapter() const {
         return rostAdapter;
     }
 
-    ROSTAdapter &get_adapter() {
+    ROSTAdapter<POSEDIM> &get_adapter() {
         return rostAdapter;
     }
 

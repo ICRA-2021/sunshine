@@ -3,7 +3,7 @@
 //
 
 #include "sunshine/visual_word_adapter.hpp"
-#include "sunshine/word_depth_adapter.hpp"
+#include "sunshine/depth_adapter.hpp"
 #include "sunshine/common/ros_conversions.hpp"
 
 #include <pcl_conversions/pcl_conversions.h>
@@ -74,10 +74,10 @@ class VisualWordExtractor {
 
     void imageCallback(const sensor_msgs::ImageConstPtr &msg) {
         cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
-        cv::Mat img = img_ptr->image;
 
-        auto wordObs = wordAdapter(ImageObservation(sensor_frame_name, msg->header.stamp.toSec(), msg->header.seq, img));
-        if (publish_2d) words_2d_pub.publish(toRosMsg(wordObs));
+        auto const imgObs = std::make_unique<ImageObservation>(sensor_frame_name, msg->header.stamp.toSec(), msg->header.seq, img_ptr->image);
+        auto const wordObs = wordAdapter(imgObs.get());
+        if (publish_2d) words_2d_pub.publish(toRosMsg(*wordObs));
 
         if (publish_3d) {
             if (use_pc && !pc_recvd) {
@@ -85,7 +85,7 @@ class VisualWordExtractor {
                 return;
             }
 
-            auto wordObs3d = depthAdapter(std::move(wordObs));
+            auto wordObs3d = depthAdapter(wordObs.get());
             geometry_msgs::TransformStamped observation_transform;
 
             if (use_tf) {
@@ -113,7 +113,7 @@ class VisualWordExtractor {
 
             observation_transform.header.frame_id = world_frame_name;
             observation_transform.child_frame_id = sensor_frame_name;
-            words_pub.publish(toRosMsg(wordObs3d, observation_transform));
+            words_pub.publish(toRosMsg(*wordObs3d, observation_transform));
         }
     }
 

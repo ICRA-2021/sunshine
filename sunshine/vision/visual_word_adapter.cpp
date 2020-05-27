@@ -30,10 +30,10 @@ cv::Mat VisualWordAdapter::apply_clahe(cv::Mat img) const {
     return img;
 }
 
-CategoricalObservation<int, 2, int> VisualWordAdapter::operator()(ImageObservation const &imgObs) {
+std::unique_ptr<CategoricalObservation<int, 2, int>> VisualWordAdapter::operator()(ImageObservation const * const imgObs) {
     cv::Mat const &img = (use_clahe)
-                         ? apply_clahe(imgObs.image)
-                         : imgObs.image;
+                         ? apply_clahe(imgObs->image)
+                         : imgObs->image;
 
     if (img_scale != 1.0) {
         cv::resize(img,
@@ -47,29 +47,29 @@ CategoricalObservation<int, 2, int> VisualWordAdapter::operator()(ImageObservati
     }
 
     WordObservation const z = multi_bow(img);
-    size_t const num_words = z.words.size();
+//    size_t const num_words = z.words.size();
 
     if (seq_start == 0) {
-        seq_start = imgObs.timestamp;
+        seq_start = imgObs->timestamp;
     }
     uint32_t id = (seq_duration == 0)
-                  ? imgObs.id
-                  : static_cast<uint32_t>((imgObs.timestamp - seq_start) / seq_duration);
+                  ? imgObs->id
+                  : static_cast<uint32_t>((imgObs->timestamp - seq_start) / seq_duration);
     uint32_t const &vocabulary_start = z.vocabulary_begin;
     uint32_t const &vocabulary_size = z.vocabulary_size;
     std::vector<int> const &observations = z.words;
-    std::string const &frame = imgObs.frame;
-    double const &timestamp = imgObs.timestamp;
+    std::string const &frame = imgObs->frame;
+    double const &timestamp = imgObs->timestamp;
     assert(z.word_pose.size() == observations.size() * 2);
     std::vector<std::array<int, 2>> observation_poses;
     for (auto i = 0ul; i < z.word_pose.size(); i += 2) observation_poses.push_back(make_array<2>(z.word_pose.begin() + i));
-    return CategoricalObservation<int, 2, int>(imgObs.frame,
-                                               imgObs.timestamp,
-                                               imgObs.id,
-                                               observations,
-                                               observation_poses,
-                                               vocabulary_start,
-                                               vocabulary_size);
+    return std::make_unique<CategoricalObservation<int, 2, int>>(frame,
+                                                                 timestamp,
+                                                                 id,
+                                                                 observations,
+                                                                 observation_poses,
+                                                                 vocabulary_start,
+                                                                 vocabulary_size);
 }
 
 std::string VisualWordAdapter::get_rost_path() const {

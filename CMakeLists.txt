@@ -1,6 +1,6 @@
 # WARNING: Do not run cmake on this file/directory. Use `catkin build` in the parent workspace
 # This file only exists so that tools can identify this folder as a CMake project.
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0)
 project(sunshine_project)
 IF (NOT DEFINED ENV{ROS_DISTRO})
     set(ENV{ROS_DISTRO} melodic)
