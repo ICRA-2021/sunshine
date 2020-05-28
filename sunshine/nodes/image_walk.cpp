@@ -135,7 +135,7 @@ int main(int argc, char** argv)
 
     ros::Publisher finished_pub = nh.advertise<std_msgs::Empty>("finished", 1);
 
-    cv::Mat image = cv::imread(image_name, CV_LOAD_IMAGE_COLOR);
+    cv::Mat image = cv::imread(image_name, cv::IMREAD_COLOR);
     cv::waitKey(30);
 
     if (fps <= 0) {

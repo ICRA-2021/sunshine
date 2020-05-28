@@ -18,7 +18,7 @@ int main(int argc, char** argv)
     image_transport::ImageTransport it(nh);
     image_transport::Publisher pub = it.advertise(topic_name, 1);
     ros::Publisher tfPublisher = nh.advertise<geometry_msgs::TransformStamped>(transform_topic, 1);
-    cv::Mat image = cv::imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    cv::Mat image = cv::imread(argv[1], cv::IMREAD_COLOR);
     cv::waitKey(30);
     std_msgs::Header header;
     header.frame_id = frame_id;

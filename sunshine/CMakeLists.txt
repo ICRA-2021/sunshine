@@ -210,7 +210,7 @@ add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
 
 
 target_include_directories(sunshine_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_link_libraries(sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
