@@ -41,7 +41,7 @@ find_package(roslaunch REQUIRED)
 find_library(libvisualwords libvisualwords.so)
 find_library(libclear libclear.so)
 find_library(liblimbo liblimbo.a PATHS /home/stewart/devel/3rdparty/limbo/build/src)
-find_library(libnlopt libnlopt_cxx.so)
+find_library(libnlopt libnlopt.so NAMES libnlopt_cxx.so)
 #message(WARNING ${liblimbo})
 
 ## System dependencies are found with CMake's conventions

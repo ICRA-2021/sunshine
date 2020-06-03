@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <boost/math/distributions/lognormal.hpp>
 #include "sunshine/benchmark.hpp"
 
 #define USE_NLOPT
@@ -37,15 +38,15 @@ struct Params {
 
   // no noise
   struct kernel : public defaults::kernel {
-    BO_PARAM(double, noise, 0.005);
+    BO_PARAM(double, noise, 0.003);
   };
 
   struct kernel_maternfivehalves : public defaults::kernel_maternfivehalves {
   };
 
-  // we use 10 random samples to initialize the algorithm
+  // we use random samples to initialize the algorithm
   struct init_randomsampling {
-    BO_PARAM(int, samples, 25);
+    BO_PARAM(int, samples, 125);
   };
 
   // we stop after 40 iterations
@@ -75,14 +76,20 @@ struct Eval {
 
   // the function to be optimized
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
-      sunshine::Parameters params{{{"alpha", x(0)},
-                                        {"beta", x(1)},
-                                        {"gamma", pow(10.0, 2.0 * log(x(2)))},
+      boost::math::lognormal alpha_dist(-2.25, 2.25);
+      boost::math::lognormal beta_dist(-2.5, 2.0);
+      double const alpha = boost::math::quantile(alpha_dist, x(0));
+      double const beta = boost::math::quantile(beta_dist, x(1));
+      double const gamma = pow(10.0, 3.5 * log(x(2)));
+      sunshine::Parameters params{{{"alpha", alpha},
+                                        {"beta", beta},
+                                        {"gamma", gamma},
                                         {"K", 20},
                                         {"cell_space", 0.5},
                                         {"cell_time", 2.0},
                                         {"min_obs_refine_time", 250},
                                         {"num_threads", 7}}};
+      std::cout << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
       return tools::make_vector(result);
   }

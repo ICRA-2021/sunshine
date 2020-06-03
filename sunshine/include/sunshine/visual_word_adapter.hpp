@@ -57,10 +57,6 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
 
         bool const use_intensity = nh->template param<bool>("use_intensity", true);
 
-        img_scale = 1.0;
-        use_clahe = true;
-        seq_duration = 0.0;
-
         std::vector<std::string> feature_detector_names;
         std::vector<int> feature_sizes;
 
