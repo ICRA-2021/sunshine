@@ -63,7 +63,7 @@ struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 3);
+  BO_PARAM(size_t, dim_in, 4);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -78,18 +78,20 @@ struct Eval {
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
       boost::math::lognormal alpha_dist(-2.25, 2.25);
       boost::math::lognormal beta_dist(-2.5, 2.0);
+      boost::math::lognormal space_dist(-0.7, 0.6);
       double const alpha = boost::math::quantile(alpha_dist, x(0));
       double const beta = boost::math::quantile(beta_dist, x(1));
       double const gamma = pow(10.0, 3.5 * log(x(2)));
+      double const cell_space = boost::math::quantile(space_dist, x(3));
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
                                         {"gamma", gamma},
                                         {"K", 20},
-                                        {"cell_space", 0.5},
-                                        {"cell_time", 2.0},
-                                        {"min_obs_refine_time", 250},
+                                        {"cell_space", cell_space},
+                                        {"cell_time", 0.9},
+                                        {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
-      std::cout << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << std::endl;
+      std::cout << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
       return tools::make_vector(result);
   }
