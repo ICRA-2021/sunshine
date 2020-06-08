@@ -46,12 +46,12 @@ struct Params {
 
   // we use random samples to initialize the algorithm
   struct init_randomsampling {
-    BO_PARAM(int, samples, 125);
+    BO_PARAM(int, samples, 200);
   };
 
   // we stop after 40 iterations
   struct stop_maxiterations {
-    BO_PARAM(int, iterations, 100);
+    BO_PARAM(int, iterations, 50);
   };
 
   // we use the default parameters for acqui_ucb
