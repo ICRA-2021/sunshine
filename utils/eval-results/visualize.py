@@ -43,6 +43,7 @@ def cli():
 @click.argument("y")
 def heatmap(directory, x, y):
     observations = load_observations(directory)
+    observations.to_csv(path.join(directory, "processed_observations.csv"))
     xscale = 'log' #if x in ['Alpha', 'Beta', 'Gamma'] else 'linear'
     yscale = 'log' #if y in ['Alpha', 'Beta', 'Gamma'] else 'linear'
     plt.hexbin(observations[x], observations[y], C=observations["Score"], gridsize=20, cmap="copper", xscale=xscale, yscale=yscale)
