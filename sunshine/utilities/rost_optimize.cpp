@@ -94,6 +94,7 @@ struct Eval {
                                         {"num_threads", 7}}};
       std::cout << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
+      std::cout << "Score: " << result << std::endl;
       return tools::make_vector(result);
   }
 };
