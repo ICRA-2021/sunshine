@@ -51,7 +51,7 @@ struct Params {
 
   // we stop after 40 iterations
   struct stop_maxiterations {
-    BO_PARAM(int, iterations, 50);
+    BO_PARAM(int, iterations, 25);
   };
 
   // we use the default parameters for acqui_ucb
@@ -78,17 +78,18 @@ struct Eval {
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
       boost::math::lognormal alpha_dist(-2.25, 2.25);
       boost::math::lognormal beta_dist(-2.5, 2.0);
-      boost::math::lognormal space_dist(-0.7, 0.6);
+      boost::math::lognormal gamma_dist(-8.0, 4.0);
+      boost::math::lognormal space_dist(0.0, 1.0);
       double const alpha = boost::math::quantile(alpha_dist, x(0));
       double const beta = boost::math::quantile(beta_dist, x(1));
-      double const gamma = pow(10.0, 3.5 * log(x(2)));
+      double const gamma = boost::math::quantile(gamma_dist, x(2));
       double const cell_space = boost::math::quantile(space_dist, x(3));
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
                                         {"gamma", gamma},
                                         {"K", 20},
                                         {"cell_space", cell_space},
-                                        {"cell_time", 0.9},
+                                        {"cell_time", 3600},
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
       std::cout << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
