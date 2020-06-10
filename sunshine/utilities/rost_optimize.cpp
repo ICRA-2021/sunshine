@@ -89,7 +89,7 @@ struct Eval {
                                         {"gamma", gamma},
                                         {"K", 20},
                                         {"cell_space", cell_space},
-                                        {"cell_time", 3600},
+                                        {"cell_time", 3600.0},
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
       std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
