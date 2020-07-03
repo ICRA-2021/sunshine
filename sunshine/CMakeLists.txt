@@ -260,12 +260,12 @@ if (libclear)
     target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
     target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
 
-    target_include_directories(utils.topic_match PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+    target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(utils.topic_match ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.topic_match PRIVATE cxx_std_17)
 
-    target_include_directories(utils.find_lifting PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
+    target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(utils.find_lifting ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 endif()
 
