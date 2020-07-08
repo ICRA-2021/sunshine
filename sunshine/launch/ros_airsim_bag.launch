@@ -15,7 +15,6 @@
   <arg name="camera_info_topic" default="/camera/camera_info" /> <!--unused?-->
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" />
-
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
   <arg name="world_frame" default="map" />

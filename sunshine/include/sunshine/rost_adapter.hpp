@@ -21,7 +21,8 @@ using warp::hROST;
 
 template<size_t _POSEDIM = 4, typename WordInputDimType = double, typename WordOutputDimType = double>
 class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation<int,
-      _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>> {
+        _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>
+{
   public:
     static size_t constexpr POSEDIM = _POSEDIM;
     typedef WordOutputDimType WordDimType;
@@ -42,7 +43,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
-    bool polled_refine, update_topic_model;
+    bool update_topic_model;
     size_t last_refine_count = 0;
     std::unique_ptr<ROST_t> rost;
     std::string world_frame;
@@ -64,7 +65,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             word_pose_t wordPose;
             if constexpr(POSEDIM == 4) {
                 wordPose = {wordObs.timestamp, wordObs.observation_poses[i][0], wordObs.observation_poses[i][1],
-                      wordObs.observation_poses[i][2]};
+                            wordObs.observation_poses[i][2]};
             } else if constexpr(POSEDIM == 3) {
                 wordPose = {wordObs.timestamp, wordObs.observation_poses[i][0], wordObs.observation_poses[i][1]};
             } else {
@@ -98,8 +99,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 #endif
 
     template<typename ParamServer>
-    explicit ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
-          : newObservationCallback(std::move(callback)) {
+    explicit ROSTAdapter(ParamServer *nh,
+                         decltype(newObservationCallback) callback = nullptr,
+                         const std::vector<std::vector<int>> &init_model = {})
+            : newObservationCallback(std::move(callback)) {
         K = nh->template param<int>("K", 10); // number of topics
         V = nh->template param<int>("V", 16180); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
@@ -116,7 +119,6 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
-        polled_refine = nh->template param<bool>("polled_refine", false);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
         min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
@@ -154,11 +156,18 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             }
         }
 
-        if (polled_refine) { //refine when requested
-            throw std::runtime_error("Not implemented. Requires services.");
-//            ROS_INFO("Topics will be refined on request.");
+        if (!init_model.empty()) {
+            if (init_model.size() != K) throw std::invalid_argument("Initial topic model dimension mismatch with number of topics.");
+            if (init_model[0].size() != V) throw std::invalid_argument("Initial topic model dimension mismatch with vocabulary size.");
+
+            auto rostWriteGuard = rost->get_write_token();
+            rost->set_topic_model(*rostWriteGuard, init_model);
+        }
+
+        if (num_threads <= 0) { //refine when requested
+            ROS_INFO("Topics will only be refined on service request.");
         } else { //refine automatically
-//            ROS_INFO("Topics will be refined online.");
+            ROS_DEBUG("Topics will be refined online.");
             stopWork = false;
             workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
         }
@@ -232,16 +241,16 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
         auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::steady_clock::now() - time_start).count();
+                std::chrono::steady_clock::now() - time_start).count();
         if (total_duration > this->min_obs_refine_time) {
             ROS_WARN(
-                  "Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
-                  total_duration,
-                  duration_words_lock,
-                  duration_write_lock,
-                  duration_broadcast,
-                  duration_add_observations,
-                  min_obs_refine_time);
+                    "Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
+                    total_duration,
+                    duration_words_lock,
+                    duration_write_lock,
+                    duration_broadcast,
+                    duration_add_observations,
+                    min_obs_refine_time);
         } else {
             ROS_DEBUG("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
                       total_duration,
@@ -257,7 +266,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
         observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
-              std::move(promisedTopics)}]() mutable {
+                std::move(promisedTopics)}]() mutable {
             using namespace std::chrono;
             wait_for_processing(false);
             auto topics = getTopicDistsForPoses(cell_poses);
@@ -268,7 +277,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     using Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation<int,
-          _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>::operator();
+            _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>::operator();
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const {
         auto rostReadToken = rost->get_read_token();
@@ -363,16 +372,16 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                       "Word dim type must be larger than cell dim type!");
         if constexpr (POSEDIM == 4) {
             return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[3] / cell_size[3], std::numeric_limits<CellDimType>::max()))};
+                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
+                    static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max())),
+                    static_cast<CellDimType>(std::fmod(word[3] / cell_size[3], std::numeric_limits<CellDimType>::max()))};
         } else if constexpr (POSEDIM == 3) {
             return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max()))};
+                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
+                    static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max()))};
         } else if constexpr (POSEDIM == 2) {
             return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max()))};
+                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max()))};
         } else {
             static_assert(always_false<POSEDIM>);
         }
@@ -381,10 +390,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<double, POSEDIM> cell_size) {
         if constexpr(POSEDIM == 4) {
             return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                  static_cast<WordDimType>(cell[2] * cell_size[2]), static_cast<WordDimType>(cell[3] * cell_size[3])};
+                    static_cast<WordDimType>(cell[2] * cell_size[2]), static_cast<WordDimType>(cell[3] * cell_size[3])};
         } else if constexpr(POSEDIM == 3) {
             return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                  static_cast<WordDimType>(cell[2] * cell_size[2])};
+                    static_cast<WordDimType>(cell[2] * cell_size[2])};
         } else if constexpr(POSEDIM == 2) {
             return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1])};
         } else {

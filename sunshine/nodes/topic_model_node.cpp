@@ -193,19 +193,19 @@ bool _set_topic_model(topic_model_node *topic_model,
     }
 
 #ifndef NDEBUG
-        ROS_WARN("Running exhaustive topic_model set verifications -- use release build to skip");
-        auto const ref = rost.get_topic_weights();
-        ROS_INFO("Topic counts old: %d. Topic counts new: %d.",
-                 std::accumulate(ref.begin(), ref.end(), 0),
-                 std::accumulate(request.topic_model.topic_weights.begin(), request.topic_model.topic_weights.end(), 0));
-        topic_model->externalTopicCounts.resize(rost.get_num_topics(), std::vector<int>(V, 0));
-        auto const &ref_model = rost.get_topic_model();
-        for (auto i = 0ul; i < ref_model.size(); ++i) {
-            for (auto j = 0ul; j < ref_model[i].size(); ++j) {
-                topic_model->externalTopicCounts[i][j] += nZW[i][j] - ref_model[i][j];
-                if (topic_model->externalTopicCounts[i][j] < 0) ROS_WARN_THROTTLE(1, "New topic model invalidates previous topic labels!");
-            }
+    ROS_WARN("Running exhaustive topic_model set verifications -- use release build to skip");
+    auto const ref = rost.get_topic_weights();
+    ROS_INFO("Topic counts old: %d. Topic counts new: %d.",
+             std::accumulate(ref.begin(), ref.end(), 0),
+             std::accumulate(request.topic_model.topic_weights.begin(), request.topic_model.topic_weights.end(), 0));
+    topic_model->externalTopicCounts.resize(rost.get_num_topics(), std::vector<int>(V, 0));
+    auto const &ref_model = rost.get_topic_model();
+    for (auto i = 0ul; i < ref_model.size(); ++i) {
+        for (auto j = 0ul; j < ref_model[i].size(); ++j) {
+            topic_model->externalTopicCounts[i][j] += nZW[i][j] - ref_model[i][j];
+            if (topic_model->externalTopicCounts[i][j] < 0) ROS_WARN_THROTTLE(1, "New topic model invalidates previous topic labels!");
         }
+    }
 #endif
 
     ROS_DEBUG("Setting topic model with dimen: %lu,%lu vs %u,%u", nZW.size(), nZW[0].size(), rost.get_num_topics(), rost.get_num_words());
@@ -222,7 +222,7 @@ bool _pause_topic_model(topic_model_node *topic_model,
                         PauseRequest &request,
                         PauseResponse &) {
     ROS_DEBUG("Changing topic model global pause state");
-    auto const& rost = topic_model->get_adapter().get_rost();
+    auto const &rost = topic_model->get_adapter().get_rost();
     if (request.pause == (bool) rostLock) return false;
     if (request.pause) rostLock = rost.get_write_token();
     if (!request.pause) rostLock.reset();
@@ -245,24 +245,30 @@ int main(int argc, char **argv) {
 }
 
 topic_model_node::topic_model_node(ros::NodeHandle *nh)
-      : nh(nh)
-      , rostAdapter(nh, [this](ROSTAdapter<POSEDIM> *adapter) {
-          ROS_DEBUG("Received newer word observations - broadcasting observations for time %f", adapter->get_last_observation_time());
-          if (broadcast_thread && broadcast_thread->joinable()) {
-              broadcast_thread->join();
-          }
-          broadcast_thread = std::make_shared<std::thread>(&topic_model_node::broadcast_topics,
-                                                           this,
-                                                           adapter->get_last_observation_time(),
-                                                           adapter->get_current_cell_poses());
-      })
-      , save_topics_by_time_csv(boost::bind(_save_topics_by_time_csv, this, _1, _2))
-      , save_topics_by_cell_csv(boost::bind(_save_topics_by_cell_csv, this, _1, _2))
-      , generate_topic_summary(boost::bind(_generate_topic_summary, this, _1, _2))
-      , get_topic_map(boost::bind(_get_topic_map, this, _1, _2))
-      , get_topic_model(boost::bind(_get_topic_model, this, boost::cref(externalRostLock), ros::this_node::getName(), _1, _2))
-      , set_topic_model(boost::bind(_set_topic_model, this, boost::cref(externalRostLock), _1, _2))
-      , pause_topic_model(boost::bind(_pause_topic_model, this, boost::ref(externalRostLock), _1, _2)) {
+        : nh(nh),
+          rostAdapter(nh, [this](ROSTAdapter<POSEDIM> *adapter) {
+              ROS_DEBUG("Received newer word observations - broadcasting observations for time %f", adapter->get_last_observation_time());
+              if (broadcast_thread && broadcast_thread->joinable()) {
+                  broadcast_thread->join();
+              }
+              broadcast_thread = std::make_shared<std::thread>(&topic_model_node::broadcast_topics,
+                                                               this,
+                                                               adapter->get_last_observation_time(),
+                                                               adapter->get_current_cell_poses());
+          }, nh->param<bool>("init_identity", false) ? identity_mat<int>(nh->param<int>("K", 0)) : identity_mat<int>(0)),
+          save_topics_by_time_csv([this](auto &&PH1, auto &&PH2) { return _save_topics_by_time_csv(this, PH1, PH2); }),
+          save_topics_by_cell_csv([this](auto &&PH1, auto &&PH2) { return _save_topics_by_cell_csv(this, PH1, PH2); }),
+          generate_topic_summary([this](auto &&PH1, auto &&PH2) { return _generate_topic_summary(this, PH1, PH2); }),
+          get_topic_map([this](auto &&PH1, auto &&PH2) { return _get_topic_map(this, PH1, PH2); }),
+          get_topic_model([this, capture0 = boost::cref(externalRostLock)](auto &&PH1, auto &&PH2) {
+              return _get_topic_model(this, capture0, ros::this_node::getName(), PH1, PH2);
+          }),
+          set_topic_model([this, capture0 = boost::cref(externalRostLock)](auto &&PH1, auto &&PH2) {
+              return _set_topic_model(this, capture0, PH1, PH2);
+          }),
+          pause_topic_model([this, capture0 = boost::ref(externalRostLock)](auto &&PH1, auto &&PH2) {
+              return _pause_topic_model(this, capture0, PH1, PH2);
+          }) {
     nh->param<int>("word_obs_queue_size", obs_queue_size, 1);
     nh->param<bool>("publish_topics", publish_topics, true);
     nh->param<bool>("publish_local_surprise", publish_local_surprise, false);
@@ -312,13 +318,13 @@ topic_model_node::topic_model_node(ros::NodeHandle *nh)
                 auto const millis = std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6));
                 assert(millis.size() <= 3);
                 std::string const filename =
-                      save_topics_path + "/" + std::to_string(ros::Time::now().sec) + "_" + std::string(3 - millis.size(), '0') + millis
-                            + "_" + nodeName + ".bin";
+                        save_topics_path + "/" + std::to_string(ros::Time::now().sec) + "_" + std::string(3 - millis.size(), '0') + millis
+                        + "_" + nodeName + ".bin";
                 std::fstream writer(filename, std::ios::out | std::ios::binary);
                 if (writer.good()) {
                     writer.write(reinterpret_cast<char *>(serviceObj.response.topic_model.phi.data()),
                                  sizeof(decltype(serviceObj.response.topic_model.phi)::value_type) / sizeof(char)
-                                       * serviceObj.response.topic_model.phi.size());
+                                 * serviceObj.response.topic_model.phi.size());
                     writer.close();
                 } else {
                     ROS_WARN("Failed to save topic model to file %s", filename.c_str());
@@ -516,7 +522,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     auto const duration_map = record_lap(time_checkpoint);
 
     auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - time_start).count();
+            std::chrono::steady_clock::now() - time_start).count();
     ROS_INFO("Broadcast overhead: %lu ms (%lu waiting, %lu initializing, %lu locked, %lu populating messages, %lu publishing, %lu mapping)",
              total_duration,
              duration_wait,

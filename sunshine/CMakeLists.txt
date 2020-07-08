@@ -172,9 +172,10 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
-add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp)
+add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp vision/segmentation_label_adapter.cpp)
 
-add_executable(visual_word_extractor nodes/word_extractor_node.cpp)
+add_executable(visual_word_extractor nodes/visual_word_extractor.cpp)
+add_executable(label_word_extractor nodes/label_extractor_node.cpp)
 add_executable(topic_model nodes/topic_model_node.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
@@ -187,6 +188,7 @@ add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp include/sunshine/
 add_executable(test.adapters test/test_adapters.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
+add_dependencies(label_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
@@ -219,6 +221,9 @@ target_link_libraries(sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${catki
 
 target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 target_link_libraries(visual_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+
+target_include_directories(label_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(label_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_adapters)

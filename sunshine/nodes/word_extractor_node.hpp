@@ -1,8 +1,10 @@
 //
-// Created by stewart on 3/9/20.
+// Created by stewart on 2020-07-06.
 //
 
-#include "sunshine/visual_word_adapter.hpp"
+#ifndef SUNSHINE_PROJECT_VISUAL_WORD_EXTRACTOR_HPP
+#define SUNSHINE_PROJECT_VISUAL_WORD_EXTRACTOR_HPP
+
 #include "sunshine/depth_adapter.hpp"
 #include "sunshine/common/ros_conversions.hpp"
 
@@ -27,7 +29,8 @@ using namespace std;
 
 namespace sunshine {
 
-class VisualWordExtractor {
+template <class WordAdapterType>
+class WordExtractorNode {
     ros::Publisher words_pub, words_2d_pub;
     geometry_msgs::TransformStamped latest_transform;
     bool transform_recvd; // TODO: smarter way of handling stale/missing poses
@@ -43,7 +46,7 @@ class VisualWordExtractor {
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 
-    VisualWordAdapter wordAdapter;
+    WordAdapterType wordAdapter;
     WordDepthAdapter depthAdapter;
 
     image_transport::ImageTransport it;
@@ -117,11 +120,11 @@ class VisualWordExtractor {
         }
     }
 
-  public:
-    explicit VisualWordExtractor(ros::NodeHandle *nh)
-          : tf_listener(tf_buffer)
-          , wordAdapter(nh)
-          , it(*nh) {
+public:
+    explicit WordExtractorNode(ros::NodeHandle *nh)
+            : tf_listener(tf_buffer)
+            , wordAdapter(nh)
+            , it(*nh) {
         std::string vocabulary_filename, texton_vocab_filename, image_topic_name, feature_descriptor_name, pc_topic_name, transform_topic_name;
         int num_surf, num_orb, color_cell_size, texton_cell_size;
         bool use_surf, use_hue, use_intensity, use_orb, use_texton;
@@ -169,15 +172,15 @@ class VisualWordExtractor {
             ROS_INFO("Extracted %lu images from rosbag.", i);
         } else {
             if (!bagfile.empty()) ROS_ERROR("Rosbag image bag set but file does not exist.");
-            imageSub = it.subscribe(image_topic_name, 3, &VisualWordExtractor::imageCallback, this);
+            imageSub = it.subscribe(image_topic_name, 3, &WordExtractorNode::imageCallback, this);
             if (use_tf && !transform_topic_name.empty()) {
                 transformSub = nh->subscribe<geometry_msgs::TransformStamped>(transform_topic_name,
                                                                               1,
-                                                                              &VisualWordExtractor::transformCallback,
+                                                                              &WordExtractorNode::transformCallback,
                                                                               this);
             }
             if (use_pc) {
-                depthSub = nh->subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, &VisualWordExtractor::pcCallback, this);
+                depthSub = nh->subscribe<sensor_msgs::PointCloud2>(pc_topic_name, 1, &WordExtractorNode::pcCallback, this);
             }
         }
     }
@@ -196,13 +199,4 @@ class VisualWordExtractor {
 };
 }
 
-int main(int argc, char **argv) {
-    // Setup ROS node
-    ros::init(argc, argv, "word_extractor");
-    ros::NodeHandle nh("~");
-
-    sunshine::VisualWordExtractor visualWordExtractor(&nh);
-    visualWordExtractor.spin();
-
-    return 0;
-}
+#endif //SUNSHINE_PROJECT_VISUAL_WORD_EXTRACTOR_HPP

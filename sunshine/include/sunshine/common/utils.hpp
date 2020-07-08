@@ -127,6 +127,13 @@ long record_lap(T &time_checkpoint) {
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
+template <typename T>
+std::vector<std::vector<T>> identity_mat(size_t const dimen) {
+    std::vector<std::vector<T>> eye(dimen, std::vector<T>(dimen, 0));
+    for (auto i = 0; i < dimen; ++i) eye[i][i] = 1;
+    return eye;
+}
+
 }
 
 #endif // UTILS_HPP
