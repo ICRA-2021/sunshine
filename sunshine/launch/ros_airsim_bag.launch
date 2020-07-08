@@ -105,6 +105,7 @@
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
     <param name="map_publish_period" type="int" value="$(arg map_publish_period)" />
     <param name="map_ppx_type" type="string" value="$(arg map_ppx_type)" />
+    <param name="world_frame" type="string" value="$(arg sensor_frame)" />
   </node>
 
   <node pkg="sunshine" type="visualize" name="word_visualizer" if="$(arg visualize_2d)">

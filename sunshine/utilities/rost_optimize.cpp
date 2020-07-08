@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <boost/math/distributions/lognormal.hpp>
 #include "sunshine/benchmark.hpp"
 
 #define USE_NLOPT
@@ -37,20 +38,20 @@ struct Params {
 
   // no noise
   struct kernel : public defaults::kernel {
-    BO_PARAM(double, noise, 0.005);
+    BO_PARAM(double, noise, 0.003);
   };
 
   struct kernel_maternfivehalves : public defaults::kernel_maternfivehalves {
   };
 
-  // we use 10 random samples to initialize the algorithm
+  // we use random samples to initialize the algorithm
   struct init_randomsampling {
-    BO_PARAM(int, samples, 25);
+    BO_PARAM(int, samples, 200);
   };
 
   // we stop after 40 iterations
   struct stop_maxiterations {
-    BO_PARAM(int, iterations, 100);
+    BO_PARAM(int, iterations, 25);
   };
 
   // we use the default parameters for acqui_ucb
@@ -62,7 +63,7 @@ struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 3);
+  BO_PARAM(size_t, dim_in, 4);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -75,15 +76,25 @@ struct Eval {
 
   // the function to be optimized
   Eigen::VectorXd operator()(const Eigen::VectorXd &x) const {
-      sunshine::Parameters params{{{"alpha", x(0)},
-                                        {"beta", x(1)},
-                                        {"gamma", pow(10.0, 2.0 * log(x(2)))},
+      boost::math::lognormal alpha_dist(-2.25, 2.25);
+      boost::math::lognormal beta_dist(-2.5, 2.0);
+      boost::math::lognormal gamma_dist(-8.0, 4.0);
+      boost::math::lognormal space_dist(0.0, 1.0);
+      double const alpha = boost::math::quantile(alpha_dist, x(0));
+      double const beta = boost::math::quantile(beta_dist, x(1));
+      double const gamma = boost::math::quantile(gamma_dist, x(2));
+      double const cell_space = boost::math::quantile(space_dist, x(3));
+      sunshine::Parameters params{{{"alpha", alpha},
+                                        {"beta", beta},
+                                        {"gamma", gamma},
                                         {"K", 20},
-                                        {"cell_space", 0.5},
-                                        {"cell_time", 2.0},
-                                        {"min_obs_refine_time", 250},
+                                        {"cell_space", cell_space},
+                                        {"cell_time", 3600.0},
+                                        {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
+      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
+      std::cerr << "Score: " << result << std::endl;
       return tools::make_vector(result);
   }
 };

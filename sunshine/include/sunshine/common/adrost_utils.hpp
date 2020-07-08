@@ -9,7 +9,7 @@
 #include <ostream>
 #include <istream>
 #include <utility>
-#include <ros/console.h> // TODO remove? only needed for logging
+//#include <ros/console.h> // only used for ROS logging
 #include "sunshine_types.hpp"
 // #include "adapters/boostmatrixadapter.h"
 
@@ -91,7 +91,7 @@ struct match_scores {
             double mscd_k = 0;
             double silhouette_k = 0;
             assert(std::abs(std::accumulate(cluster_centers[k].begin(), cluster_centers[k].end(), 0.0) - cluster_scales[k]) <= 1e-3);
-            if (!cluster_sizes[k]) ROS_WARN("Empty cluster detected when computing metrics!");
+//            if (!cluster_sizes[k]) ROS_WARN("Empty cluster detected when computing metrics!");
             if (cluster_sizes[k] > 1) {
                 for (auto i = cluster_start; i < cluster_end; ++i) {
                     mscd_k += std::pow(metric(sorted_points[i], cluster_centers[k], point_scales[i], cluster_scales[k]), 2);
@@ -567,7 +567,6 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     matrix(fi, fj) = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
                     double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
-                        ROS_ERROR("Invalid entry %f in similarity matrix!", matrix(fi, fj));
                         throw std::logic_error("Invalid entries in similarity matrix!");
                     } else { matrix(fi, fj) = unit_round(matrix(fi, fj), tolerance); }
                     if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
