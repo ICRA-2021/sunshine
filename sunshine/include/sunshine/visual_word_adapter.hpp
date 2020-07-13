@@ -23,7 +23,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
     MultiBOW multi_bow;
 
     [[nodiscard]] cv::Mat apply_clahe(cv::Mat img) const;
-    [[nodiscard]] std::string get_rost_path() const;
+    std::string get_rost_path() const;
 
   public:
 

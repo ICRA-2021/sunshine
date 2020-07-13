@@ -175,7 +175,7 @@ include_directories(
 add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp vision/segmentation_label_adapter.cpp)
 
 add_executable(visual_word_extractor nodes/visual_word_extractor.cpp)
-add_executable(label_word_extractor nodes/label_extractor_node.cpp)
+add_executable(label_word_extractor nodes/label_extractor.cpp)
 add_executable(topic_model nodes/topic_model_node.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)

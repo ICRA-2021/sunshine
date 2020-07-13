@@ -27,9 +27,8 @@ class Adapter {
         return adapter(input.get());
     }
 
-  protected:
+  public:
     auto operator()(std::unique_ptr<Input>&& input) {
-        // TODO: should this exist? subclasses should implement a move version if there is a good reason to do so
         Input const* const inputPtr = input.get();
         return dynamic_cast<ImplClass*>(this)->operator()(inputPtr);
     }

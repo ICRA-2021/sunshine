@@ -39,12 +39,12 @@ struct ImageObservation : public Observation
   ~ImageObservation() override = default;
 };
 
-template<typename _ObservationType, uint32_t _PoseDim, typename _PoseType = double>
+template<typename observation_type, uint32_t pose_dim, typename pose_type = double>
 struct SemanticObservation : public Observation
 {
-  typedef _ObservationType ObservationType;
-  typedef _PoseType PoseType;
-  static uint32_t constexpr PoseDim = _PoseDim;
+  typedef observation_type ObservationType;
+  typedef pose_type PoseType;
+  static uint32_t constexpr PoseDim = pose_dim;
 
   std::vector<ObservationType> observations;
   std::vector<std::array<PoseType, PoseDim>> observation_poses;
