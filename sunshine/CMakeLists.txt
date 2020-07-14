@@ -154,7 +154,6 @@ catkin_package(
 include_directories(
   include
 #  common
-  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -172,11 +171,11 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
-add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp vision/segmentation_label_adapter.cpp)
+add_library(sunshine_vision_adapters SHARED vision/visual_word_adapter.cpp vision/depth_adapter.cpp vision/segmentation_label_adapter.cpp)
 
 add_executable(visual_word_extractor nodes/visual_word_extractor.cpp)
 add_executable(label_word_extractor nodes/label_extractor.cpp)
-add_executable(topic_model nodes/topic_model_node.cpp)
+add_executable(topic_model nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
 add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
@@ -186,6 +185,7 @@ add_executable(test.image_publisher nodes/image_publisher.cpp)
 add_executable(test.image_walker nodes/image_walk.cpp)
 add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp include/sunshine/benchmark.hpp)
 add_executable(test.adapters test/test_adapters.cpp)
+add_executable(test.topic_model_node test/dummy_topic_model.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(label_word_extractor sunshine_msgs_generate_messages_cpp)
@@ -199,6 +199,7 @@ add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 add_dependencies(utils.sunshine_eval sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.topic_model_node sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -216,30 +217,31 @@ add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
 # )
 
 
-target_include_directories(sunshine_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_include_directories(sunshine_vision_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
-target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(visual_word_extractor sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
-target_include_directories(label_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(label_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_include_directories(label_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(label_word_extractor sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_adapters)
+target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_vision_adapters)
 
+target_include_directories(perplexity_viz PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
-target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(save_topic_map ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
@@ -249,10 +251,14 @@ target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${cat
 target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_adapters)
+target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
 
-target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters)
+target_include_directories(test.adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} sunshine_vision_adapters)
 target_compile_features(test.adapters PRIVATE cxx_std_17)
+
+target_include_directories(test.topic_model_node PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.topic_model_node ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 if (libclear)
     find_package(Eigen3 REQUIRED)
@@ -266,7 +272,7 @@ if (libclear)
     target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
 
     target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.topic_match ${Boost_LIBRARIES} ${libclear})
+    target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.topic_match PRIVATE cxx_std_17)
 
     target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR})
@@ -283,8 +289,8 @@ if (liblimbo)
         add_executable(utils.rost_optimize utilities/rost_optimize.cpp include/sunshine/benchmark.hpp)
         add_executable(test.test_optimize test/test_optimize.cpp)
 
-        target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-        target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
+        target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+        target_link_libraries(utils.rost_optimize ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_vision_adapters ${liblimbo} ${libnlopt} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
 
         target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
         target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})

@@ -87,13 +87,14 @@ struct Eval {
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
                                         {"gamma", gamma},
-                                        {"K", 20},
+                                        {"K", 10},
+                                        {"V", 16180},
                                         {"cell_space", cell_space},
                                         {"cell_time", 3600.0},
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
       std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space << std::endl;
-      double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi, 50);
+      double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::nmi<4>, 50);
       std::cerr << "Score: " << result << std::endl;
       return tools::make_vector(result);
   }
@@ -101,7 +102,7 @@ struct Eval {
 
 int main(int argc, char **argv) {
     if (argc < 5) {
-        std::cerr << "Usage: ./sunshine_eval bagfile image_topic depth_topic segmentation_topic" << std::endl;
+        std::cerr << "Usage: ./sunshine_eval bagfile image_topic depth_cloud_topic segmentation_topic" << std::endl;
         return 1;
     }
 

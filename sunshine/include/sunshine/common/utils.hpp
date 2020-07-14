@@ -134,6 +134,19 @@ std::vector<std::vector<T>> identity_mat(size_t const dimen) {
     return eye;
 }
 
+template<typename Container>
+uint32_t argmax(Container const &container) {
+    uint32_t idx_max = 0;
+    auto max = container[0];
+    for (auto i = 1; i < container.size(); ++i) {
+        if (container[i] > max) {
+            idx_max = i;
+            max = container[i];
+        }
+    }
+    return idx_max;
+}
+
 }
 
 #endif // UTILS_HPP

@@ -12,28 +12,35 @@
 
 namespace sunshine {
 
-template<typename LabelType = int>
-class SemanticLabelAdapter : public Adapter<SemanticLabelAdapter<LabelType>, ImageObservation, CategoricalObservation<LabelType, 2, int>>
+class SemanticLabelAdapter : public Adapter<SemanticLabelAdapter, ImageObservation, CategoricalObservation<int, 2, int>>
 {
-    typedef CategoricalObservation<LabelType, 2, int> Output;
-    UniqueStore<std::array<uint8_t, 3>, LabelType> unique_obs;
-    LabelType const num_labels;
+    typedef CategoricalObservation<int, 2, int> Output;
+    UniqueStore<std::array<uint8_t, 3>, int> unique_obs;
+    int const num_labels;
+    int const step_size;
     double seq_start = 0.0;
     double const seq_duration;
 
   public:
 
     std::unique_ptr<Output> operator()(ImageObservation const *imgObs) {
-        std::vector<LabelType> observations;
+        std::vector<int> observations;
         std::vector<std::array<int, 2>> observation_poses;
         observation_poses.reserve(imgObs->image.rows * imgObs->image.cols);
-        for (int y = 0; y < imgObs->image.rows; ++y) {
-            for (int x = 0; x < imgObs->image.cols; ++x) {
-                auto const &rgb = imgObs->image.at<cv::Vec3b>(cv::Point(x, y));
-                LabelType const label = unique_obs.get_id({rgb[0], rgb[1], rgb[2]});
-                if (label > num_labels) throw std::runtime_error("SemanticLabelAdapter found too many unique labels.");
-                observations.push_back(label);
-                observation_poses.push_back({x, y});
+        int const half_step = step_size / 2;
+        for (int y = 0; y < imgObs->image.rows; y += step_size) {
+            for (int x = 0; x < imgObs->image.cols; x += step_size) {
+                std::vector<int> counts(num_labels, 0);
+                for (int dx = 0; (dx < step_size) && (x + dx < imgObs->image.cols); ++dx) {
+                    for (int dy = 0; (dy < step_size) && (y + dy < imgObs->image.rows); ++dy) {
+                        auto const &rgb = imgObs->image.at<cv::Vec3b>(cv::Point(x + dx, y + dy));
+                        int const label = unique_obs.get_id({rgb[0], rgb[1], rgb[2]});
+                        if (label > num_labels) throw std::runtime_error("SemanticLabelAdapter found too many unique labels.");
+                        counts[label]++;
+                    }
+                }
+                observations.push_back(argmax<>(counts));
+                observation_poses.push_back({x + half_step, y +  half_step});
             }
         }
 
@@ -53,9 +60,11 @@ class SemanticLabelAdapter : public Adapter<SemanticLabelAdapter<LabelType>, Ima
 
     template<typename ParameterServer>
     explicit SemanticLabelAdapter(ParameterServer *nh)
-            : Adapter<SemanticLabelAdapter, ImageObservation, CategoricalObservation<LabelType, 2, int>>(),
-              num_labels(nh->template param<int>("num_labels", 10)),
-              seq_duration(nh->template param<double>("seq_duration", 0)) {
+            : Adapter<SemanticLabelAdapter, ImageObservation, CategoricalObservation<int, 2, int>>(),
+              num_labels(nh->template param<int>("num_labels", nh->template param<int>("K", 10))),
+              seq_duration(nh->template param<double>("seq_duration", 0)),
+              step_size(nh->template param<int>("step_size", 8)) {
+        assert(step_size > 0);
     }
 };
 }

@@ -5,7 +5,6 @@
 #ifndef SUNSHINE_PROJECT_BENCHMARK_HPP
 #define SUNSHINE_PROJECT_BENCHMARK_HPP
 
-#include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <rosbag/bag.h>
@@ -21,6 +20,7 @@
 
 #include "sunshine/rost_adapter.hpp"
 #include "sunshine/visual_word_adapter.hpp"
+#include "sunshine/semantic_label_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
 #include "sunshine/observation_transform_adapter.hpp"
 #include "sunshine/depth_adapter.hpp"
@@ -40,6 +40,7 @@ double benchmark(std::string const &bagfile,
     using namespace sunshine;
 
     auto visualWordAdapter = VisualWordAdapter(&parameters);
+//    auto labelSegmentationAdapter = SemanticSegmentationAdapter<int, std::vector<int>>(&parameters);
     auto rostAdapter = ROSTAdapter<4, double, double>(&parameters);
     auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters);
     auto wordDepthAdapter = WordDepthAdapter();
@@ -149,21 +150,9 @@ double entropy(Container const &container, double weight = 1.0) {
     return -sum;
 }
 
-template<typename Container>
-uint32_t argmax(Container const &container) {
-    uint32_t idx_max = 0;
-    auto max = container[0];
-    for (auto i = 1; i < container.size(); ++i) {
-        if (container[i] > max) {
-            idx_max = i;
-            max = container[i];
-        }
-    }
-    return idx_max;
-}
-
+template<size_t pose_dimen = 4>
 double nmi(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
-           sunshine::Segmentation<std::vector<int>, 4, int, double> const &topic_seg) {
+           sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     std::vector<uint32_t> gt_weights(gt_seg.observations[0].size(), 0), topic_weights(topic_seg.observations[0].size(), 0);
     std::vector<std::vector<uint32_t>> matches(topic_seg.observations[0].size(), std::vector<uint32_t>(gt_seg.observations[0].size(), 0));
@@ -173,7 +162,9 @@ double nmi(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
         gt_labels.insert({gt_seg.observation_poses[i], label});
     }
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
-        std::array<int, 3> pose{topic_seg.observation_poses[i][1], topic_seg.observation_poses[i][2], topic_seg.observation_poses[i][3]};
+        static_assert(pose_dimen == 3 || pose_dimen == 4);
+        constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
+        std::array<int, 3> pose{topic_seg.observation_poses[i][offset], topic_seg.observation_poses[i][1 + offset], topic_seg.observation_poses[i][2 + offset]};
         auto const topic_label = argmax<>(topic_seg.observations[i]);
         topic_labels.insert({std::move(pose), topic_label});
 

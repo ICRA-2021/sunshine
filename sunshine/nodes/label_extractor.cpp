@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "label_extractor");
     ros::NodeHandle nh("~");
 
-    sunshine::WordExtractorNode<sunshine::SemanticLabelAdapter<int>> labelExtractor(&nh);
+    sunshine::WordExtractorNode<sunshine::SemanticLabelAdapter> labelExtractor(&nh);
     labelExtractor.spin();
 
     return 0;
