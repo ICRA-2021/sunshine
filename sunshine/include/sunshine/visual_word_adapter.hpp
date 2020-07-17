@@ -61,7 +61,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         std::vector<int> feature_sizes;
 
         if (use_texton) {
-            multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
+            multi_bow.add(new TextonBOW(texton_cell_size, img_scale, texton_vocab_filename));
         }
 
         if (use_surf || use_orb) {
@@ -73,8 +73,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
                 feature_detector_names.emplace_back("ORB");
                 feature_sizes.push_back(num_orb);
             }
-            multi_bow.add(new LabFeatureBOW(0,
-                                            vocabulary_filename,
+            multi_bow.add(new LabFeatureBOW(vocabulary_filename,
                                             feature_detector_names,
                                             feature_sizes,
                                             feature_descriptor_name,
@@ -82,7 +81,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         }
 
         if (use_hue || use_intensity) {
-            multi_bow.add(new ColorBOW(0, color_cell_size, img_scale, use_hue, use_intensity));
+            multi_bow.add(new ColorBOW(color_cell_size, img_scale, use_hue, use_intensity));
         }
     }
 

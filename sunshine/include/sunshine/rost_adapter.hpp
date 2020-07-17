@@ -30,7 +30,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     typedef std::array<CellDimType, POSEDIM> cell_pose_t;
     typedef std::array<WordDimType, POSEDIM> word_pose_t;
     typedef neighbors<cell_pose_t> neighbors_t;
-    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+//    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+    typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >> ROST_t;
     using WordObservation = CategoricalObservation<int, POSEDIM - 1, WordInputDimType>;
   private:
     mutable std::mutex wordsReceivedLock;
@@ -133,28 +134,29 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 //        ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
 
         cell_pose_t const G = computeCellSize<POSEDIM, CellDimType>(G_time, G_space);
-        if (is_hierarchical) {
+//        if (is_hierarchical) {
 //            ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
-            rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
-                                                                                                   static_cast<size_t>(K),
-                                                                                                   static_cast<size_t>(num_levels),
-                                                                                                   k_alpha,
-                                                                                                   k_beta,
-                                                                                                   k_gamma,
-                                                                                                   neighbors_t(G));
-        } else {
+//            rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+//                                                                                                   static_cast<size_t>(K),
+//                                                                                                   static_cast<size_t>(num_levels),
+//                                                                                                   k_alpha,
+//                                                                                                   k_beta,
+//                                                                                                   k_gamma,
+//                                                                                                   neighbors_t(G));
+//        } else {
             rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
                                                                                                   static_cast<size_t>(K),
                                                                                                   k_alpha,
                                                                                                   k_beta,
-                                                                                                  neighbors_t(G));
+                                                                                                  neighbors_t(G),
+                                                                                                  hash_container<cell_pose_t >(),
+                                                                                                  (k_gamma > 0) ? k_gamma : 1.0);
             if (k_gamma > 0) {
 //                ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
                 auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
-                rost_concrete->gamma = k_gamma;
                 rost_concrete->enable_auto_topics_size(true);
             }
-        }
+//        }
 
         if (!init_model.empty()) {
             if (init_model.size() != K) throw std::invalid_argument("Initial topic model dimension mismatch with number of topics.");
@@ -194,6 +196,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs->frame.c_str(), world_frame.c_str());
             throw std::invalid_argument("Word observation in invalid frame.");
         }
+
+        ROS_ERROR_COND(wordObs->vocabulary_size > V, "Word observation vocabulary size (%d) is larger than ROST vocabulary (%lu)! May cause crash...", wordObs->vocabulary_size, V);
+        ROS_WARN_COND(wordObs->vocabulary_size < V, "Word observation vocabulary size (%d) is smaller than ROST vocabulary (%lu).", wordObs->vocabulary_size, V);
 
         using namespace std;
         lock_guard<mutex> guard(wordsReceivedLock);
