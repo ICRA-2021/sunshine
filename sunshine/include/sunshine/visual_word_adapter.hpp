@@ -36,7 +36,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         img_scale = nh->template param<double>("scale", 1.0);
         seq_duration = nh->template param<double>("seq_duration", 0);
 
-        bool const use_texton = nh->template param<bool>("use_texton", true);
+        bool const use_texton = nh->template param<bool>("use_texton", false);
         int const texton_cell_size = nh->template param<int>("texton_cell_size", 64);
         std::string texton_vocab_filename = nh->template param<std::string>("texton_vocab",
                                                                             data_root

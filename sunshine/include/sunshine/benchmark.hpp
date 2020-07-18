@@ -302,7 +302,7 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
 
 //    double const compare = nmi<pose_dimen>(gt_seg, topic_seg);
 //    double const compare_entropy = compute_average_entropy_y(matches, topic_weights, total_weight);
-    return ami;
+    return std::isnan(ami) ? 0. : ami;
 }
 }
 

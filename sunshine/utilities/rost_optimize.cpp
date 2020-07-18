@@ -82,8 +82,8 @@ struct Eval {
       double const beta = boost::math::quantile(beta_dist, x(1));
       double const gamma = boost::math::quantile(gamma_dist, x(2));
       double const cell_space = boost::math::quantile(space_dist, x(3));
-      bool const use_clahe = (x(4) >= 1./3.);
-      bool const use_texton = (x(5) >= 2./3.);
+      bool const use_clahe = (x(4) >= 0.5);
+      bool const use_texton = (x(5) >= 3./4.);
       bool const use_orb = (x(6) >= 0.5);
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
