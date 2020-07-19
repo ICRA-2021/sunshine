@@ -23,6 +23,7 @@
   <arg name="rate" default="3" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
+  <arg name="clahe" default="true" />
   <arg name="texton" default="false" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
@@ -40,7 +41,7 @@
   <arg name="num_threads" default="4" />
   <arg name="cell_space" default=".5" />
   <arg name="cell_time" default="3600" />
-  <arg name="cell_size" default="3600x0.5x0.5x0.5" />
+  <arg name="cell_size" default="" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -68,6 +69,7 @@
     <param name="feature_descriptor" type="string" value="ORB"/>
     <param name="scale" type="double" value="$(arg scale)"/>
     <param name="rate" type="double" value="$(arg rate)"/>
+    <param name="use_clahe" value="$(arg clahe)" />
     <param name="use_hue" value="$(arg hue)"/>
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>

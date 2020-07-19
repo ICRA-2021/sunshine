@@ -8,8 +8,7 @@ from scipy.stats import lognorm
 import numpy as np
 import matplotlib.pyplot as plt
 
-CUR_VERSION = 2
-
+CUR_VERSION = 3
 
 def compute_alpha(x, version):
     if version >= 1:
@@ -38,6 +37,41 @@ def compute_cell_space(x, version):
         return lognorm.ppf(float(x), 0.6, scale=np.exp(-0.7))
     raise ValueError("Unrecognized version number.")
 
+def compute_clahe(x, version):
+    if version >= 3:
+        return int(float(x) >= 0.5)
+    raise ValueError("Variable not defined in this version.")
+
+
+def compute_texton(x, version):
+    if version >= 3:
+        return int(float(x) >= 0.75)
+    raise ValueError("Variable not defined in this version.")
+
+
+def compute_orb(x, version):
+    if version >= 3:
+        return int(float(x) >= 0.5)
+    raise ValueError("Variable not defined in this version.")
+
+
+def parse_sample(line, version):
+    tokens = line.split()
+    sample = {}
+    if version >= 1:
+        i, a, b, g, s = tokens[:5]
+        sample["Iteration"] = int(i)
+        sample["Alpha"] = compute_alpha(float(a), version)
+        sample["Beta"] = compute_beta(float(b), version)
+        sample["Gamma"] = compute_gamma(float(g), version)
+        sample["Cell Space"] = compute_cell_space(float(s), version)
+    if version >= 3:
+        clahe, texton, orb = tokens[5:8]
+        sample["CLAHE"] = compute_clahe(clahe, version)
+        sample["Texton"] = compute_texton(texton, version)
+        sample["ORB"] = compute_orb(orb, version)
+    return sample
+
 
 def load_observations(dir, version):
     samples_fname = path.join(dir, "samples.dat")
@@ -46,13 +80,7 @@ def load_observations(dir, version):
     with open(samples_fname, "r") as samples_file:
         samples_file.readline()
         for line in samples_file:
-            i, a, b, g, s = line.split()
-            alpha = compute_alpha(float(a), version)
-            beta = compute_beta(float(b), version)
-            gamma = compute_gamma(float(g), version)
-            cell_space = compute_cell_space(float(s), version)
-            # print(alpha, beta, gamma, cell_space)
-            observation_dicts.append({"Iteration": int(i), "Alpha": alpha, "Beta": beta, "Gamma": gamma, "Cell Space": cell_space})
+            observation_dicts.append(parse_sample(line, version))
     with open(observations_fname, "r") as observations_file:
         observations_file.readline()
         for line, observation_dict in zip(observations_file, observation_dicts):
@@ -67,6 +95,10 @@ def cli():
     pass
 
 
+def hexbin(x, y, z, color, **kwargs):
+    cmap = sns.light_palette(color, as_cmap=True)
+    plt.hexbin(x, y, C=z, **kwargs)
+
 @cli.command()
 @click.argument("directory")
 @click.argument("x")
@@ -74,12 +106,21 @@ def cli():
 @click.option("--version", type=int, default=CUR_VERSION)
 @click.option("--save/--no-save", default=True)
 @click.option("--show/--no-show", default=True)
-def heatmap(directory, x, y, version, save, show):
+@click.option("--filter", type=str, multiple=True, default=[])
+@click.option("--facet_x", type=str, default=None)
+@click.option("--facet_y", type=str, default=None)
+def heatmap(directory, x, y, version, save, show, filter, facet_x, facet_y):
     observations = load_observations(directory, version=version)
     observations.to_csv(path.join(directory, "processed_observations-v{}.csv".format(version)))
+    for f in filter:
+        observations = eval("observations[" + f + "]")
     xscale = 'log' #if x in ['Alpha', 'Beta', 'Gamma'] else 'linear'
     yscale = 'log' #if y in ['Alpha', 'Beta', 'Gamma'] else 'linear'
-    plt.hexbin(observations[x], observations[y], C=observations["Score"], gridsize=20, cmap="copper", xscale=xscale, yscale=yscale)
+    if facet_x is not None or facet_y is not None:
+        g = sns.FacetGrid(observations, col=facet_x, row=facet_y)
+        g = g.map(hexbin, x, y, "Score", gridsize=20, cmap="copper", xscale=xscale, yscale=yscale)
+    else:
+        plt.hexbin(observations[x], observations[y], C=observations["Score"], gridsize=20, cmap="copper", xscale=xscale, yscale=yscale)
     plt.xlabel(x)
     plt.ylabel(y)
     plt.colorbar()
