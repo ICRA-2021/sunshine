@@ -33,13 +33,13 @@
   <!-- Topic model arguments -->
   <arg name="K" default="20" />
   <arg name="V" default="15436" />
-  <arg name="alpha" default="0.073" />
-  <arg name="beta" default="0.15" />
-  <arg name="gamma" default="0.000001" />
+  <arg name="alpha" default="0.6722" />
+  <arg name="beta" default="0.078899" />
+  <arg name="gamma" default="0.00000139" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
-  <arg name="num_threads" default="4" />
-  <arg name="cell_space" default=".5" />
+  <arg name="num_threads" default="7" />
+  <arg name="cell_space" default="1.211" />
   <arg name="cell_time" default="3600" />
   <arg name="cell_size" default="" />
   <arg name="G_time" default="1" />

@@ -8,7 +8,7 @@ from scipy.stats import lognorm
 import numpy as np
 import matplotlib.pyplot as plt
 
-CUR_VERSION = 3
+CUR_VERSION = 4
 
 def compute_alpha(x, version):
     if version >= 1:
@@ -31,6 +31,8 @@ def compute_gamma(x, version):
 
 
 def compute_cell_space(x, version):
+    if version >= 4:
+        return pow(3, float(x)) / 2.
     if version >= 2:
         return lognorm.ppf(float(x), 1.0, scale=np.exp(0.0))
     if version >= 1:
@@ -66,8 +68,10 @@ def parse_sample(line, version):
         sample["Gamma"] = compute_gamma(float(g), version)
         sample["Cell Space"] = compute_cell_space(float(s), version)
     if version >= 3:
-        clahe, texton, orb = tokens[5:8]
+        clahe = tokens[5]
         sample["CLAHE"] = compute_clahe(clahe, version)
+    if version == 3:
+        texton, orb = tokens[6:8]
         sample["Texton"] = compute_texton(texton, version)
         sample["ORB"] = compute_orb(orb, version)
     return sample
