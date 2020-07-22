@@ -197,8 +197,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             throw std::invalid_argument("Word observation in invalid frame.");
         }
 
-        ROS_ERROR_COND(wordObs->vocabulary_size > V, "Word observation vocabulary size (%lu) is larger than ROST vocabulary (%lu)! May cause crash...", wordObs->vocabulary_size, V);
-        ROS_WARN_COND(wordObs->vocabulary_size < V, "Word observation vocabulary size (%lu) is smaller than ROST vocabulary (%lu).", wordObs->vocabulary_size, V);
+        ROS_ERROR_COND(wordObs->vocabulary_size > V, "Word observation vocabulary size (%lu) is larger than ROST vocabulary (%d)! May cause crash...", wordObs->vocabulary_size, V);
+        ROS_WARN_COND(wordObs->vocabulary_size < V, "Word observation vocabulary size (%lu) is smaller than ROST vocabulary (%d).", wordObs->vocabulary_size, V);
 
         using namespace std;
         lock_guard<mutex> guard(wordsReceivedLock);
