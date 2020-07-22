@@ -238,7 +238,8 @@ double nmi(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
 
     double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
     double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
-    double const nmi = (ex <= 0 || ey <= 0) ? 1. : ((mi == 0) ? 0. : (mi / sqrt(ex * ey)));
+    if ((ex <= 0. ^ ey <= 0.) && mi != 0) ROS_ERROR("Somehow ex = %f <= 0 or ey = %f <= 0 but MI %f > 0", ex, ey, mi);
+    double const nmi = (ex <= 0 && ey <= 0) ? 1. : ((mi == 0) ? 0. : (mi / sqrt(ex * ey)));
 
     return nmi;
 }
@@ -298,7 +299,7 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
     double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
     double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight);
     double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
-    double const ami = (ex <= 0. || ey <= 0.) ? 1 : ((mi - emi) / (std::max(ex, ey) - emi));
+    double const ami = (ex <= 0. && ey <= 0.) ? 1 : ((mi - emi) / (std::max(ex, ey) - emi));
 
 //    double const compare = nmi<pose_dimen>(gt_seg, topic_seg);
 //    double const compare_entropy = compute_average_entropy_y(matches, topic_weights, total_weight);
