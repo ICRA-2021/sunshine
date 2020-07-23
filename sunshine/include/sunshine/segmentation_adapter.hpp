@@ -96,7 +96,10 @@ class SemanticSegmentationAdapter : public SegmentationAdapter<SemanticSegmentat
 
         return segmentation;
     }
-    using SegmentationAdapter<SemanticSegmentationAdapter<ObservationType, LabelType, PoseDim, CellPoseType, PoseType>, SemanticObservation<ObservationType, PoseDim, PoseType>, LabelType, PoseDim, CellPoseType, PoseType>::operator();
+
+    auto operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> input) {
+        return (*this)(input.get());
+    }
 };
 }
 
