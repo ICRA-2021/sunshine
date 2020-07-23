@@ -7,19 +7,17 @@
 
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
 #include <tf/tf.h>
 #include <tf2_msgs/TFMessage.h>
 #include <tf/transform_datatypes.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
-
 #include <utility>
+
 #include <set>
 #include <cmath>
-
 #include "sunshine/rost_adapter.hpp"
+
 #include "sunshine/visual_word_adapter.hpp"
 #include "sunshine/semantic_label_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
@@ -27,6 +25,7 @@
 #include "sunshine/depth_adapter.hpp"
 #include "sunshine/common/parameters.hpp"
 #include "sunshine/common/ros_conversions.hpp"
+#include "sunshine/common/rosbag_utils.hpp"
 
 namespace sunshine {
 template<typename Metric>
@@ -54,36 +53,32 @@ double benchmark(std::string const &bagfile,
     std::unique_ptr<ImageObservation> rgb, segmentation;
     double depth_timestamp = -1;
     auto const processPair = [&]() {
-//        std::cout << (std::equal(segmentation->image.begin<uint8_t>(), segmentation->image.end<uint8_t>(), rgb->image.begin<uint8_t>())
-//                      ? "match"
-//                      : "not match") << std::endl;
-//        auto wordObs = wordTransformAdapter(wordDepthAdapter(visualWordAdapter(rgb.get())));
         auto topicsFuture = rgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
-
-//        auto const segObs = imageTransformAdapter(imageDepthAdapter(segmentation));
         auto gtSeg = segmentation >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
         auto topicsSeg = topicsFuture.get();
-//        auto topicsSeg = rgb >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
+
         if (count >= warmup) {
             double const result = metric(*gtSeg, *topicsSeg);
-//            std::cerr << result << std::endl;
             av_metric = (av_metric * (count - warmup) + result) / (count - warmup + 1);
         }
         count += 1;
+        return count >= max_iter;
     };
 
     auto const imageCallback = [&](sensor_msgs::Image::ConstPtr image) {
         rgb = std::make_unique<ImageObservation>(fromRosMsg(std::move(image)));
         if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            processPair();
+            return processPair();
         }
+        return false;
     };
 
     auto const segmentationCallback = [&](sensor_msgs::Image::ConstPtr image) {
         segmentation = std::make_unique<ImageObservation>(fromRosMsg(std::move(image)));
         if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            processPair();
+            return processPair();
         }
+        return false;
     };
 
     auto const depthCallback = [&](sensor_msgs::PointCloud2::ConstPtr const &msg) {
@@ -96,8 +91,9 @@ double benchmark(std::string const &bagfile,
         imageDepthAdapter.updatePointCloud(pc);
         depth_timestamp = msg->header.stamp.toSec();
         if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            processPair();
+            return processPair();
         }
+        return false;
     };
 
     auto const transformCallback = [&](tf2_msgs::TFMessage::ConstPtr const &tfMsg) {
@@ -107,40 +103,18 @@ double benchmark(std::string const &bagfile,
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
         }
+        return false;
     };
 
     ROS_WARN("Extracting images from %s", bagfile.c_str());
-    rosbag::Bag bag;
-    bag.open(bagfile);
-
-    std::set<std::string> skipped_topics;
-    for (rosbag::MessageInstance const m: rosbag::View(bag)) {
-        bool handled = false;
-        if (m.getTopic() == image_topic || m.getTopic() == segmentation_topic) {
-            sensor_msgs::Image::ConstPtr imgMsg = m.instantiate<sensor_msgs::Image>();
-            if (imgMsg != nullptr) {
-                if (m.getTopic() == image_topic) imageCallback(imgMsg);
-                if (m.getTopic() == segmentation_topic) segmentationCallback(imgMsg);
-            } else {
-                ROS_ERROR("Non-image message found in topic %s", m.getTopic().c_str());
-            }
-            handled = true;
-        }
-        if (m.getTopic() == depth_topic) {
-            depthCallback(m.instantiate<sensor_msgs::PointCloud2>());
-            handled = true;
-        }
-        if (m.getTopic() == "/tf") {
-            transformCallback(m.instantiate<tf2_msgs::TFMessage>());
-            handled = true;
-        }
-        if (!handled && skipped_topics.find(m.getTopic()) == skipped_topics.end()) {
-            ROS_INFO("Skipped message from topic %s", m.getTopic().c_str());
-            skipped_topics.insert(m.getTopic());
-        }
-        if (count >= max_iter) break;
-    }
-    bag.close();
+    sunshine::BagIterator bagIter(bagfile);
+    bagIter.add_callback<sensor_msgs::Image>(image_topic, imageCallback);
+    bagIter.add_callback<sensor_msgs::Image>(segmentation_topic, segmentationCallback);
+    bagIter.add_callback<sensor_msgs::PointCloud2>(depth_topic, depthCallback);
+    bagIter.add_callback<tf2_msgs::TFMessage>("/tf", transformCallback);
+    bagIter.set_logging(true);
+    auto const finished = bagIter.play();
+    ROS_ERROR_COND(!finished, "Failed to finish playing bagfile!");
     ROS_INFO("Processed %u images from rosbag.", count);
     return av_metric;
 }

@@ -270,13 +270,13 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
         std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
-        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
                 std::move(promisedTopics)}]() mutable {
             using namespace std::chrono;
             wait_for_processing(false);
             auto topics = getTopicDistsForPoses(cell_poses);
             double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
-            promisedTopics.set_value(std::make_unique<Segmentation>("map", timestamp, id, cell_size, std::move(topics), std::move(poses)));
+            promisedTopics.set_value(std::make_unique<Segmentation>("map", timestamp, id, cell_size, std::move(topics), std::move(cell_poses)));
         }));
         return futureTopics;
     }
