@@ -6,7 +6,9 @@
 #define SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 
 #include "sunshine/common/observation_types.hpp"
+#include "sunshine/common/sunshine_types.hpp"
 #include <sunshine_msgs/WordObservation.h>
+#include <sunshine_msgs/TopicModel.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/Image.h>
@@ -108,6 +110,40 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
 ImageObservation fromRosMsg(sensor_msgs::ImageConstPtr msg) {
     cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, std::move(img_ptr->image));
+}
+
+
+
+Phi fromRosMsg(sunshine_msgs::TopicModel const &topic_model) {
+    Phi out(topic_model.identifier, topic_model.K, topic_model.V, {}, topic_model.topic_weights);
+    assert(*std::min_element(topic_model.topic_weights.cbegin(), topic_model.topic_weights.cend()) >= 0);
+    out.counts.reserve(topic_model.K);
+    for (auto i = 0ul; i < topic_model.K; ++i) {
+        out.counts
+           .emplace_back(topic_model.phi.begin() + i * topic_model.V,
+                         (i + 1 < topic_model.K)
+                         ? topic_model.phi.begin() + (i + 1) * topic_model.V
+                         : topic_model.phi.end());
+        assert(out.counts[i].size() == topic_model.V);
+    }
+    if (!out.validate()) {
+        ROS_ERROR("Validation failed for topic model! Problem was corrected.");
+    }
+    return out;
+}
+
+sunshine_msgs::TopicModel toRosMsg(Phi const &phi) {
+    sunshine_msgs::TopicModel topicModel;
+    topicModel.K = phi.K;
+    topicModel.V = phi.V;
+    topicModel.identifier = phi.id;
+    topicModel.topic_weights = phi.topic_weights;
+    topicModel.phi.reserve(phi.K * phi.V);
+    for (auto i = 0ul; i < phi.K; ++i) {
+        topicModel.phi.insert(topicModel.phi.end(), phi.counts[i].begin(), phi.counts[i].end());
+    }
+    assert(topicModel.phi.size() == phi.K * phi.V);
+    return topicModel;
 }
 
 }

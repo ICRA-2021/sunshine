@@ -18,11 +18,11 @@ class BagIterator
     rosbag::Bag bag;
     std::unique_ptr<rosbag::View> view;
     std::unique_ptr<rosbag::View::const_iterator> iterator;
-    std::unordered_multimap<std::string, std::function<bool(rosbag::MessageInstance const&)>> callbacks;
+    std::unordered_multimap<std::string, std::function<bool(rosbag::MessageInstance const &)>> callbacks;
     bool logging = false;
 
   public:
-    explicit BagIterator(const std::string& filename) {
+    explicit BagIterator(const std::string &filename) {
         bag.open(filename, rosbag::bagmode::Read);
         if (!bag.isOpen()) throw std::invalid_argument("Failed to read bagfile " + filename);
     }
@@ -39,10 +39,10 @@ class BagIterator
      * @param callback Function that returns true if the playback should break
      */
     template<class MessageClass = rosbag::MessageInstance, typename Callback>
-    void add_callback(std::string const& topic, Callback const& callback) {
-        callbacks.emplace(std::make_pair(topic, [&callback](rosbag::MessageInstance const& msg){
-            if constexpr (std::is_same_v<MessageClass, rosbag::MessageInstance>) return callback(msg);
-            else return callback(msg.instantiate<MessageClass>());
+    void add_callback(std::string const &topic, Callback callback) {
+        callbacks.emplace(std::make_pair(topic, [callback](rosbag::MessageInstance const &msg) {
+            if constexpr (std::is_same_v<MessageClass, rosbag::MessageInstance>) { return callback(msg); }
+            else { return callback(msg.instantiate<MessageClass>()); }
         }));
     }
 
@@ -54,22 +54,27 @@ class BagIterator
     bool play(bool ignore_breakpoints = false) {
         if (!view) view = std::make_unique<rosbag::View>(bag);
         if (!iterator) iterator = std::make_unique<rosbag::View::const_iterator>(view->begin());
-        for (;*iterator != view->end(); (*iterator)++) {
-            auto const& m = **iterator;
+        bool flagged = false;
+        for (; *iterator != view->end() && !flagged; (*iterator)++) {
+            auto const &m = **iterator;
             if (auto callback_range = callbacks.equal_range(m.getTopic()); callback_range.first != callbacks.end()) {
-                bool flag = false;
-                for (auto callback = callback_range.first; callback != callback_range.second; ++callback) flag = flag || callback->second(m);
-                if (flag && !ignore_breakpoints) return false;
+                for (auto callback = callback_range.first; callback != callback_range.second; ++callback) {
+                    flagged = (callback->second(m)) ? true : flagged;
+                }
             } else {
                 ROS_INFO_COND(logging, "Skipped message from topic %s", m.getTopic().c_str());
-                add_callback(m.getTopic(), [](rosbag::MessageInstance const& msg){return false;});
+                add_callback(m.getTopic(), [](rosbag::MessageInstance const &msg) { return false; });
             }
         }
-        return true;
+        return !flagged;
     }
 
     void restart() {
         iterator.reset();
+    }
+
+    bool finished() const {
+        return view && iterator && *iterator == view->end();
     }
 
     ~BagIterator() {

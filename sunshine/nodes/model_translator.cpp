@@ -6,6 +6,7 @@
 #include "sunshine_msgs/GetTopicModel.h"
 #include "sunshine_msgs/SetTopicModel.h"
 #include "sunshine_msgs/Pause.h"
+#include "sunshine/common/ros_conversions.hpp"
 #include <fstream>
 #include <thread>
 #include <numeric>
@@ -23,38 +24,6 @@ int main(int argc, char **argv) {
     ros::MultiThreadedSpinner spinner;
     ROS_INFO("Spinning...");
     spinner.spin();
-}
-
-static Phi fromTopicModel(TopicModel const &topic_model) {
-    Phi out(topic_model.identifier, topic_model.K, topic_model.V, {}, topic_model.topic_weights);
-    assert(*std::min_element(topic_model.topic_weights.cbegin(), topic_model.topic_weights.cend()) >= 0);
-    out.counts.reserve(topic_model.K);
-    for (auto i = 0ul; i < topic_model.K; ++i) {
-        out.counts
-           .emplace_back(topic_model.phi.begin() + i * topic_model.V,
-                         (i + 1 < topic_model.K)
-                         ? topic_model.phi.begin() + (i + 1) * topic_model.V
-                         : topic_model.phi.end());
-        assert(out.counts[i].size() == topic_model.V);
-    }
-    if (!out.validate()) {
-        ROS_ERROR("Validation failed for topic model! Problem was corrected.");
-    }
-    return out;
-}
-
-static TopicModel toTopicModel(Phi const &phi) {
-    TopicModel topicModel;
-    topicModel.K = phi.K;
-    topicModel.V = phi.V;
-    topicModel.identifier = phi.id;
-    topicModel.topic_weights = phi.topic_weights;
-    topicModel.phi.reserve(phi.K * phi.V);
-    for (auto i = 0ul; i < phi.K; ++i) {
-        topicModel.phi.insert(topicModel.phi.end(), phi.counts[i].begin(), phi.counts[i].end());
-    }
-    assert(topicModel.phi.size() == phi.K * phi.V);
-    return topicModel;
 }
 
 model_translator::model_translator(ros::NodeHandle *nh)
@@ -149,7 +118,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
     this->match_models_service = [this](MatchModelsRequest &req, MatchModelsResponse &resp) {
         std::vector<Phi> topic_models;
         topic_models.reserve(req.topic_models.size());
-        for (auto const &msg : req.topic_models) topic_models.push_back(fromTopicModel(msg));
+        for (auto const &msg : req.topic_models) topic_models.push_back(fromRosMsg(msg));
 
         auto correspondences = match_topics(this->match_method, topic_models).lifting;
         resp = MatchModelsResponse();
@@ -178,7 +147,7 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
         if (!pause_models || pauseClient->call(pause)) {
             GetTopicModel getTopicModel = {};
             if (fetchClient->call(getTopicModel)) {
-                topic_models.push_back(fromTopicModel(getTopicModel.response.topic_model));
+                topic_models.push_back(fromRosMsg(getTopicModel.response.topic_model));
                 if (!save_model_path.empty()) {
                     std::string filename = save_model_path + "/" + std::to_string(ros::Time::now().sec) + "_"
                           + std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6)) + "_" + target_model + ".bin";
@@ -267,7 +236,7 @@ void model_translator::broadcast_global_model(bool unpause_models) {
     pause.request.pause = !unpause_models;
 
     SetTopicModel setTopicModel = {};
-    setTopicModel.request.topic_model = toTopicModel(global_model);
+    setTopicModel.request.topic_model = toRosMsg(global_model);
 
     std::vector<Phi> topic_models;
     topic_models.reserve(this->target_models.size());

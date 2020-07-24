@@ -281,8 +281,8 @@ if (libclear)
     target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 
     add_dependencies(utils.multi_agent_match sunshine_msgs_generate_messages_cpp)
-    target_include_directories(utils.multi_agent_match PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-    target_link_libraries(utils.multi_agent_match ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
+    target_include_directories(utils.multi_agent_match PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+    target_link_libraries(utils.multi_agent_match ${Boost_LIBRARIES} ${libclear} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
     target_compile_features(utils.multi_agent_match PRIVATE cxx_std_17)
 endif()
 

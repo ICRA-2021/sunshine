@@ -31,7 +31,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
     explicit VisualWordAdapter(ParamServer *nh) {
         std::string const data_root = get_rost_path();
 
-        use_clahe = nh->template param<bool>("use_clahe", true);
+        use_clahe = nh->template param<bool>("use_clahe", false);
         show_clahe = nh->template param<bool>("show_clahe", false);
         img_scale = nh->template param<double>("scale", 1.0);
         seq_duration = nh->template param<double>("seq_duration", 0);

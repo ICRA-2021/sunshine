@@ -631,7 +631,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
     return results;
 }
 
-match_results match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
+match_results inline match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
     if (method == "id") {
         return id_matching(topic_models);
     } else if (method == "hungarian-l2") {

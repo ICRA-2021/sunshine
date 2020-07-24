@@ -105,7 +105,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                          const std::vector<std::vector<int>> &init_model = {})
             : newObservationCallback(std::move(callback)) {
         K = nh->template param<int>("K", 10); // number of topics
-        V = nh->template param<int>("V", 16180); // vocabulary size
+        V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
         int const num_levels = nh->template param<int>("num_levels", 3);
         k_alpha = nh->template param<double>("alpha", 0.073);
@@ -144,18 +144,18 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 //                                                                                                   k_gamma,
 //                                                                                                   neighbors_t(G));
 //        } else {
-            rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
-                                                                                                  static_cast<size_t>(K),
-                                                                                                  k_alpha,
-                                                                                                  k_beta,
-                                                                                                  neighbors_t(G),
-                                                                                                  hash_container<cell_pose_t >(),
-                                                                                                  (k_gamma > 0) ? k_gamma : 1.0);
-            if (k_gamma > 0) {
+        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+                                                                                              static_cast<size_t>(K),
+                                                                                              k_alpha,
+                                                                                              k_beta,
+                                                                                              neighbors_t(G),
+                                                                                              hash_container<cell_pose_t>(),
+                                                                                              (k_gamma > 0) ? k_gamma : 1.0);
+        if (k_gamma > 0) {
 //                ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
-                auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
-                rost_concrete->enable_auto_topics_size(true);
-            }
+            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
+            rost_concrete->enable_auto_topics_size(true);
+        }
 //        }
 
         if (!init_model.empty()) {
@@ -197,8 +197,14 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             throw std::invalid_argument("Word observation in invalid frame.");
         }
 
-        ROS_ERROR_COND(wordObs->vocabulary_size > V, "Word observation vocabulary size (%lu) is larger than ROST vocabulary (%d)! May cause crash...", wordObs->vocabulary_size, V);
-        ROS_WARN_COND(wordObs->vocabulary_size < V, "Word observation vocabulary size (%lu) is smaller than ROST vocabulary (%d).", wordObs->vocabulary_size, V);
+        ROS_ERROR_COND(wordObs->vocabulary_size > V,
+                       "Word observation vocabulary size (%lu) is larger than ROST vocabulary (%d)! May cause crash...",
+                       wordObs->vocabulary_size,
+                       V);
+        ROS_WARN_COND(wordObs->vocabulary_size < V,
+                      "Word observation vocabulary size (%lu) is smaller than ROST vocabulary (%d).",
+                      wordObs->vocabulary_size,
+                      V);
 
         using namespace std;
         lock_guard<mutex> guard(wordsReceivedLock);
@@ -276,7 +282,12 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             wait_for_processing(false);
             auto topics = getTopicDistsForPoses(cell_poses);
             double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
-            promisedTopics.set_value(std::make_unique<Segmentation>("map", timestamp, id, cell_size, std::move(topics), std::move(cell_poses)));
+            promisedTopics.set_value(std::make_unique<Segmentation>("map",
+                                                                    timestamp,
+                                                                    id,
+                                                                    cell_size,
+                                                                    std::move(topics),
+                                                                    std::move(cell_poses)));
         }));
         return futureTopics;
     }
@@ -328,12 +339,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 
     void wait_for_processing(bool const new_data = true) const {
         using namespace std::chrono;
-        auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
-        bool const delay = duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time;
+        auto const elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
+        bool const delay = elapsedSinceAdd < min_obs_refine_time;
         if (new_data) {
-            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
-                      min_obs_refine_time,
-                      duration_cast<milliseconds>(elapsedSinceAdd).count());
+            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms", min_obs_refine_time, elapsedSinceAdd);
             if (delay) {
                 consecutive_rate_violations++;
                 ROS_WARN("New word observation received too soon! Delaying...");
@@ -344,7 +353,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             }
         }
         if (delay) {
-            std::this_thread::sleep_for(milliseconds(min_obs_refine_time) - elapsedSinceAdd);
+            std::this_thread::sleep_for(milliseconds(min_obs_refine_time - elapsedSinceAdd));
         }
     }
 
