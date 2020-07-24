@@ -118,7 +118,12 @@ model_translator::model_translator(ros::NodeHandle *nh)
     this->match_models_service = [this](MatchModelsRequest &req, MatchModelsResponse &resp) {
         std::vector<Phi> topic_models;
         topic_models.reserve(req.topic_models.size());
-        for (auto const &msg : req.topic_models) topic_models.push_back(fromRosMsg(msg));
+        for (auto const &msg : req.topic_models) {
+            topic_models.push_back(fromRosMsg(msg));
+            if (!topic_models[topic_models.size() - 1].validate()) {
+                ROS_ERROR("Validation failed for topic model! Problem was corrected.");
+            }
+        }
 
         auto correspondences = match_topics(this->match_method, topic_models).lifting;
         resp = MatchModelsResponse();
@@ -148,6 +153,9 @@ std::vector<Phi> model_translator::fetch_topic_models(bool pause_models) {
             GetTopicModel getTopicModel = {};
             if (fetchClient->call(getTopicModel)) {
                 topic_models.push_back(fromRosMsg(getTopicModel.response.topic_model));
+                if (!topic_models[topic_models.size() - 1].validate()) {
+                    ROS_ERROR("Validation failed for topic model! Problem was corrected.");
+                }
                 if (!save_model_path.empty()) {
                     std::string filename = save_model_path + "/" + std::to_string(ros::Time::now().sec) + "_"
                           + std::to_string(static_cast<int>(ros::Time::now().nsec / 1E6)) + "_" + target_model + ".bin";

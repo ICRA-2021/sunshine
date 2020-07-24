@@ -5,6 +5,7 @@
 #ifndef SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 #define SUNSHINE_PROJECT_ROS_CONVERSIONS_HPP
 
+#include <ros/console.h>
 #include "sunshine/common/observation_types.hpp"
 #include "sunshine/common/sunshine_types.hpp"
 #include <sunshine_msgs/WordObservation.h>
@@ -125,9 +126,6 @@ Phi fromRosMsg(sunshine_msgs::TopicModel const &topic_model) {
                          ? topic_model.phi.begin() + (i + 1) * topic_model.V
                          : topic_model.phi.end());
         assert(out.counts[i].size() == topic_model.V);
-    }
-    if (!out.validate()) {
-        ROS_ERROR("Validation failed for topic model! Problem was corrected.");
     }
     return out;
 }

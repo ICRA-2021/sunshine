@@ -5,6 +5,11 @@
 #ifndef SUNSHINE_PROJECT_SUNSHINE_TYPES_HPP
 #define SUNSHINE_PROJECT_SUNSHINE_TYPES_HPP
 
+#include <string>
+#include <vector>
+#include <iostream>
+#include <numeric>
+
 namespace sunshine {
 
 struct Phi {

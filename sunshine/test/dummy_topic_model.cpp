@@ -3,10 +3,7 @@
 //
 
 #include "sunshine/common/ros_utils.hpp"
-#include "sunshine/common/ros_conversions.hpp"
-#include <fstream>
 #include <exception>
-#include <functional>
 #include <sunshine_msgs/GetTopicModel.h>
 #include <sunshine_msgs/SetTopicModel.h>
 #include <sunshine_msgs/Pause.h>

@@ -155,11 +155,11 @@ int main(int argc, char **argv) {
         auto topic_models = fetch_new_topic_models();
         auto const correspondences = match_topics("clear-l1", {topic_models.begin(), topic_models.end()});
         match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
-        uint32_t unmatched = 0;
+        uint32_t matched = 0;
         for (auto const size : scores.cluster_sizes) {
-            unmatched += (size == 1);
+            matched += (size > 1);
         }
-        std::cout << "Unmatched: " << unmatched << std::endl;
+        std::cout << "Matched: " << (matched - 1) << "/" << (correspondences.num_unique - 1) << std::endl;
         std::cout << "Refine time: "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << std::endl;
         start = std::chrono::steady_clock::now();
