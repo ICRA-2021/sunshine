@@ -6,6 +6,7 @@
 #include <array>
 #include <chrono>
 #include <opencv2/core.hpp>
+#include <boost/functional/hash.hpp>
 
 namespace sunshine {
 
@@ -120,6 +121,14 @@ std::array<ValueType, N> make_array(Iter start) {
     return make_array(start, BuildIndices<N>{});
 }
 
+
+template<typename T, int N>
+struct hasharray {
+    std::size_t operator()(std::array<T, N> const& arr) const {
+        return boost::hash_range(arr.cbegin(), arr.cend());
+    }
+};
+
 template<typename T>
 long record_lap(T &time_checkpoint) {
     auto const duration = std::chrono::steady_clock::now() - time_checkpoint;
@@ -134,17 +143,22 @@ std::vector<std::vector<T>> identity_mat(size_t const dimen) {
     return eye;
 }
 
-template<typename Container>
-uint32_t argmax(Container const &container) {
-    uint32_t idx_max = 0;
-    auto max = container[0];
-    for (auto i = 1; i < container.size(); ++i) {
-        if (container[i] > max) {
-            idx_max = i;
-            max = container[i];
-        }
-    }
-    return idx_max;
+//template<typename Container>
+//uint32_t argmax(Container const &container) {
+//    uint32_t idx_max = 0;
+//    auto max = container[0];
+//    for (auto i = 1; i < container.size(); ++i) {
+//        if (container[i] > max) {
+//            idx_max = i;
+//            max = container[i];
+//        }
+//    }
+//    return idx_max;
+//}
+
+template<typename T>
+typename T::value_type argmax(T const& array) {
+    return std::max_element(array.begin(), array.end()) - array.begin();
 }
 
 }

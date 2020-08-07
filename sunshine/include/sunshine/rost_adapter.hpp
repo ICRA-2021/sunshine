@@ -79,6 +79,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     std::vector<std::vector<int>> getTopicDistsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
+        auto rostReadToken = rost->get_read_token();
         std::vector<std::vector<int>> topics;
         topics.reserve(cell_poses.size());
         for (auto const &pose : cell_poses) {
@@ -94,6 +95,23 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return topics;
     }
 
+std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
+    auto rostReadToken = rost->get_read_token();
+    std::vector<int> topics;
+    topics.reserve(cell_poses.size());
+    for (auto const &pose : cell_poses) {
+        auto const cell = rost->get_cell(pose);
+        if (cell->nZ.size() == this->K) {
+            topics.push_back(std::max_element(cell->nZ.cbegin(), cell->nZ.cend()) - cell->nZ.cbegin());
+        } else {
+            ROS_WARN_THROTTLE(1, "ROSTAdapter::getObservationForPoses() : Skipping cells with wrong number of topics");
+            continue;
+        }
+    }
+
+    return topics;
+}
+
   public:
 #ifndef NDEBUG
     std::vector<std::vector<int>> externalTopicCounts = {}; // TODO Delete?
@@ -103,7 +121,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     explicit ROSTAdapter(ParamServer *nh,
                          decltype(newObservationCallback) callback = nullptr,
                          const std::vector<std::vector<int>> &init_model = {})
-            : newObservationCallback(std::move(callback)) {
+            : newObservationCallback(std::move(callback)), stopWork(false) {
         K = nh->template param<int>("K", 10); // number of topics
         V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
@@ -327,6 +345,14 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return topics_by_cell;
     }
 
+    auto get_map(activity_manager::ReadToken const &read_token) const {
+        using namespace std::chrono;
+        double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+        auto map = std::make_unique<Segmentation<int, POSEDIM, CellDimType, WordDimType>>("map", timestamp, ros::Time(timestamp).sec, cell_size, std::vector<int>(), rost->cell_pose);
+        map->observations = getMLTopicsForPoses(map->observation_poses);
+        return map;
+    }
+
     Phi get_topic_model(activity_manager::ReadToken const &read_token) const {
         Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights());
         phi.validate(false);
@@ -371,6 +397,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 
     decltype(cell_size) const &get_cell_size() const {
         return cell_size;
+    }
+
+    decltype(world_frame) const &get_world_frame() const {
+        return world_frame;
     }
 
     ROST_t const &get_rost() const {

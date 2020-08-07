@@ -38,6 +38,7 @@ int main(int argc, char** argv)
     auto const saveTopicTimeseries = nh.param<bool>("save_topic_timeseries", false);
     auto const saveTopicModel = nh.param<bool>("save_topic_model", true);
     auto const saveTopicCells = nh.param<bool>("save_topic_cells", true);
+    auto const savePpx = nh.param<bool>("save_perplexity_map", true);
     sunshine::WordColorMap<decltype(TopicMap::cell_topics)::value_type> wordColorMap;
     ROS_INFO("Pixel scale: %f", pixel_scale);
     bool done = false;
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
     ros::ServiceClient modelClient = nh.serviceClient<GetTopicModel>("/" + rost_namespace + "/get_topic_model");
 
     auto obsSub = nh.subscribe<TopicMap>(input_topic, 1, [&done, &wordColorMap, &client, &modelClient, &cellClient, output_prefix, pixel_scale, minWidth,
-                                                          saveTopicTimeseries, saveTopicModel, saveTopicCells, minHeight, useColor, fixedBox](sunshine_msgs::TopicMapConstPtr const& msg) {
+                                                          savePpx, saveTopicTimeseries, saveTopicModel, saveTopicCells, minHeight, useColor, fixedBox](sunshine_msgs::TopicMapConstPtr const& msg) {
         if (saveTopicModel) {
             GetTopicModel getTopicModel;
             if (modelClient.call(getTopicModel)) {
@@ -135,7 +136,7 @@ int main(int argc, char** argv)
             } else {
                 topicMapImg.at<double>(point) = msg->cell_topics[i] + 1;
             }
-            if (msg->cell_ppx.size() > i) ppxMapImg.at<double>(point) = msg->cell_ppx[i];
+            if (savePpx  && msg->cell_ppx.size() > i) ppxMapImg.at<double>(point) = msg->cell_ppx[i];
         }
         ROS_INFO_COND(outliers > 0, "Discarded %lu points outside of %s", outliers, fixedBox.c_str());
         ROS_WARN_COND(overlaps > 0, "Dicarded %lu overlapped points.", overlaps);
@@ -147,7 +148,7 @@ int main(int argc, char** argv)
         }
 
         imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", topicMapImg);
-        imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-ppx.png", ppxMapImg);
+        if (savePpx) imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-ppx.png", ppxMapImg);
         std::ofstream colorWriter(output_prefix + "-" + std::to_string(msg->seq) + "-colors.csv");
         for (auto const& entry : wordColorMap.getAllColors()) {
             colorWriter << entry.first;

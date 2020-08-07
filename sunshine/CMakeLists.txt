@@ -266,7 +266,7 @@ if (libclear)
     add_executable(model_translator nodes/model_translator.cpp)
     add_executable(utils.topic_match utilities/topic_match.cpp)
     add_executable(utils.find_lifting utilities/find_lifting.cpp)
-    add_executable(utils.multi_agent_match utilities/multi_agent_sim.cpp)
+    add_executable(utils.multi_agent_match nodes/multi_agent_sim.cpp)
 
     add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
     target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})

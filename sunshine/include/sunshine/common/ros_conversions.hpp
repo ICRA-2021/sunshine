@@ -8,22 +8,26 @@
 #include <ros/console.h>
 #include "sunshine/common/observation_types.hpp"
 #include "sunshine/common/sunshine_types.hpp"
+#include "sunshine/common/utils.hpp"
 #include <sunshine_msgs/WordObservation.h>
 #include <sunshine_msgs/TopicModel.h>
+#include <sunshine_msgs/TopicMap.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <tf2/convert.h>
 
+#include <utility>
+
 namespace sunshine {
 
-template<typename WordObservation>
-sunshine_msgs::WordObservation toRosMsg(WordObservation const &in, geometry_msgs::TransformStamped observationTransform = {}) {
-    static_assert(std::is_integral<typename WordObservation::ObservationType>::value, "Only integral word types are supported!");
-    static_assert(sizeof(typename WordObservation::ObservationType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type),
+template<typename WordType, uint32_t PoseDim, typename PoseType = double>
+sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim, PoseType> const &in, geometry_msgs::TransformStamped observationTransform = {}) {
+    static_assert(std::is_integral<WordType>::value, "Only integral word types are supported!");
+    static_assert(sizeof(WordType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type),
                   "WordType is too large!");
-    auto constexpr poseDim = WordObservation::PoseDim;
+    auto constexpr poseDim = PoseDim;
 
     sunshine_msgs::WordObservation out{};
     out.header.frame_id = in.frame;
@@ -33,7 +37,7 @@ sunshine_msgs::WordObservation toRosMsg(WordObservation const &in, geometry_msgs
     out.source = ""; // unused
     out.vocabulary_begin = in.vocabulary_start;
     out.vocabulary_size = in.vocabulary_size;
-    out.observation_transform = observationTransform;
+    out.observation_transform = std::move(observationTransform);
 
     out.words.reserve(in.observations.size());
     out.word_pose.reserve(in.observations.size() * poseDim);
@@ -108,7 +112,7 @@ CategoricalObservation <WordType, PoseDim, WordPoseType> fromRosMsg(sunshine_msg
     return out;
 }
 
-ImageObservation fromRosMsg(sensor_msgs::ImageConstPtr msg) {
+ImageObservation fromRosMsg(const sensor_msgs::ImageConstPtr& msg) {
     cv_bridge::CvImagePtr img_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, std::move(img_ptr->image));
 }
@@ -142,6 +146,30 @@ sunshine_msgs::TopicModel toRosMsg(Phi const &phi) {
     }
     assert(topicModel.phi.size() == phi.K * phi.V);
     return topicModel;
+}
+
+template<typename LabelType, uint32_t PoseDim>
+sunshine_msgs::TopicMap toRosMsg(Segmentation<LabelType, PoseDim, int, double> const& segmentation) {
+    sunshine_msgs::TopicMap map;
+    map.header.frame_id = segmentation.frame;
+    map.header.stamp = map.header.stamp.fromSec(segmentation.timestamp);
+    map.seq = segmentation.id;
+    static_assert(PoseDim == 3 || PoseDim == 4, "Unsupported pose dimensionality");
+    map.cell_time = (PoseDim == 4) ? segmentation.cell_size[0] : -1;
+    constexpr uint32_t offset = (PoseDim == 4);
+    map.cell_width = {segmentation.cell_size[offset], segmentation.cell_size[offset + 1], segmentation.cell_size[offset + 2]};
+    map.cell_poses.reserve(segmentation.observation_poses.size() * 3);
+    std::for_each(segmentation.observation_poses.begin(), segmentation.observation_poses.end(), [&map, offset](std::array<int, PoseDim> const& pose){
+        map.cell_poses.insert(map.cell_poses.end(), pose.begin() + offset, pose.end());
+    });
+    if constexpr (std::is_same_v<LabelType, int>) {
+        map.cell_topics = segmentation.observations;
+    } else if constexpr (std::is_same_v<LabelType, std::vector<int>>) {
+        std::transform(segmentation.observations.begin(), segmentation.observations.end(), std::back_inserter(map.cell_topics), argmax<int>);
+    } else {
+        static_assert(always_false<LabelType>);
+    }
+    return map;
 }
 
 }
