@@ -86,6 +86,7 @@ class SemanticSegmentationAdapter
         }
         if constexpr (std::is_integral_v<LabelType>) {
             // TODO Find max count
+            static_assert(always_false<LabelType>, "Not implemented.");
         } else if constexpr (is_vector<LabelType>::value) {
             static_assert(std::is_integral_v<typename LabelType::value_type>);
             for (auto const &entry : counts) {
@@ -96,7 +97,7 @@ class SemanticSegmentationAdapter
                 segmentation->observations.push_back(labelVec);
             }
         } else {
-            static_assert(always_false<LabelType>);
+            static_assert(always_false<LabelType>, "Invalid template argument.");
         }
         return segmentation;
     }

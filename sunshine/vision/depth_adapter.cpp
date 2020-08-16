@@ -12,7 +12,7 @@ void DepthAdapter::updatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr pc) {
     this->pc = std::move(pc);
 }
 
-std::array<double, 3> DepthAdapter::get_pose(int u, int v) const {
+std::array<double, 3> inline DepthAdapter::get_pose(int u, int v) const {
     if (!pc) throw std::logic_error("Cannot process input without pointcloud");
     auto const &cloud = *pc;
     assert(u < cloud.width && v < cloud.height);
@@ -33,7 +33,7 @@ std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operat
     return std::make_unique<CategoricalObservation<int, 3, double>>(wordObs2d->frame,
                                                                     wordObs2d->timestamp,
                                                                     wordObs2d->id,
-                                                                    std::move(wordObs2d->observations),
+                                                                    wordObs2d->observations,
                                                                     std::move(observation_pose),
                                                                     wordObs2d->vocabulary_start,
                                                                     wordObs2d->vocabulary_size);

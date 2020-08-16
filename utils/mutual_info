@@ -1,11 +1,11 @@
-#!python
+#!/usr/bin/env python
 
 import numpy as np
 import cv2
 import sys
 import math
 import random
-from sklearn.metrics import mutual_info_score, normalized_mutual_info_score
+from sklearn.metrics import mutual_info_score, normalized_mutual_info_score, adjusted_mutual_info_score
 import argparse
 
 
@@ -13,7 +13,7 @@ import argparse
 
 file1 = sys.argv[1]
 file2 = sys.argv[2]
-numpoints = int(sys.argv[3])
+skip_black = True
 
 #im1 = Image.open(file1)
 #im2 = Image.open(file2)
@@ -30,17 +30,25 @@ assert(im1.shape[:2] == im2.shape[:2])
 uid1 = {}
 uid2 = {}
 
-xmin = math.ceil(im1.shape[1] / 4); xmax = math.floor(im1.shape[1] * 3 / 4)
-ymin = math.ceil(im1.shape[0] / 4); ymax = math.floor(im1.shape[0] * 3 / 4)
+xmin, xmax = 0, im1.shape[1]
+ymin, ymax = 0, im1.shape[0]
+numpoints = int(sys.argv[3])
 if (ymax - ymin) * (xmax - xmin) <= numpoints:
     sampling_points_yx = [(y, x) for x in range(xmin, xmax) for y in range(ymin, ymax)]
 else:
+    xmin = math.ceil(im1.shape[1] / 4)
+    xmax = math.floor(im1.shape[1] * 3 / 4)
+    ymin = math.ceil(im1.shape[0] / 4)
+    ymax = math.floor(im1.shape[0] * 3 / 4)
     sampling_points_yx = [(random.randrange(ymin, ymax),random.randrange(xmin, xmax)) for i in range(numpoints)]
 ids1 = []
 ids2 = []
 for p in sampling_points_yx:
     v1 = tuple(im1[p])
     v2 = tuple(im2[p])
+
+    if skip_black and (v1 == (0, 0, 0) or v2 == (0, 0, 0)):
+        continue
 
     if v1 not in uid1:
         uid1[v1] = len(uid1)
@@ -50,10 +58,12 @@ for p in sampling_points_yx:
     ids1.append(uid1[v1])
     ids2.append(uid2[v2])
 
-ids3 = [ random.randrange(1, len(uid1)) for i in range(len(sampling_points_yx)) ]
+ids3 = [ random.randrange(1, len(uid1)) for i in range(len(ids1)) ]
 
 #print(ids1)
 #print(ids2)
-
-print(normalized_mutual_info_score(ids1, ids2))
+print("Used %d points" % len(ids1))
+print("MI: %f (Random = %f)" % (mutual_info_score(ids1, ids2), mutual_info_score(ids1, ids3)))
+print("NMI: %f (Random = %f)" % (normalized_mutual_info_score(ids1, ids2), normalized_mutual_info_score(ids1, ids3)))
+print("AMI: %f (Random = %f)" % (adjusted_mutual_info_score(ids1, ids2), adjusted_mutual_info_score(ids1, ids3)))
 #print(normalized_mutual_info_score(ids1, ids3))

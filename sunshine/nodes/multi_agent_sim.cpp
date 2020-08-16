@@ -23,7 +23,7 @@ class RobotSim {
     BagIterator bagIter;
     VisualWordAdapter visualWordAdapter;
     ROSTAdapter<4, double, double> rostAdapter;
-    SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>> segmentationAdapter;
+    std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
     WordDepthAdapter wordDepthAdapter;
@@ -31,10 +31,11 @@ class RobotSim {
     std::unique_ptr<ImageObservation> lastRgb, lastSegmentation;
     std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
     double depth_timestamp = -1;
+    bool transform_found   = false;
 
     bool imageCallback(sensor_msgs::Image::ConstPtr image) {
         lastRgb = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (lastRgb && lastRgb->timestamp == depth_timestamp) {
+        if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
             lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
             return true;
         }
@@ -43,8 +44,8 @@ class RobotSim {
 
     bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
         lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(std::move(image)));
-        if (lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
-            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
+        if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
+            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
             return true;
         }
         return false;
@@ -60,12 +61,12 @@ class RobotSim {
         imageDepthAdapter.updatePointCloud(pc);
         depth_timestamp = msg->header.stamp.toSec();
         bool handled    = false;
-        if (lastRgb && lastRgb->timestamp == depth_timestamp) {
+        if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
             lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
             handled = true;
         }
-        if (lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
-            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
+        if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
+            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
             handled      = true;
         }
         return handled;
@@ -78,6 +79,7 @@ class RobotSim {
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
         }
+        transform_found = true;
         return false;
     }
 
@@ -88,12 +90,15 @@ class RobotSim {
              ParamServer const &parameters,
              std::string const &image_topic,
              std::string const &depth_topic,
-             std::string const &segmentation_topic)
+             std::string const &segmentation_topic,
+             std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_adapter = nullptr)
         : name(std::move(name))
         , bagIter(bagfile)
         , visualWordAdapter(&parameters)
         , rostAdapter(&parameters)
-        , segmentationAdapter(&parameters, true)
+        , segmentationAdapter(
+              (shared_adapter) ? shared_adapter
+                               : std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&parameters, true))
         , wordTransformAdapter(&parameters)
         , imageTransformAdapter(&parameters) {
         bagIter.add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
@@ -179,16 +184,19 @@ int main(int argc, char **argv) {
     std::string const segmentation_topic_name(argv[3]);
 
     ros::NodeHandle nh("~");
+    auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
+
     std::vector<std::unique_ptr<RobotSim>> robots;
-    std::vector<ros::Publisher> map_pubs;
+    //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
-        robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4), std::string(argv[i]), nh, image_topic_name,
-                                                       depth_topic_name, segmentation_topic_name));
-        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
+        robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4), std::string(argv[i]), nh, image_topic_name, depth_topic_name,
+                                                       segmentation_topic_name, segmentationAdapter));
+        //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
-    ros::Publisher naive_map_pub  = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
-    ros::Publisher merged_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/merged_map", 0);
-    ros::Publisher gt_map_pub     = nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0);
+    ros::Publisher naive_map_pub     = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
+    ros::Publisher merged_map_pub    = nh.advertise<sunshine_msgs::TopicMap>("/merged_map", 0);
+    ros::Publisher hungarian_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/hungarian_map", 0);
+    ros::Publisher gt_map_pub        = nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0);
 
     auto const fetch_new_topic_models = [&robots]() {
         std::vector<Phi> topic_models;
@@ -224,10 +232,12 @@ int main(int argc, char **argv) {
         for (auto i = 0; i < robots.size(); ++i) {
             segmentations.emplace_back(robots[i]->getMap());
             gt_segmentations.push_back(robots[i]->getGTMap());
-            map_pubs[i].publish(toRosMsg(*segmentations.back()));
+            //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
+
         naive_map_pub.publish(toRosMsg(*merge(segmentations)));
         merged_map_pub.publish(toRosMsg(*merge(segmentations, correspondences.lifting)));
+        hungarian_map_pub.publish(toRosMsg(*merge(segmentations, correspondences_hungarian.lifting)));
         gt_map_pub.publish(toRosMsg(*merge<3>(gt_segmentations)));
     }
 
