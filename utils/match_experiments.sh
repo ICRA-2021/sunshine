@@ -6,13 +6,13 @@ fi
 start_dir=$PWD
 pushd adrost || exit 1
 
-workdir=stats_joint
+workdir=$(date +%d%m%Y-%H:%M)-stats_joint
 if [ ! -d $workdir ]; then mkdir $workdir; fi
 pushd $workdir || exit 1
 echo "" > adrost.cmd
 for run in 1 2 3; do
   for period in 1 20 40 60 80 100 250; do
-    for method in "clear" "clear-js" "hungarian" "hungarian-js"; do
+    for method in "clear-l1" "clear-js" "hungarian-l1" "hungarian-js"; do
       runid="stats-T$period-$method-run$run"
       mkdir "$runid"
       mkdir "$runid-matched"
