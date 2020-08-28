@@ -133,7 +133,7 @@ double entropy(Container const &container, double weight = 1.0) {
     return -sum;
 }
 
-template<size_t pose_dimen = 4>
+template<uint32_t pose_dimen = 4>
 std::tuple<std::vector<std::vector<uint32_t>>, std::vector<uint32_t>, std::vector<uint32_t>, uint32_t> compute_matches(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
                                                                                                                        sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
@@ -164,6 +164,57 @@ std::tuple<std::vector<std::vector<uint32_t>>, std::vector<uint32_t>, std::vecto
         }
     }
     return {matches, gt_weights, topic_weights, total_weight};
+}
+
+template<typename SegmentationType>
+auto get_num_topics(SegmentationType const& seg) {
+    if constexpr (is_vector<typename decltype(seg.observations)::value_type>::value) {
+        return seg.observations[0].size();
+    } else if constexpr (std::is_integral_v<typename decltype(seg.observations)::value_type>) {
+        return *std::max_element(seg.observations.begin(), seg.observations.end()) + 1;
+    } else {
+        static_assert(always_false<SegmentationType>);
+    }
+}
+
+template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double>
+std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(sunshine::Segmentation<LabelType, 3, int, double> const &gt_seg,
+                                                     sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg) {
+    auto const N = get_num_topics(topic_seg);
+    auto const M = get_num_topics(gt_seg);
+    CountType total_weight = 0;
+    std::vector<std::vector<CountType>> cooccurences(N, std::vector<CountType>(M, 0));
+    std::map<std::array<int, 3>, LabelType> gt_labels;
+    for (auto obs = 0; obs < gt_seg.observations.size(); ++obs) {
+        gt_labels.insert({gt_seg.observation_poses[obs], gt_seg.observations[obs]});
+    }
+    for (auto obs = 0ul; obs < topic_seg.observation_poses.size(); ++obs) {
+        static_assert(pose_dimen == 3 || pose_dimen == 4);
+        constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
+        std::array<int, 3> const pose{topic_seg.observation_poses[obs][offset], topic_seg.observation_poses[obs][1 + offset],
+                                      topic_seg.observation_poses[obs][2 + offset]};
+        auto iter = gt_labels.find(pose);
+        if (iter != gt_labels.end()) {
+            auto const& observed = topic_seg.observations[obs];
+            auto const& actual = iter->second;
+            if constexpr (is_vector<LabelType>::value) {
+                double const weight_observed = std::accumulate(observed.begin(), observed.end(), 0.0);
+                double const weight_actual = std::accumulate(actual.begin(), actual.end(), 0.0);
+                double prod_weight = weight_observed * weight_actual;
+                for (auto i = 0ul; i < N; ++i) {
+                    for (auto j = 0ul; j < M; ++j) {
+                        cooccurences[i][j] += static_cast<CountType>(observed[i] * actual[j]) / prod_weight;
+                    }
+                }
+            } else {
+                cooccurences[observed][actual] += 1;
+            }
+            total_weight += 1;
+        } else {
+            std::cerr << "Failed to find gt gt_seg for pose!" << std::endl;
+        }
+    }
+    return {cooccurences, total_weight};
 }
 
 double compute_mutual_info(std::vector<std::vector<uint32_t>> const& matches, std::vector<uint32_t> const& gt_weights, std::vector<uint32_t> const& topic_weights, double const total_weight) {

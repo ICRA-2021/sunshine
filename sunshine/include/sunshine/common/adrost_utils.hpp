@@ -483,6 +483,32 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     return results;
 }
 
+std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<double>> const& costs) {
+    if (costs.empty() || costs[0].empty()) throw std::invalid_argument("Cost matrix must be non-empty");
+    auto const N = costs.size();
+    auto const M = costs[0].size();
+    std::vector<std::vector<int>> assignment(N, std::vector<int>(M, -1));
+
+    // convert pd_sq to a Matrix
+    Matrix<double> matrix(N, M);
+    for (int fi = 0; fi < N; ++fi) {
+        for (int fj = 0; fj < M; ++fj) {
+            matrix(fi, fj) = costs[fi][fj];
+        }
+    }
+
+    // Apply Munkres algorithm to matrix.
+    Munkres<double> m;
+    m.solve(matrix);
+
+    for (int row = 0; row < N; row++) {
+        for (int col = 0; col < M; col++) {
+            assignment[row][col] = matrix(row, col);
+        }
+    }
+    return assignment;
+}
+
 match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models, DistanceMetric<int> const &metric = normed_dist_sq<int>) {
     match_results results = {};
     if (topic_models.empty()) return results;
@@ -503,27 +529,15 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
 //        ROS_WARN("%lu %lu %lu %lu", left.size(), right.size(), left_weights.size(), right_weights.size());
         Matrix<double> matrix(left_weights.size(), right_weights.size());
 
-        std::vector<std::vector<int>> assignment(left_weights.size(), std::vector<int>(right_weights.size(), -1));
         std::vector<int> perm;
 
         auto const pd_sq = compute_all_pairs(left, right, left_weights, right_weights, metric);
+        auto const assignment = hungarian_assignments(pd_sq);
 
         results.ssd.push_back(0);
-        // convert pd_sq to a Matrix
         for (int fi = 0; fi < left_weights.size(); ++fi) {
             for (int fj = 0; fj < right_weights.size(); ++fj) {
-                matrix(fi, fj) = pd_sq[fi][fj];
                 if (fi == fj) results.ssd.back() += normed_dist_sq(left[fi], right[fj], left_weights[fi], right_weights[fj]);
-            }
-        }
-
-        // Apply Munkres algorithm to matrix.
-        Munkres<double> m;
-        m.solve(matrix);
-
-        for (int row = 0; row < left_weights.size(); row++) {
-            for (int col = 0; col < right_weights.size(); col++) {
-                assignment[row][col] = matrix(row, col);
             }
         }
 

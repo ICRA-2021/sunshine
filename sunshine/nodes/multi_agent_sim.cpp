@@ -7,7 +7,7 @@
 #include "sunshine/depth_adapter.hpp"
 #include "sunshine/observation_transform_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
-#include "sunshine/semantic_label_adapter.hpp"
+#include "sunshine/benchmark.hpp"
 #include "sunshine/visual_word_adapter.hpp"
 
 #include <sensor_msgs/Image.h>
@@ -120,6 +120,12 @@ class RobotSim {
         return rostAdapter.get_map(*token);
     }
 
+    auto getDistMap(bool wait_for_refine = true) const {
+        if (wait_for_refine) rostAdapter.wait_for_processing(false);
+        auto token = rostAdapter.get_rost().get_read_token();
+        return rostAdapter.get_dist_map(*token);
+    }
+
     auto getGTMap() const {
         double const timestamp = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
         segmentation->id       = ros::Time(timestamp).sec;
@@ -171,6 +177,23 @@ std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &
         }
     }
     return merged;
+}
+
+template<uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
+void align(Segmentation<int, LeftPoseDim, int, double>& segmentation, Segmentation<int, RightPoseDim, int, double> const& reference) {
+    auto const cooccurrence_data = compute_cooccurences(reference, segmentation);
+    auto const& counts = cooccurrence_data.first;
+    std::vector<std::vector<double>> costs(counts.size(), std::vector<double>(counts[0].size(), 0.0));
+    for (auto i = 0ul; i < counts.size(); ++i) {
+        for (auto j = 0ul; j < counts[0].size(); ++j) {
+            costs[i][j] = std::accumulate(counts[i].begin(), counts[i].end(), 0.0) - 2 * counts[i][j];
+        }
+    }
+    int num_topics = counts.size();
+    auto const lifting = get_permutation(hungarian_assignments(costs), &num_topics);
+    for (auto& obs : segmentation.observations) {
+        obs = lifting[obs];
+    }
 }
 
 int main(int argc, char **argv) {
@@ -232,13 +255,23 @@ int main(int argc, char **argv) {
         for (auto i = 0; i < robots.size(); ++i) {
             segmentations.emplace_back(robots[i]->getMap());
             gt_segmentations.push_back(robots[i]->getGTMap());
+//            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
 
-        naive_map_pub.publish(toRosMsg(*merge(segmentations)));
-        merged_map_pub.publish(toRosMsg(*merge(segmentations, correspondences.lifting)));
-        hungarian_map_pub.publish(toRosMsg(*merge(segmentations, correspondences_hungarian.lifting)));
-        gt_map_pub.publish(toRosMsg(*merge<3>(gt_segmentations)));
+        auto const gt_merged = merge<3>(gt_segmentations);
+        auto naive_merged = merge(segmentations);
+        auto clear_merged = merge(segmentations, correspondences.lifting);
+        auto hungarian_merged = merge(segmentations, correspondences_hungarian.lifting);
+
+        align(*naive_merged, *gt_merged);
+        align(*clear_merged, *gt_merged);
+        align(*hungarian_merged, *gt_merged);
+
+        naive_map_pub.publish(toRosMsg(*naive_merged));
+        merged_map_pub.publish(toRosMsg(*clear_merged));
+        hungarian_map_pub.publish(toRosMsg(*hungarian_merged));
+        gt_map_pub.publish(toRosMsg(*gt_merged));
     }
 
     return 0;

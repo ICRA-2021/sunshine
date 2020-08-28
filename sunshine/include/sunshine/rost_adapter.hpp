@@ -108,7 +108,6 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
             continue;
         }
     }
-
     return topics;
 }
 
@@ -350,6 +349,14 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
         double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
         auto map = std::make_unique<Segmentation<int, POSEDIM, CellDimType, WordDimType>>("map", timestamp, ros::Time(timestamp).sec, cell_size, std::vector<int>(), rost->cell_pose);
         map->observations = getMLTopicsForPoses(map->observation_poses);
+        return map;
+    }
+
+    auto get_dist_map(activity_manager::ReadToken const &read_token) const {
+        using namespace std::chrono;
+        double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+        auto map = std::make_unique<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>("map", timestamp, ros::Time(timestamp).sec, cell_size, std::vector<std::vector<int>>(), rost->cell_pose);
+        map->observations = getTopicDistsForPoses(map->observation_poses);
         return map;
     }
 

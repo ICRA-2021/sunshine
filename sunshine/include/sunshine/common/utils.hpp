@@ -3,6 +3,7 @@
 
 #include "colors.hpp"
 #include <exception>
+#include <numeric>
 #include <array>
 #include <chrono>
 #include <opencv2/core.hpp>
@@ -159,6 +160,21 @@ std::vector<std::vector<T>> identity_mat(size_t const dimen) {
 template<typename T>
 typename T::value_type argmax(T const& array) {
     return std::max_element(array.begin(), array.end()) - array.begin();
+}
+
+template<typename T, typename C = T>
+C normalize(T const& array) {
+    static_assert(std::is_floating_point_v<typename C::value_type>);
+    C out;
+    typename T::value_type const sum = std::accumulate(array.begin(), array.end(), typename T::value_type(0));
+    std::transform(array.begin(), array.end(), std::back_inserter(out),
+                   [sum](typename T::value_type const& v){return static_cast<typename C::value_type>(v) / sum;});
+    return out;
+}
+
+template<typename T, typename Ret = typename T::value_type>
+Ret dotp(T const& left, T const& right) {
+    return std::inner_product(left.begin(), left.end(), right.begin(), Ret(0));
 }
 
 }
