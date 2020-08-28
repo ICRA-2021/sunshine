@@ -284,6 +284,8 @@ if (libclear)
     target_include_directories(utils.multi_agent_match PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
     target_link_libraries(utils.multi_agent_match ${Boost_LIBRARIES} ${libclear} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
     target_compile_features(utils.multi_agent_match PRIVATE cxx_std_17)
+else()
+    message(STATUS "Did not find libclear -- skipping topic matching executables")
 endif()
 
 if (liblimbo)
@@ -301,6 +303,8 @@ if (liblimbo)
         target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
         target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})
     endif()
+else()
+    message(STATUS "Did not find liblimbo -- skipping optimizers")
 endif()
 
 #############

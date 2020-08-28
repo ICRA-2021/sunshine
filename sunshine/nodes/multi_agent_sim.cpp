@@ -252,26 +252,28 @@ int main(int argc, char **argv) {
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
         std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
-        for (auto i = 0; i < robots.size(); ++i) {
+        for (auto i = 0ul; i < robots.size(); ++i) {
             segmentations.emplace_back(robots[i]->getMap());
-            gt_segmentations.push_back(robots[i]->getGTMap());
-//            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
+            if (!segmentation_topic_name.empty()) gt_segmentations.push_back(robots[i]->getGTMap());
+            //            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
 
-        auto const gt_merged = merge<3>(gt_segmentations);
         auto naive_merged = merge(segmentations);
         auto clear_merged = merge(segmentations, correspondences.lifting);
         auto hungarian_merged = merge(segmentations, correspondences_hungarian.lifting);
 
-        align(*naive_merged, *gt_merged);
-        align(*clear_merged, *gt_merged);
-        align(*hungarian_merged, *gt_merged);
+        if (!segmentation_topic_name.empty()) {
+            auto const gt_merged = merge<3>(gt_segmentations);
+            align(*naive_merged, *gt_merged);
+            align(*clear_merged, *gt_merged);
+            align(*hungarian_merged, *gt_merged);
+            gt_map_pub.publish(toRosMsg(*gt_merged));
+        }
 
         naive_map_pub.publish(toRosMsg(*naive_merged));
         merged_map_pub.publish(toRosMsg(*clear_merged));
         hungarian_map_pub.publish(toRosMsg(*hungarian_merged));
-        gt_map_pub.publish(toRosMsg(*gt_merged));
     }
 
     return 0;
