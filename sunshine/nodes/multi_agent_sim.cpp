@@ -229,16 +229,16 @@ int main(int argc, char **argv) {
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
         std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
-        for (auto i = 0; i < robots.size(); ++i) {
+        for (auto i = 0ul; i < robots.size(); ++i) {
             segmentations.emplace_back(robots[i]->getMap());
-            gt_segmentations.push_back(robots[i]->getGTMap());
+            if (!segmentation_topic_name.empty()) gt_segmentations.push_back(robots[i]->getGTMap());
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
 
         naive_map_pub.publish(toRosMsg(*merge(segmentations)));
         merged_map_pub.publish(toRosMsg(*merge(segmentations, correspondences.lifting)));
         hungarian_map_pub.publish(toRosMsg(*merge(segmentations, correspondences_hungarian.lifting)));
-        gt_map_pub.publish(toRosMsg(*merge<3>(gt_segmentations)));
+        if (!segmentation_topic_name.empty()) gt_map_pub.publish(toRosMsg(*merge<3>(gt_segmentations)));
     }
 
     return 0;
