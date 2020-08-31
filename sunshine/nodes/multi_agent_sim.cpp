@@ -259,10 +259,10 @@ int main(int argc, char **argv) {
     }
 
     auto const populate_row = [&robots](std::string const &name,
-                                 size_t const& n_observations,
-                                 match_results const &correspondences,
-                                 match_scores const &scores,
-                                 std::optional<std::tuple<double, double, double>> metrics = {}) {
+                                        size_t const &n_observations,
+                                        match_results const &correspondences,
+                                        match_scores const &scores,
+                                        std::optional <std::tuple<double, double, double>> metrics = {}) {
         csv_row<> row;
         row.append(name);
         row.append(robots.size());
@@ -277,7 +277,7 @@ int main(int argc, char **argv) {
             row.append(std::get<0>(metrics.value()));
             row.append(std::get<1>(metrics.value()));
             row.append(std::get<2>(metrics.value()));
-        } else{
+        } else {
             for (auto i = 0; i < 3; ++i) row.append("");
         }
         return row;
@@ -320,6 +320,8 @@ int main(int argc, char **argv) {
         n_obs += active;
 
         auto topic_models = fetch_new_topic_models(true);
+        auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+
         auto const correspondences_clear = match_topics("clear-l1", {topic_models.begin(), topic_models.end()});
         match_scores const scores_clear(topic_models, correspondences_clear.lifting, normed_dist_sq<double>);
 
@@ -332,9 +334,7 @@ int main(int argc, char **argv) {
         uint32_t matched = 0;
         for (auto const size : scores_clear.cluster_sizes) { matched += (size > 1); }
         std::cout << "Matched: " << matched << "/" << correspondences_clear.num_unique << std::endl;
-        std::cout << "Refine time: "
-                  << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << std::endl;
-        start = std::chrono::steady_clock::now();
+        std::cout << "Refine time: " << refine_time << std::endl;
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
         std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
@@ -354,7 +354,6 @@ int main(int argc, char **argv) {
             align(*naive_merged, *gt_merged);
             align(*clear_merged, *gt_merged);
             align(*hungarian_merged, *gt_merged);
-            gt_map_pub.publish(toRosMsg(*gt_merged));
 
             if (writer) {
                 auto const naive_metrics = compute_metrics(*gt_merged, *naive_merged);
@@ -363,7 +362,10 @@ int main(int argc, char **argv) {
                 writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive, naive_metrics));
                 writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian, hungarian_metrics));
                 writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, scores_clear, clear_metrics));
+                std::cout << "Naive/CLEAR/Hungarian AMIs:" << std::get<2>(naive_metrics) << "," << std::get<2>(clear_metrics) << ","
+                          << std::get<2>(hungarian_metrics) << std::endl;
             }
+            gt_map_pub.publish(toRosMsg(*gt_merged));
         } else if (writer) {
             writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive));
             writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian));
@@ -374,6 +376,8 @@ int main(int argc, char **argv) {
         naive_map_pub.publish(toRosMsg(*naive_merged));
         merged_map_pub.publish(toRosMsg(*clear_merged));
         hungarian_map_pub.publish(toRosMsg(*hungarian_merged));
+
+        start = std::chrono::steady_clock::now();
     }
 
     return 0;
