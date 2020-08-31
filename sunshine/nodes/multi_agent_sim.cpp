@@ -255,6 +255,9 @@ int main(int argc, char **argv) {
         header.append("Mutual Information");
         header.append("Normalized Mutual Information");
         header.append("Adjusted Mutual Information");
+        header.append("Individual MIs");
+        header.append("Individual NMIs");
+        header.append("Individual AMIs");
         writer->write_header(header);
     }
 
@@ -262,7 +265,8 @@ int main(int argc, char **argv) {
                                         size_t const &n_observations,
                                         match_results const &correspondences,
                                         match_scores const &scores,
-                                        std::optional <std::tuple<double, double, double>> metrics = {}) {
+                                        std::optional<std::tuple<double, double, double>> metrics = {},
+                                        std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_metrics = {}) {
         csv_row<> row;
         row.append(name);
         row.append(robots.size());
@@ -277,6 +281,13 @@ int main(int argc, char **argv) {
             row.append(std::get<0>(metrics.value()));
             row.append(std::get<1>(metrics.value()));
             row.append(std::get<2>(metrics.value()));
+        } else {
+            for (auto i = 0; i < 3; ++i) row.append("");
+        }
+        if (individ_metrics) {
+            row.append(std::get<0>(individ_metrics.value()));
+            row.append(std::get<1>(individ_metrics.value()));
+            row.append(std::get<2>(individ_metrics.value()));
         } else {
             for (auto i = 0; i < 3; ++i) row.append("");
         }
@@ -356,12 +367,22 @@ int main(int argc, char **argv) {
             align(*hungarian_merged, *gt_merged);
 
             if (writer) {
+                std::vector<double> individ_mi, individ_nmi, individ_ami;
+                for (auto const& segmentation : segmentations) {
+                    auto const individ_metric = compute_metrics(*gt_merged, *segmentation);
+                    individ_mi.push_back(std::get<0>(individ_metric));
+                    individ_nmi.push_back(std::get<1>(individ_metric));
+                    individ_ami.push_back(std::get<2>(individ_metric));
+                }
+                auto const individ_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
+
                 auto const naive_metrics = compute_metrics(*gt_merged, *naive_merged);
                 auto const clear_metrics = compute_metrics(*gt_merged, *clear_merged);
                 auto const hungarian_metrics = compute_metrics(*gt_merged, *hungarian_merged);
-                writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive, naive_metrics));
-                writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian, hungarian_metrics));
-                writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, scores_clear, clear_metrics));
+                writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive, naive_metrics, individ_metrics));
+                writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian, hungarian_metrics, individ_metrics));
+                writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, scores_clear, clear_metrics, individ_metrics));
+
                 std::cout << "Naive/CLEAR/Hungarian AMIs:" << std::get<2>(naive_metrics) << "," << std::get<2>(clear_metrics) << ","
                           << std::get<2>(hungarian_metrics) << std::endl;
             }
