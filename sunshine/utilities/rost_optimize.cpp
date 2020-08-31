@@ -62,7 +62,7 @@ struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 5);
+  BO_PARAM(size_t, dim_in, 4);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -82,8 +82,8 @@ struct Eval {
       double const alpha = boost::math::quantile(alpha_dist, x(0));
       double const beta = boost::math::quantile(beta_dist, x(1));
       double const gamma = boost::math::quantile(gamma_dist, x(2));
-      double const cell_space = .5 * std::pow(3., x(3));
-      bool const use_clahe = (x(4) >= 0.5);
+//      double const cell_space = .5 * std::pow(3., x(3));
+      bool const use_clahe = (x(3) >= 0.5);
 //      bool const use_texton = (x(5) >= 0.75);
 //      bool const use_orb = (x(6) >= 0.25);
       sunshine::Parameters params{{{"alpha", alpha},
@@ -94,11 +94,11 @@ struct Eval {
                                         {"use_clahe", use_clahe},
                                         {"use_texton", false},
                                         {"use_orb", true},
-                                        {"cell_space", cell_space},
+                                        {"cell_space", 0.8},
                                         {"cell_time", 3600.0},
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
-      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
+      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << 0.8;
       std::cerr << ", CLAHE: " << use_clahe;
       std::cerr << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4>, 25);
