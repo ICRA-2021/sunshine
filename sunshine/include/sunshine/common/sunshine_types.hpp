@@ -18,8 +18,7 @@ struct Phi {
   std::vector<std::vector<int>> counts = {};
   std::vector<int> topic_weights = {};
 
-  explicit Phi()
-        : id("") {}
+  explicit Phi() = default;
 
   explicit Phi(std::string id)
         : id(std::move(id)) {}
@@ -30,6 +29,18 @@ struct Phi {
         , V(V)
         , counts(std::move(counts))
         , topic_weights(std::move(topic_weights)) {
+  }
+
+  void remove_unused() {
+      auto const starting_size = topic_weights.size();
+      for (size_t i = starting_size; i > 0; --i) {
+          auto const idx = i - 1;
+          if (topic_weights[idx] == 0) {
+              topic_weights.erase(topic_weights.begin() + idx);
+              counts.erase(counts.begin() + idx);
+              K -= 1;
+          }
+      }
   }
 
   bool validate(bool verbose = true) {

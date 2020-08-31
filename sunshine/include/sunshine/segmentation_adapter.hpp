@@ -9,12 +9,6 @@
 #include "rost_adapter.hpp"
 namespace sunshine {
 
-template<typename T>
-struct is_vector : public std::false_type { };
-
-template<typename T, typename A>
-struct is_vector<std::vector<T, A>> : public std::true_type { };
-
 template<typename ImplClass, typename Input, typename LabelType, uint32_t PoseDim, typename CellPoseType = int, typename PoseType = int>
 class SegmentationAdapter : public Adapter<ImplClass, Input, Segmentation<LabelType, PoseDim, CellPoseType, PoseType>> {
   protected:

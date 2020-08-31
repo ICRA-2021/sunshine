@@ -6,6 +6,7 @@
   /home/stewart/reef-explore-rows_2020-08-07-13-06-04.bag" />
   <arg name="file_prefix" default="" />
   <arg name="maps_dir" default="" />
+  <arg name="stats_filename" default="$(eval maps_dir + '/stats.csv' if maps_dir != '' else '')" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
@@ -90,6 +91,7 @@
     <param name="use_pc" value="$(arg use_pc)" />
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
+    <param name="output_filename" value="$(arg stats_filename)" />
   </node>
 
 <!--   <node pkg="sunshine" type="visualize3d" name="visualize_0" if="$(arg visualize_3d)"> -->

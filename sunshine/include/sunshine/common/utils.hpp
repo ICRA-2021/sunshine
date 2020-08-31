@@ -13,6 +13,12 @@ namespace sunshine {
 
 template <class...> constexpr std::false_type always_false{};
 
+template<typename T>
+struct is_vector : public std::false_type { };
+
+template<typename T, typename A>
+struct is_vector<std::vector<T, A>> : public std::true_type { };
+
 template<typename ValType>
 struct cvType {
 };

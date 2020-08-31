@@ -146,6 +146,10 @@ class csv_writer {
         (*out) << row.str() << '\n';
     }
 
+    csv_row<delimiter, str_delimiter> new_row() const {
+        return csv_row<delimiter, str_delimiter>();
+    }
+
     void write_row(std::string const &row) {
         std::lock_guard<std::mutex> guard(write_lock);
         (*out) << row << '\n';

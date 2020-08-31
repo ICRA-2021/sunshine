@@ -1,4 +1,5 @@
 #include "sunshine/benchmark.hpp"
+#include "sunshine/common/metric.hpp"
 
 using namespace sunshine;
 

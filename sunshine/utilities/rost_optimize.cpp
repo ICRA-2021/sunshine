@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/math/distributions/lognormal.hpp>
 #include "sunshine/benchmark.hpp"
+#include "sunshine/common/metric.hpp"
 
 #define USE_NLOPT
 

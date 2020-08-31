@@ -163,6 +163,22 @@ struct match_results {
   std::vector<double> ssd = {};
 };
 
+std::vector<std::vector<int>> identity_lifting(std::vector<int> const& Ks) {
+    std::vector<std::vector<int>> lifting;
+    for (int const& K : Ks) {
+        lifting.emplace_back();
+        lifting.back().reserve(K);
+        for (auto j = 0; j < K; ++j) {
+            lifting.back().push_back(j);
+        }
+    }
+    return lifting;
+}
+
+std::vector<std::vector<int>> identity_lifting(size_t const N, int const K) {
+    return identity_lifting(std::vector<int>(N, K));
+}
+
 /**
  * Computes the squared euclidean distance between two vectors, v and w
  * @param v the first vector<float>
@@ -457,11 +473,10 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     auto const &left = topic_models[0].counts;
     auto const &left_weights = topic_models[0].topic_weights;
 
-    results.num_unique = left_weights.size();
-    results.lifting.emplace_back();
-    for (auto i = 0ul; i < left_weights.size(); ++i) {
-        results.lifting[0].push_back(i);
-    }
+    std::vector<int> Ks;
+    for (auto const &tm : topic_models) Ks.push_back(tm.K);
+    results.lifting = identity_lifting(Ks);
+    results.num_unique = *std::max_element(Ks.begin(), Ks.end());
 
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
@@ -471,14 +486,10 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
         Matrix<double> matrix(left_weights.size(), right_weights.size());
 
         std::vector<std::vector<double>> pd_sq = compute_all_pairs<int>(left, right, left_weights, right_weights, normed_dist_sq<int>);
-        std::vector<std::vector<int>> assignment(left_weights.size(), std::vector<int>(right_weights.size(), -1));
-
         results.ssd.push_back(0);
         for (uint64_t row = 0; row < left_weights.size(); row++) {
-            assignment[row][row] = 0;
             results.ssd.back() += pd_sq[row][row];
         }
-        results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
     return results;
 }
