@@ -60,17 +60,19 @@ struct Params {
 
 struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
+  double const cell_space = 0.8;
 
   // number of input dimension (x.size())
   BO_PARAM(size_t, dim_in, 4);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
-  explicit Eval(char **argv)
+  explicit Eval(int argc, char **argv)
         : bagfile(argv[1])
         , image_topic_name(argv[2])
         , depth_topic_name(argv[3])
-        , segmentation_topic_name(argv[4]) {
+        , segmentation_topic_name(argv[4])
+        , cell_space((argc >= 6) ? std::stod(argv[5]) : 0.8) {
   }
 
   // the function to be optimized
@@ -94,11 +96,11 @@ struct Eval {
                                         {"use_clahe", use_clahe},
                                         {"use_texton", false},
                                         {"use_orb", true},
-                                        {"cell_space", 0.8},
+                                        {"cell_space", cell_space},
                                         {"cell_time", 3600.0},
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
-      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << 0.8;
+      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
       std::cerr << ", CLAHE: " << use_clahe;
       std::cerr << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4>, 25);
@@ -109,14 +111,14 @@ struct Eval {
 
 int main(int argc, char **argv) {
     if (argc < 5) {
-        std::cerr << "Usage: ./sunshine_eval bagfile image_topic depth_cloud_topic segmentation_topic" << std::endl;
+        std::cerr << "Usage: ./sunshine_eval bagfile image_topic depth_cloud_topic segmentation_topic [cell_space=0.8]" << std::endl;
         return 1;
     }
 
     // we use the default acquisition function / model / stat / etc.
     bayes_opt::BOptimizer<Params> boptimizer;
     // run the evaluation
-    boptimizer.optimize(Eval(argv));
+    boptimizer.optimize(Eval(argc, argv));
     // the best sample found
     std::cout << "Best sample: " << boptimizer.best_sample()(0) << " - Best observation: " << boptimizer.best_observation()(0) << std::endl;
     return 0;
