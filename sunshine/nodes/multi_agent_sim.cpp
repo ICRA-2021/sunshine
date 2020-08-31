@@ -183,10 +183,10 @@ template<uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
 void align(Segmentation<int, LeftPoseDim, int, double>& segmentation, Segmentation<int, RightPoseDim, int, double> const& reference) {
     auto const cooccurrence_data = compute_cooccurences(reference, segmentation);
     auto const& counts = cooccurrence_data.first;
-    std::vector<std::vector<double>> costs(counts.size(), std::vector<double>(counts[0].size(), 0.0));
+    std::vector<std::vector<double>> costs(counts[0].size(), std::vector<double>(counts.size(), 0.0));
     for (auto i = 0ul; i < counts.size(); ++i) {
         for (auto j = 0ul; j < counts[0].size(); ++j) {
-            costs[i][j] = std::accumulate(counts[i].begin(), counts[i].end(), 0.0) - 2 * counts[i][j];
+            costs[j][i] = std::accumulate(counts[i].begin(), counts[i].end(), 0.0) - 2 * counts[i][j];
         }
     }
     int num_topics = counts.size();
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
 
         uint32_t matched = 0;
         for (auto const size : scores.cluster_sizes) { matched += (size > 1); }
-        std::cout << "Matched: " << (matched - 1) << "/" << (correspondences.num_unique - 1) << std::endl;
+        std::cout << "Matched: " << matched << "/" << correspondences.num_unique << std::endl;
         std::cout << "Refine time: "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count() << std::endl;
         start = std::chrono::steady_clock::now();
