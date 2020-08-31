@@ -24,7 +24,8 @@ class RobotSim {
     std::string const name;
     BagIterator bagIter;
     VisualWordAdapter visualWordAdapter;
-    ROSTAdapter<4, double, double> rostAdapter;
+    std::shared_ptr<ROSTAdapter<4, double, double>> rostAdapter;
+    std::shared_ptr<ROSTAdapter<4, double, double>> externalRostAdapter;
     std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
@@ -38,14 +39,20 @@ class RobotSim {
     bool imageCallback(sensor_msgs::Image::ConstPtr image) {
         lastRgb = std::make_unique<ImageObservation>(fromRosMsg(image));
         if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
-            lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
+            auto observation = lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter;
+            if (externalRostAdapter) {
+                observation >> *rostAdapter;
+                observation >> *externalRostAdapter;
+            } else {
+                (*rostAdapter)(std::move(observation));
+            }
             return true;
         }
         return false;
     }
 
     bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
-        lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(std::move(image)));
+        lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(image));
         if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
             segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
             return true;
@@ -64,7 +71,13 @@ class RobotSim {
         depth_timestamp = msg->header.stamp.toSec();
         bool handled = false;
         if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
-            lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
+            auto observation = lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter;
+            if (externalRostAdapter) {
+                observation >> *rostAdapter;
+                observation >> *externalRostAdapter;
+            } else {
+                (*rostAdapter)(std::move(observation));
+            }
             handled = true;
         }
         if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
@@ -93,13 +106,15 @@ class RobotSim {
              std::string const &image_topic,
              std::string const &depth_topic,
              std::string const &segmentation_topic,
-             std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_adapter = nullptr)
+             std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
+             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr)
             : name(std::move(name)),
               bagIter(bagfile),
               visualWordAdapter(&parameters),
-              rostAdapter(&parameters),
-              segmentationAdapter((shared_adapter)
-                                  ? shared_adapter
+              rostAdapter(std::make_shared<ROSTAdapter<4, double, double>>(&parameters)),
+              externalRostAdapter(std::move(external_rost_adapter)),
+              segmentationAdapter((shared_seg_adapter)
+                                  ? std::move(shared_seg_adapter)
                                   : std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&parameters,
                                                                                                                             true)),
               wordTransformAdapter(&parameters),
@@ -112,21 +127,25 @@ class RobotSim {
     }
 
     Phi getTopicModel(bool wait_for_refine = false) const {
-        if (wait_for_refine) rostAdapter.wait_for_processing(false);
-        auto token = rostAdapter.get_rost().get_read_token();
-        return rostAdapter.get_topic_model(*token);
+        if (wait_for_refine) rostAdapter->wait_for_processing(false);
+        auto token = rostAdapter->get_rost().get_read_token();
+        return rostAdapter->get_topic_model(*token);
+    }
+
+    auto getRost() {
+        return rostAdapter;
     }
 
     auto getMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter.wait_for_processing(false);
-        auto token = rostAdapter.get_rost().get_read_token();
-        return rostAdapter.get_map(*token);
+        if (wait_for_refine) rostAdapter->wait_for_processing(false);
+        auto token = rostAdapter->get_rost().get_read_token();
+        return rostAdapter->get_map(*token);
     }
 
     auto getDistMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter.wait_for_processing(false);
-        auto token = rostAdapter.get_rost().get_read_token();
-        return rostAdapter.get_dist_map(*token);
+        if (wait_for_refine) rostAdapter->wait_for_processing(false);
+        auto token = rostAdapter->get_rost().get_read_token();
+        return rostAdapter->get_dist_map(*token);
     }
 
     auto getGTMap() const {
@@ -209,6 +228,23 @@ void align(Segmentation<int, LeftPoseDim, int, double> &segmentation, Segmentati
     }
 }
 
+template<uint32_t gt_pose_dim = 3>
+auto compute_metrics(sunshine::Segmentation<int, gt_pose_dim, int, double> const &gt_seg,
+                     sunshine::Segmentation<int, 4, int, double> const &topic_seg) {
+    auto const contingency_table = compute_matches<4, gt_pose_dim>(gt_seg, topic_seg);
+    auto const &matches = std::get<0>(contingency_table);
+    auto const &gt_weights = std::get<1>(contingency_table);
+    auto const &topic_weights = std::get<2>(contingency_table);
+    double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
+
+    double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
+    double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
+    double const nmi = compute_nmi(contingency_table, mi, ex, ey);
+    double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight);
+    double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
+    return std::make_tuple(mi, nmi, ami);
+};
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "multi_agent_sim");
     if (argc < 5) {
@@ -223,6 +259,7 @@ int main(int argc, char **argv) {
     auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
 
     std::vector<std::unique_ptr<RobotSim>> robots;
+    RobotSim aggregateRobot("Aggregate", "", nh, "", "", "", segmentationAdapter);
     //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
         robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4),
@@ -231,7 +268,8 @@ int main(int argc, char **argv) {
                                                        image_topic_name,
                                                        depth_topic_name,
                                                        segmentation_topic_name,
-                                                       segmentationAdapter));
+                                                       segmentationAdapter,
+                                                       aggregateRobot.getRost()));
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
     ros::Publisher naive_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
@@ -248,67 +286,63 @@ int main(int argc, char **argv) {
         header.append("Number of Observations");
         header.append("Unique Topics");
         header.append("SSD");
+        header.append("Single Robot MI");
+        header.append("Single Robot NMI");
+        header.append("Single Robot AMI");
         header.append("Cluster Size");
         header.append("Matched Mean-Square Cluster Distance");
         header.append("Matched Silhouette Index");
         header.append("Matched Davies-Bouldin Index");
-        header.append("Mutual Information");
-        header.append("Normalized Mutual Information");
-        header.append("Adjusted Mutual Information");
-        header.append("Individual MIs");
-        header.append("Individual NMIs");
-        header.append("Individual AMIs");
+        header.append("GT MI");
+        header.append("GT NMI");
+        header.append("GT AMI");
+        header.append("Individual GT MIs");
+        header.append("Individual GT NMIs");
+        header.append("Individual GT AMIs");
+        header.append("Single Robot GT MI");
+        header.append("Single Robot GT NMI");
+        header.append("Single Robot GT AMI");
         writer->write_header(header);
     }
 
-    auto const populate_row = [&robots](std::string const &name,
-                                        size_t const &n_observations,
-                                        match_results const &correspondences,
-                                        match_scores const &scores,
-                                        std::optional<std::tuple<double, double, double>> metrics = {},
-                                        std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_metrics = {}) {
+    auto const populate_row = [&robots, &aggregateRobot](std::string const &name,
+                                                         size_t const &n_observations,
+                                                         match_results const &correspondences,
+                                                         std::tuple<double, double, double> metrics,
+                                                         match_scores const &scores,
+                                                         std::optional<std::tuple<double, double, double>> gt_metrics = {},
+                                                         std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_gt_metrics = {},
+                                                         std::optional<std::tuple<double, double, double>> single_gt_metrics = {}) {
         csv_row<> row;
         row.append(name);
         row.append(robots.size());
         row.append(n_observations);
         row.append(correspondences.num_unique);
         row.append(correspondences.ssd);
+        row.append(std::get<0>(metrics));
+        row.append(std::get<1>(metrics));
+        row.append(std::get<2>(metrics));
         row.append(scores.cluster_sizes);
         row.append(scores.mscd);
         row.append(scores.silhouette);
         row.append(scores.davies_bouldin);
-        if (metrics) {
-            row.append(std::get<0>(metrics.value()));
-            row.append(std::get<1>(metrics.value()));
-            row.append(std::get<2>(metrics.value()));
+        if (gt_metrics) {
+            row.append(std::get<0>(gt_metrics.value()));
+            row.append(std::get<1>(gt_metrics.value()));
+            row.append(std::get<2>(gt_metrics.value()));
+            row.append(std::get<0>(individ_gt_metrics.value()));
+            row.append(std::get<1>(individ_gt_metrics.value()));
+            row.append(std::get<2>(individ_gt_metrics.value()));
+            row.append(std::get<0>(single_gt_metrics.value()));
+            row.append(std::get<1>(single_gt_metrics.value()));
+            row.append(std::get<2>(single_gt_metrics.value()));
         } else {
-            for (auto i = 0; i < 3; ++i) row.append("");
-        }
-        if (individ_metrics) {
-            row.append(std::get<0>(individ_metrics.value()));
-            row.append(std::get<1>(individ_metrics.value()));
-            row.append(std::get<2>(individ_metrics.value()));
-        } else {
-            for (auto i = 0; i < 3; ++i) row.append("");
+            for (auto i = 0; i < 9; ++i) row.append("");
         }
         return row;
     };
 
-    auto const compute_metrics = [](sunshine::Segmentation<int, 3, int, double> const &gt_seg,
-                                    sunshine::Segmentation<int, 4, int, double> const &topic_seg) {
-        auto const contingency_table = compute_matches<4>(gt_seg, topic_seg);
-        auto const &matches = std::get<0>(contingency_table);
-        auto const &gt_weights = std::get<1>(contingency_table);
-        auto const &topic_weights = std::get<2>(contingency_table);
-        double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
 
-        double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
-        double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
-        double const nmi = compute_nmi(contingency_table, mi, ex, ey);
-        double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight);
-        double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
-        return std::make_tuple(mi, nmi, ami);
-    };
 
     auto const fetch_new_topic_models = [&robots](bool remove_unused = true) {
         std::vector<Phi> topic_models;
@@ -355,10 +389,15 @@ int main(int argc, char **argv) {
             //            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
+        auto const singleRobotSegmentation = aggregateRobot.getMap();
 
         auto naive_merged = merge(segmentations);
         auto clear_merged = merge(segmentations, correspondences_clear.lifting);
         auto hungarian_merged = merge(segmentations, correspondences_hungarian.lifting);
+
+        auto const naive_metrics = compute_metrics(*singleRobotSegmentation, *naive_merged);
+        auto const clear_metrics = compute_metrics(*singleRobotSegmentation, *clear_merged);
+        auto const hungarian_metrics = compute_metrics(*singleRobotSegmentation, *hungarian_merged);
 
         if (!segmentation_topic_name.empty()) {
             auto const gt_merged = merge<3>(gt_segmentations);
@@ -374,23 +413,24 @@ int main(int argc, char **argv) {
                     individ_nmi.push_back(std::get<1>(individ_metric));
                     individ_ami.push_back(std::get<2>(individ_metric));
                 }
-                auto const individ_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
+                auto const individ_gt_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
 
-                auto const naive_metrics = compute_metrics(*gt_merged, *naive_merged);
-                auto const clear_metrics = compute_metrics(*gt_merged, *clear_merged);
-                auto const hungarian_metrics = compute_metrics(*gt_merged, *hungarian_merged);
-                writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive, naive_metrics, individ_metrics));
-                writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian, hungarian_metrics, individ_metrics));
-                writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, scores_clear, clear_metrics, individ_metrics));
+                auto const naive_gt_metrics = compute_metrics(*gt_merged, *naive_merged);
+                auto const clear_gt_metrics = compute_metrics(*gt_merged, *clear_merged);
+                auto const hungarian_gt_metrics = compute_metrics(*gt_merged, *hungarian_merged);
+                auto const single_gt_metrics = compute_metrics(*gt_merged, *singleRobotSegmentation);
+                writer->write_row(populate_row("Naive", n_obs, correspondences_naive, naive_metrics, scores_naive, naive_gt_metrics, individ_gt_metrics, single_gt_metrics));
+                writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, hungarian_metrics, scores_hungarian, hungarian_gt_metrics, individ_gt_metrics, single_gt_metrics));
+                writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, clear_metrics, scores_clear, clear_gt_metrics, individ_gt_metrics, single_gt_metrics));
 
-                std::cout << "Naive/CLEAR/Hungarian AMIs:" << std::get<2>(naive_metrics) << "," << std::get<2>(clear_metrics) << ","
-                          << std::get<2>(hungarian_metrics) << std::endl;
+                std::cout << "Naive/CLEAR/Hungarian AMIs:" << std::get<2>(naive_gt_metrics) << "," << std::get<2>(clear_gt_metrics) << ","
+                          << std::get<2>(hungarian_gt_metrics) << std::endl;
             }
             gt_map_pub.publish(toRosMsg(*gt_merged));
         } else if (writer) {
-            writer->write_row(populate_row("Naive", n_obs, correspondences_naive, scores_naive));
-            writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, scores_hungarian));
-            writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, scores_clear));
+            writer->write_row(populate_row("Naive", n_obs, correspondences_naive, naive_metrics, scores_naive));
+            writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, hungarian_metrics, scores_hungarian));
+            writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, clear_metrics, scores_clear));
         }
         if (writer) writer->flush();
 

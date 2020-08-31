@@ -33,8 +33,19 @@ double entropy(Container const &container, double weight = 1.0) {
     return -sum;
 }
 
-template<uint32_t pose_dimen = 4>
-SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
+template<typename SegmentationType>
+auto get_num_topics(SegmentationType const &seg) {
+    if constexpr (is_vector<typename decltype(seg.observations)::value_type>::value) {
+        return seg.observations[0].size();
+    } else if constexpr (std::is_integral_v<typename decltype(seg.observations)::value_type>) {
+        return *std::max_element(seg.observations.begin(), seg.observations.end()) + 1;
+    } else {
+        static_assert(always_false < SegmentationType > );
+    }
+}
+
+template<uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
+SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_pose_dimen, int, double> const &gt_seg,
                                   sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     std::vector<uint32_t> gt_weights(gt_seg.observations[0].size(), 0), topic_weights(topic_seg.observations[0].size(), 0);
@@ -42,7 +53,10 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, 3, in
     double total_weight = 0;
     for (auto i = 0; i < gt_seg.observations.size(); ++i) {
         auto const label = argmax<>(gt_seg.observations[i]);
-        gt_labels.insert({gt_seg.observation_poses[i], label});
+        constexpr size_t offset = (gt_pose_dimen == 4) ? 1 : 0;
+        std::array<int, 3> const pose{gt_seg.observation_poses[i][offset], gt_seg.observation_poses[i][1 + offset],
+                                      gt_seg.observation_poses[i][2 + offset]};
+        gt_labels.insert({pose, label});
     }
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
@@ -66,19 +80,8 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, 3, in
     return {matches, gt_weights, topic_weights, total_weight};
 }
 
-template<typename SegmentationType>
-auto get_num_topics(SegmentationType const &seg) {
-    if constexpr (is_vector<typename decltype(seg.observations)::value_type>::value) {
-        return seg.observations[0].size();
-    } else if constexpr (std::is_integral_v<typename decltype(seg.observations)::value_type>) {
-        return *std::max_element(seg.observations.begin(), seg.observations.end()) + 1;
-    } else {
-        static_assert(always_false < SegmentationType > );
-    }
-}
-
-template<uint32_t pose_dimen = 4>
-SegmentationMatch compute_matches(sunshine::Segmentation<int, 3, int, double> const &gt_seg,
+template<uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
+SegmentationMatch compute_matches(sunshine::Segmentation<int, gt_pose_dimen, int, double> const &gt_seg,
                                   sunshine::Segmentation<int, pose_dimen, int, double> const &topic_seg) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     auto const gt_num_topics = get_num_topics(gt_seg);
@@ -88,7 +91,10 @@ SegmentationMatch compute_matches(sunshine::Segmentation<int, 3, int, double> co
     double total_weight = 0;
     for (auto i = 0; i < gt_seg.observations.size(); ++i) {
         auto const label = gt_seg.observations[i];
-        gt_labels.insert({gt_seg.observation_poses[i], label});
+        constexpr size_t offset = (gt_pose_dimen == 4) ? 1 : 0;
+        std::array<int, 3> const pose{gt_seg.observation_poses[i][offset], gt_seg.observation_poses[i][1 + offset],
+                                      gt_seg.observation_poses[i][2 + offset]};
+        gt_labels.insert({pose, label});
     }
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);

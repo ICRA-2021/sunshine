@@ -21,10 +21,17 @@ class BagIterator
     std::unordered_multimap<std::string, std::function<bool(rosbag::MessageInstance const &)>> callbacks;
     bool logging = false;
 
+    void open(std::string const& filename) {
+        if (bag.isOpen()) bag.close();
+        if (!filename.empty()) {
+            bag.open(filename, rosbag::bagmode::Read);
+            if (!bag.isOpen()) throw std::invalid_argument("Failed to read bagfile " + filename);
+        }
+    }
+
   public:
     explicit BagIterator(const std::string &filename) {
-        bag.open(filename, rosbag::bagmode::Read);
-        if (!bag.isOpen()) throw std::invalid_argument("Failed to read bagfile " + filename);
+        open(filename);
     }
 
     void set_logging(bool enable = true) {
@@ -78,7 +85,7 @@ class BagIterator
     }
 
     ~BagIterator() {
-        bag.close();
+        if (bag.isOpen()) bag.close();
     }
 };
 
