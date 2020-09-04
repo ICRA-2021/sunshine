@@ -1,0 +1,3375 @@
+Alpha: 0.00920195, Beta: 0.0354593, Gamma: 0.315826, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598903314.910976514]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.245374
+Alpha: 2.00162, Beta: 0.0131012, Gamma: 0.000225245, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598903691.507857363]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.223108
+Alpha: 0.0250657, Beta: 0.113651, Gamma: 0.00365695, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598904065.017109454]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.255135
+Alpha: 1.33674, Beta: 0.154935, Gamma: 0.000677544, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598904454.042215533]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.249062
+Alpha: 1.8707, Beta: 0.336845, Gamma: 8.57047e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598904830.302211903]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.248748
+Alpha: 0.0181009, Beta: 0.292729, Gamma: 0.000333432, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598905195.844460698]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.259852
+Alpha: 0.629748, Beta: 0.0244479, Gamma: 1.71686e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598905561.498396707]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.242305
+Alpha: 0.211364, Beta: 0.102899, Gamma: 0.000144565, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598905939.932627076]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.237538
+Alpha: 0.886786, Beta: 0.000596428, Gamma: 0.00011797, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598906306.276126121]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.206219
+Alpha: 0.000404116, Beta: 8.41921, Gamma: 0.000801213, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598906677.004167527]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.36222
+Alpha: 13.14, Beta: 0.473306, Gamma: 3.67309e-08, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598907039.238386538]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.385741
+Alpha: 0.00148889, Beta: 0.337278, Gamma: 0.000132979, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598907422.007534613]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.274054
+Alpha: 0.438214, Beta: 0.00641182, Gamma: 5.95709e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598907800.254685333]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.258296
+Alpha: 0.267131, Beta: 0.0432323, Gamma: 0.0140042, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598908182.654146023]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.231483
+Alpha: 0.213719, Beta: 0.34543, Gamma: 0.0281005, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598908551.953104890]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.267706
+Alpha: 0.1235, Beta: 0.534658, Gamma: 4.56888e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598908926.986722699]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.284245
+Alpha: 0.561345, Beta: 1.65835, Gamma: 1.15505e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598909292.208757461]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.367613
+Alpha: 0.833998, Beta: 0.149145, Gamma: 0.0276566, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598909662.065298490]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.242793
+Alpha: 0.102847, Beta: 0.213523, Gamma: 1.31334e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598910040.366190924]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.417535
+Alpha: 0.000590293, Beta: 0.053781, Gamma: 0.00759117, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598910410.759038645]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.252067
+Alpha: 0.0996637, Beta: 0.0880299, Gamma: 0.00164522, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598910795.625712506]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.244008
+Alpha: 0.492755, Beta: 0.414942, Gamma: 0.026997, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598911165.721724983]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.268877
+Alpha: 0.0122245, Beta: 0.0520538, Gamma: 0.587209, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598911544.013181016]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.247412
+Alpha: 0.150492, Beta: 0.112751, Gamma: 0.00315115, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598911927.081224035]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.252717
+Alpha: 0.0125012, Beta: 0.261181, Gamma: 0.000656434, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598912302.179901636]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.267605
+Alpha: 1.53478, Beta: 0.502708, Gamma: 0.00158098, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598912683.384007119]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.25867
+Alpha: 0.221042, Beta: 0.0417791, Gamma: 0.00357223, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598913050.617663286]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.237125
+Alpha: 0.00858642, Beta: 0.0508874, Gamma: 0.000435267, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598913423.586042048]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.241987
+Alpha: 0.496617, Beta: 0.00082016, Gamma: 0.000175152, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598913787.663740349]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.2237
+Alpha: 0.00072708, Beta: 0.0737035, Gamma: 0.000735772, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598914164.069658109]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.255387
+Alpha: 0.080788, Beta: 0.00923252, Gamma: 2.45993e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598914543.484655119]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.242917
+Alpha: 0.0113879, Beta: 0.0181234, Gamma: 0.00180652, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598914921.817446361]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.245972
+Alpha: 0.0472653, Beta: 0.298167, Gamma: 0.00632857, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598915299.998161770]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.257646
+Alpha: 5.40629, Beta: 0.00437637, Gamma: 0.000159103, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598915665.319332015]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.205256
+Alpha: 0.093274, Beta: 0.000931076, Gamma: 0.00010954, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598916038.140033253]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.228777
+Alpha: 0.0440344, Beta: 0.588297, Gamma: 0.00026965, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598916405.071485676]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.279121
+Alpha: 0.00743898, Beta: 0.0358463, Gamma: 0.000457877, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598916769.194206899]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.247238
+Alpha: 0.000137308, Beta: 0.207803, Gamma: 0.0017014, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598917148.783925158]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.264661
+Alpha: 0.450418, Beta: 0.0112916, Gamma: 0.556671, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598917527.287140790]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.238689
+Alpha: 3.47592, Beta: 0.27126, Gamma: 0.000146169, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598917908.798710447]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.238074
+Alpha: 0.0948727, Beta: 0.156424, Gamma: 4.08772e-08, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598918283.886609138]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.385343
+Alpha: 0.195708, Beta: 0.038118, Gamma: 0.00813574, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598918665.128108389]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.238029
+Alpha: 0.0126947, Beta: 0.116776, Gamma: 0.00431337, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598919043.382187192]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.255059
+Alpha: 0.011391, Beta: 0.00179958, Gamma: 0.139156, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598919424.094351353]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.230486
+Alpha: 6.80023, Beta: 0.000489542, Gamma: 0.0121935, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598919792.709657839]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.203873
+Alpha: 0.0148051, Beta: 0.0251229, Gamma: 1.34569e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598920162.155900408]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.373603
+Alpha: 0.649598, Beta: 0.748629, Gamma: 8.68802e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598920544.954287054]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.323108
+Alpha: 0.0421559, Beta: 0.592746, Gamma: 4.60286e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598920921.756186385]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.311656
+Alpha: 0.000594526, Beta: 0.11062, Gamma: 5.64399e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598921301.336206142]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.354187
+Alpha: 0.0454859, Beta: 0.0916886, Gamma: 2.94313e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598921683.049249638]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.256077
+Alpha: 0.00437221, Beta: 0.00494981, Gamma: 0.0505067, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598922046.482833536]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23759
+Alpha: 1.41979, Beta: 1.73913, Gamma: 0.0650066, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598922422.785160570]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.364522
+Alpha: 13.3577, Beta: 0.0102165, Gamma: 3.33234e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598922796.676271235]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.206955
+Alpha: 3.04977, Beta: 0.545171, Gamma: 1.50428e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598923170.024455012]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.279976
+Alpha: 0.39619, Beta: 1.23135, Gamma: 0.00689942, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598923533.167889205]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.311778
+Alpha: 0.704916, Beta: 0.00358902, Gamma: 1.69502e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598923898.049720037]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.264671
+Alpha: 0.00984635, Beta: 1.26749, Gamma: 0.00162756, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598924265.355686913]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.35222
+Alpha: 0.0567286, Beta: 0.007967, Gamma: 0.000606643, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598924639.393012318]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23934
+Alpha: 1.74358, Beta: 0.0764915, Gamma: 3.00015e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598925021.184224481]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.240763
+Alpha: 0.842214, Beta: 0.0113024, Gamma: 0.0485326, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598925398.402544722]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.230908
+Alpha: 2.74494, Beta: 0.160416, Gamma: 2.22563e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598925765.057901248]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.289997
+Alpha: 0.657796, Beta: 0.021569, Gamma: 1.1495, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598926141.042434329]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.234834
+Alpha: 0.462642, Beta: 0.082622, Gamma: 2.31311e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598926522.473615144]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.248598
+Alpha: 0.112477, Beta: 0.00490639, Gamma: 0.151289, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598926897.677091581]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.233346
+Alpha: 0.658352, Beta: 0.0046677, Gamma: 0.0025648, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598927263.440341062]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.224181
+Alpha: 0.00909154, Beta: 0.0698177, Gamma: 4.08078e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598927632.116733845]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.396504
+Alpha: 0.0191866, Beta: 0.194473, Gamma: 0.00108976, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598928025.628569105]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.248647
+Alpha: 0.00481034, Beta: 0.866652, Gamma: 7.39368e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598928389.160356975]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.306097
+Alpha: 0.00301534, Beta: 0.378642, Gamma: 11.9696, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598928753.359799117]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.270063
+Alpha: 0.26847, Beta: 0.139507, Gamma: 0.0015027, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598929122.268612139]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.253683
+Alpha: 0.0503197, Beta: 0.00818302, Gamma: 0.0201331, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598929497.575910123]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23415
+Alpha: 0.0496307, Beta: 0.01936, Gamma: 0.00219947, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598929862.293603317]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.242921
+Alpha: 0.171578, Beta: 0.0807112, Gamma: 0.116677, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598930238.272956002]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239351
+Alpha: 0.153635, Beta: 0.0212973, Gamma: 0.0022168, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598930600.425623583]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23325
+Alpha: 0.0125051, Beta: 0.0208483, Gamma: 7.67602e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598930964.668931023]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.276725
+Alpha: 0.0766623, Beta: 0.0240396, Gamma: 3.20365e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598931335.074941268]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.333634
+Alpha: 0.0303173, Beta: 15.0447, Gamma: 0.00720246, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598931718.581431823]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.323325
+Alpha: 19.6486, Beta: 0.992154, Gamma: 0.0133221, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598932096.070118299]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.229895
+Alpha: 0.00414002, Beta: 0.0967385, Gamma: 1.77824e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598932459.048478843]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.428114
+Alpha: 11.0022, Beta: 0.00858066, Gamma: 0.0605357, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598932827.020882522]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.210981
+Alpha: 0.1976, Beta: 0.0272976, Gamma: 0.200404, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598933209.809653407]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239063
+Alpha: 0.644979, Beta: 0.195894, Gamma: 1.80956e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598933592.014236197]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.333324
+Alpha: 0.226979, Beta: 0.00407497, Gamma: 3.53929e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598933958.695161987]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.268339
+Alpha: 0.377483, Beta: 0.0811582, Gamma: 0.00702023, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598934320.898993670]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.248104
+Alpha: 0.00142064, Beta: 0.0136454, Gamma: 0.011321, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598934698.599655400]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.244047
+Alpha: 0.541696, Beta: 1.87123, Gamma: 0.000913868, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598935083.132860008]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.376282
+Alpha: 0.0289253, Beta: 0.01133, Gamma: 0.0140923, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598935448.218158954]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.235012
+Alpha: 0.59301, Beta: 0.239715, Gamma: 0.000208772, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598935816.894345063]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.257991
+Alpha: 0.728704, Beta: 0.129613, Gamma: 0.00205219, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598936197.713305072]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.249514
+Alpha: 0.052603, Beta: 0.0172104, Gamma: 1.39611e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598936584.671756799]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.275366
+Alpha: 0.0629403, Beta: 0.0495266, Gamma: 5.21421e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598936958.783414304]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.345194
+Alpha: 0.288269, Beta: 0.246871, Gamma: 4.23287e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598937334.080363080]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.260228
+Alpha: 13.5705, Beta: 0.353815, Gamma: 5.99819e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598937707.916910503]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.222062
+Alpha: 0.0333322, Beta: 0.0169968, Gamma: 0.0263388, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598938084.085071919]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.232775
+Alpha: 0.00347814, Beta: 0.00114727, Gamma: 0.0040193, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598938452.137899506]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.234407
+Alpha: 0.0140244, Beta: 0.0126828, Gamma: 2.57692e-08, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598938821.294056061]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.403248
+Alpha: 0.00461404, Beta: 0.136425, Gamma: 3.40844e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598939197.978323142]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.407561
+Alpha: 17.8242, Beta: 0.273708, Gamma: 0.00713472, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598939578.698487909]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.208266
+Alpha: 0.113022, Beta: 0.056288, Gamma: 0.000180953, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598939944.169980597]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.240591
+Alpha: 0.2755, Beta: 0.0131256, Gamma: 0.326516, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598940310.242325803]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23542
+Alpha: 0.135528, Beta: 0.880327, Gamma: 2.28245e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598940675.764391162]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.307084
+Alpha: 0.0114809, Beta: 0.0149157, Gamma: 3.19592e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598941039.130852587]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.26062
+Alpha: 0.0509862, Beta: 0.274925, Gamma: 0.000327605, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598941408.433580813]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.264477
+Alpha: 0.371639, Beta: 0.127033, Gamma: 3.43615e-07, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598941788.296470058]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.420707
+Alpha: 0.0417206, Beta: 0.00496077, Gamma: 6.99014e-08, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598942158.038524769]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.402494
+Alpha: 0.160714, Beta: 0.0173902, Gamma: 6.73569e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598942530.123959981]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.232947
+Alpha: 0.00679838, Beta: 0.0122965, Gamma: 0.000128302, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598942907.900937364]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.24072
+Alpha: 0.516639, Beta: 0.00148781, Gamma: 0.00067667, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598943283.459466914]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.208784
+Alpha: 3.36647, Beta: 0.0265634, Gamma: 5.05808e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598943653.655015861]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.211725
+Alpha: 0.573993, Beta: 0.506076, Gamma: 9.82399e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598944037.355028926]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.275546
+Alpha: 0.268597, Beta: 8.61498, Gamma: 6.1461e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598944410.300454820]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.353474
+Alpha: 0.443366, Beta: 1.02604, Gamma: 0.000686459, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598944775.185316338]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.340037
+Alpha: 0.104215, Beta: 0.00903426, Gamma: 1.1178, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598945152.395387020]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.235725
+Alpha: 0.000490237, Beta: 0.0237912, Gamma: 5.18276e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598945518.369899743]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.343317
+Alpha: 0.171537, Beta: 0.859468, Gamma: 0.0816675, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598945885.118545923]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.340971
+Alpha: 0.479918, Beta: 0.168423, Gamma: 0.0614937, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598946260.446765594]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.249865
+Alpha: 0.0826662, Beta: 0.182839, Gamma: 0.000254182, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598946624.443819114]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.248859
+Alpha: 0.00373213, Beta: 0.165198, Gamma: 1.37284e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598946990.346668378]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.264553
+Alpha: 0.00361951, Beta: 0.0160179, Gamma: 6.27995e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598947357.044380543]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.339784
+Alpha: 0.0171861, Beta: 0.0224263, Gamma: 9.73503e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598947739.098922227]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239532
+Alpha: 0.214791, Beta: 0.0575937, Gamma: 0.00145562, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598948103.476772086]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.240293
+Alpha: 0.220833, Beta: 0.0580581, Gamma: 0.545371, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598948470.420612137]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.246333
+Alpha: 0.0585797, Beta: 0.0126507, Gamma: 0.000523297, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598948847.334673586]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.234332
+Alpha: 1.0934, Beta: 0.552363, Gamma: 0.0699046, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598949212.374096103]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.270363
+Alpha: 0.936247, Beta: 0.92474, Gamma: 2.52938e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598949574.036054071]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.282239
+Alpha: 0.52261, Beta: 3.06888, Gamma: 1.59184, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598949938.036895739]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.42295
+Alpha: 0.00493993, Beta: 0.106368, Gamma: 2.66875e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598950307.716152584]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.42153
+Alpha: 0.155877, Beta: 0.0230338, Gamma: 2.37706e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598950683.064275471]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.250292
+Alpha: 0.066619, Beta: 6.44339, Gamma: 0.0380848, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598951054.471434736]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.373629
+Alpha: 1.32123, Beta: 2.53288, Gamma: 1.74533, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598951435.327494702]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.417803
+Alpha: 0.200365, Beta: 0.00267013, Gamma: 0.000507093, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598951816.010930441]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.22426
+Alpha: 1.69753, Beta: 0.0147126, Gamma: 5.78208e-07, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598952186.961269537]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.268444
+Alpha: 0.210935, Beta: 0.010486, Gamma: 6.98965e-07, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598952567.691973060]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.397674
+Alpha: 23.602, Beta: 0.0111622, Gamma: 4.09518e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598952938.480736671]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.203734
+Alpha: 0.203701, Beta: 0.14277, Gamma: 0.00203389, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598953308.451397122]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.254927
+Alpha: 0.00156545, Beta: 0.223741, Gamma: 0.00031937, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598953685.818930964]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.251123
+Alpha: 0.00617008, Beta: 0.0493462, Gamma: 0.00714563, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598954057.096419993]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.25109
+Alpha: 2.721, Beta: 0.176241, Gamma: 8.31693e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598954437.093963789]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.229085
+Alpha: 0.000723023, Beta: 0.510329, Gamma: 0.00173867, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598954815.235839400]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.301351
+Alpha: 0.229108, Beta: 0.0509654, Gamma: 1.49269e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598955192.112526413]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.254065
+Alpha: 0.0109306, Beta: 0.0954397, Gamma: 0.000100272, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598955568.042239638]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.25044
+Alpha: 0.0308719, Beta: 0.820479, Gamma: 0.00988607, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598955937.611909291]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.287653
+Alpha: 0.123757, Beta: 0.0105247, Gamma: 0.000222687, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598956302.999530640]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.234829
+Alpha: 1.14468, Beta: 0.027207, Gamma: 0.000403806, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598956671.682900574]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.230679
+Alpha: 1.23668, Beta: 0.00109569, Gamma: 0.000290932, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598957060.373408143]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.207069
+Alpha: 0.0164834, Beta: 0.242939, Gamma: 0.000327665, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598957432.377757818]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.262121
+Alpha: 0.0174046, Beta: 1.20537, Gamma: 0.0014559, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598957811.255471331]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.328773
+Alpha: 0.219476, Beta: 0.0500414, Gamma: 0.00312142, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598958177.517926579]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23919
+Alpha: 0.00602702, Beta: 0.0279833, Gamma: 8.99193e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598958542.956593621]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.318176
+Alpha: 0.00289965, Beta: 0.503453, Gamma: 0.00227241, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598958923.040240372]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.284939
+Alpha: 13.8415, Beta: 0.00587965, Gamma: 0.00015758, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598959289.502244387]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.208028
+Alpha: 0.0036272, Beta: 0.0186006, Gamma: 0.0025705, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598959657.448167885]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.232376
+Alpha: 0.035629, Beta: 0.0645363, Gamma: 0.226385, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598960033.091130892]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.237924
+Alpha: 0.109964, Beta: 0.0138515, Gamma: 0.00163834, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598960396.638129545]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.238748
+Alpha: 0.0155902, Beta: 3.65143, Gamma: 1.24002e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598960780.034223495]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.4294
+Alpha: 0.551293, Beta: 0.286931, Gamma: 7.73604e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598961145.423925265]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.265237
+Alpha: 1.78332, Beta: 0.0140452, Gamma: 0.000196702, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598961523.569717776]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.221202
+Alpha: 0.0249342, Beta: 2.04147, Gamma: 0.00118261, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598961901.614987216]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.398553
+Alpha: 0.00255893, Beta: 0.0206792, Gamma: 1.49911e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598962275.698918387]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.265974
+Alpha: 0.0833215, Beta: 0.00946209, Gamma: 0.00087565, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598962655.439176733]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239909
+Alpha: 1.3517, Beta: 0.0242251, Gamma: 0.133528, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598963030.577472241]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.222951
+Alpha: 0.134916, Beta: 0.0492173, Gamma: 1.07081e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598963411.034839109]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.269071
+Alpha: 0.971522, Beta: 0.540576, Gamma: 7.46308e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598963779.876824196]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.272024
+Alpha: 0.0450876, Beta: 0.0167653, Gamma: 0.00136697, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598964151.622524220]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.233063
+Alpha: 0.0493386, Beta: 0.0402356, Gamma: 0.0153505, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598964522.316947672]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239155
+Alpha: 0.119383, Beta: 0.00350359, Gamma: 0.049108, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598964890.470750379]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.233362
+Alpha: 0.0914632, Beta: 0.0197397, Gamma: 0.00289415, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598965260.015819467]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.240043
+Alpha: 0.10837, Beta: 0.394361, Gamma: 0.00113627, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598965635.024307957]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.274213
+Alpha: 0.72063, Beta: 0.0307398, Gamma: 0.0187571, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598966013.483721569]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.23435
+Alpha: 1.43529, Beta: 0.00951235, Gamma: 0.00145901, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598966390.691195708]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.226771
+Alpha: 0.497734, Beta: 0.505902, Gamma: 4.40613e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598966773.321055995]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.279694
+Alpha: 0.006067, Beta: 0.446133, Gamma: 0.00160775, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598967154.349590699]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.290912
+Alpha: 0.0543536, Beta: 0.0459477, Gamma: 0.00027056, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598967532.184021004]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.250811
+Alpha: 0.793539, Beta: 0.0450959, Gamma: 0.000329327, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598967912.349418758]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.237646
+Alpha: 0.234295, Beta: 0.225569, Gamma: 0.000945244, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598968290.979044110]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.260973
+Alpha: 0.122657, Beta: 0.325523, Gamma: 6.87126e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598968665.625932418]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.267727
+Alpha: 16.8776, Beta: 0.0197326, Gamma: 4.26745e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598969041.309319828]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.208136
+Alpha: 0.000390204, Beta: 0.00450977, Gamma: 0.00592789, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598969432.363567553]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.239574
+Alpha: 0.124847, Beta: 0.0280848, Gamma: 1.59013e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598969813.538297768]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.255194
+Alpha: 1.49313, Beta: 0.00361115, Gamma: 1.25403e-06, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598970182.349572215]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.256294
+Alpha: 0.0788352, Beta: 2.7881, Gamma: 3.03731e-07, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598970567.849185150]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.400692
+Alpha: 184.819, Beta: 0.0607421, Gamma: 6.63339e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598970939.904977516]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.199569
+Alpha: 0.00534083, Beta: 0.0283425, Gamma: 9.28996e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598971320.188658239]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.250128
+Alpha: 0.362306, Beta: 0.140931, Gamma: 3.62064, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598971705.452507420]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.243037
+Alpha: 0.0425834, Beta: 0.0146885, Gamma: 0.00114149, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598972072.344722059]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.232539
+Alpha: 0.0116611, Beta: 1.43946, Gamma: 0.0869397, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598972437.244228144]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.364771
+Alpha: 0.113932, Beta: 5.79176, Gamma: 0.000759877, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598972811.829451417]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.376222
+Alpha: 0.00721819, Beta: 1.09596, Gamma: 1.9717e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598973188.575182275]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.330808
+Alpha: 0.655731, Beta: 2.4595, Gamma: 1.58391e-05, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598973554.690652643]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.412824
+Alpha: 0.559433, Beta: 0.0581979, Gamma: 2.39468e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598973931.162248351]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.32517
+Alpha: 1.86529, Beta: 0.0230092, Gamma: 0.729499, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598974297.694462425]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.232237
+Alpha: 1.97801, Beta: 0.739701, Gamma: 0.000179268, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598974664.135375014]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.287764
+Alpha: 0.00383064, Beta: 0.223903, Gamma: 0.00441369, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598975038.308630055]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.259367
+Alpha: 0.00666782, Beta: 0.241454, Gamma: 0.501013, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598975414.628434212]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.252628
+Alpha: 0.0346514, Beta: 0.108449, Gamma: 0.0118519, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598975779.732041065]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.252905
+Alpha: 0.192591, Beta: 1.08638, Gamma: 0.233181, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598976157.908295261]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.306311
+Alpha: 0.063806, Beta: 1.02332, Gamma: 9.25344e-07, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598976522.777040330]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.402757
+Alpha: 4.6134, Beta: 0.0985625, Gamma: 0.522938, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598976901.920644958]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.222109
+Alpha: 0.0101833, Beta: 0.0936643, Gamma: 5.79042e-06, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598977284.585328362]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.27608
+Alpha: 1.73655, Beta: 1.97475, Gamma: 0.00163925, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598977648.829136459]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.378585
+Alpha: 3.96503e-05, Beta: 49.455, Gamma: 9.24168e-10, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598978018.046602552]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.165616
+Alpha: 0.0202407, Beta: 719.483, Gamma: 1.76489e-12, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598978403.023711208]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.0530473
+Alpha: 3.66748e-07, Beta: 0.0346848, Gamma: 6.63283e-14, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598978817.390134259]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.397434
+Alpha: 0.0399889, Beta: 0.194263, Gamma: 4.36647e-12, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598979214.012232824]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.415973
+Alpha: 0.0136426, Beta: 0.0620984, Gamma: 8.84663e-11, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598979596.171470293]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.400043
+Alpha: 0.0769693, Beta: 34458.2, Gamma: 1.90365e-15, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598979993.933614556]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.0476806
+Alpha: 0.0397409, Beta: 447.542, Gamma: 3.41523e-05, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598980364.255614438]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.0461988
+Alpha: 0.116856, Beta: 0.239665, Gamma: 2.73832e-10, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598980752.195137651]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.40255
+Alpha: 0.0100601, Beta: 0.194344, Gamma: 8.84663e-11, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598981128.618159587]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.414904
+Alpha: 0.0399896, Beta: 0.194263, Gamma: 3.21966e-13, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598981513.119611195]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.40379
+Alpha: 0.0188622, Beta: 0.194262, Gamma: 1.44159e-13, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598981900.044830380]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.414921
+Alpha: 2.40299e-07, Beta: 12240, Gamma: 0.00164182, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598982295.351049112]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.0522269
+Alpha: 0.206243, Beta: 0.239349, Gamma: 1.50871e-14, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598982674.607087862]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.41713
+Alpha: 0.00676197, Beta: 0.194262, Gamma: 6.63283e-14, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598983062.552848642]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.416165
+Alpha: 0.117007, Beta: 0.0748049, Gamma: 1.90365e-15, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598983446.449225368]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.412077
+Alpha: 0.178529, Beta: 222069, Gamma: 1.55967e+09, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598983832.845325421]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.0403305
+Alpha: 0.0125529, Beta: 0.0703878, Gamma: 2.73832e-10, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598984219.682143619]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.385397
+Alpha: 0.0500635, Beta: 0.0620745, Gamma: 1.50871e-14, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598984617.079747037]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.399645
+Alpha: 0.0399896, Beta: 0.194263, Gamma: 1.44159e-13, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598985001.307712244]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.403814
+Alpha: 5.6756e-07, Beta: 0.0748049, Gamma: 1.44159e-13, Cell Space: 0.6, CLAHE: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598985386.248665593]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.396988
+Alpha: 0.00676265, Beta: 0.194271, Gamma: 4.36647e-12, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598985777.979800416]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.404983
+Alpha: 0.0188622, Beta: 0.194262, Gamma: 3.21966e-13, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598986160.468447162]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.404079
+Alpha: 0.129923, Beta: 0.215347, Gamma: 1.51022e-08, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598986543.652238500]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.402191
+Alpha: 0.0100551, Beta: 0.19429, Gamma: 3.06752e-11, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598986930.419128166]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.417399
+Alpha: 0.0949428, Beta: 0.108546, Gamma: 1.50871e-14, Cell Space: 0.6, CLAHE: 0
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1598987299.959350369]: Extracting images from /home/stewart/datasets/airsim-bags/reef-explore_3.bag[0m
+Score: 0.416393
