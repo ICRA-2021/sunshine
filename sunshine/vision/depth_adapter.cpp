@@ -24,7 +24,7 @@ std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operat
     auto const num_words = wordObs2d->observations.size();
 
     std::vector<std::array<double, 3>> observation_pose;
-    observation_pose.reserve(num_words * 4);
+    observation_pose.reserve(num_words);
     for (size_t i = 0; i < num_words; ++i) {
         int const u = wordObs2d->observation_poses[i][0], v = wordObs2d->observation_poses[i][1];
         observation_pose.push_back(this->get_pose(u, v));
@@ -44,7 +44,8 @@ std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> ImageDep
 
     std::vector<std::array<uint8_t, 3>> observations;
     std::vector<std::array<double, 3>> observation_pose;
-    observation_pose.reserve(num_words * 4);
+    observations.reserve(num_words);
+    observation_pose.reserve(num_words);
     for (int y = 0; y < wordObs2d->image.rows; ++y) {
         for (int x = 0; x < wordObs2d->image.cols; ++x) {
             auto const& rgb = wordObs2d->image.at<cv::Vec3b>(cv::Point(x, y));

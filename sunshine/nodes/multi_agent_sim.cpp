@@ -10,6 +10,7 @@
 #include "sunshine/observation_transform_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
 #include "sunshine/benchmark.hpp"
+#include "sunshine/2d_adapter.hpp"
 #include "sunshine/visual_word_adapter.hpp"
 
 #include <sensor_msgs/Image.h>
@@ -29,8 +30,10 @@ class RobotSim {
     std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
-    WordDepthAdapter wordDepthAdapter;
-    ImageDepthAdapter imageDepthAdapter;
+    std::unique_ptr<WordDepthAdapter> wordDepthAdapter;
+    std::unique_ptr<ImageDepthAdapter> imageDepthAdapter;
+    std::unique_ptr<Word2DAdapter<3>> word2dAdapter;
+    std::unique_ptr<Image2DAdapter<3>> image2dAdapter;
     std::unique_ptr<ImageObservation> lastRgb, lastSegmentation;
     std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
     double depth_timestamp = -1;
@@ -38,24 +41,44 @@ class RobotSim {
 
     bool imageCallback(sensor_msgs::Image::ConstPtr image) {
         lastRgb = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
-            auto observation = lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter;
-            if (externalRostAdapter) {
-                observation >> *rostAdapter;
-                observation >> *externalRostAdapter;
+        if (lastRgb) {
+            if (wordDepthAdapter) {
+                if (transform_found && lastRgb->timestamp == depth_timestamp) {
+                    auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
+                    if (externalRostAdapter) {
+                        observation >> *rostAdapter;
+                        observation >> *externalRostAdapter;
+                    } else {
+                        (*rostAdapter)(std::move(observation));
+                    }
+                    return true;
+                }
             } else {
-                (*rostAdapter)(std::move(observation));
+                auto observation = lastRgb >> visualWordAdapter >> *word2dAdapter;
+                if (externalRostAdapter) {
+                    observation >> *rostAdapter;
+                    observation >> *externalRostAdapter;
+                } else {
+                    (*rostAdapter)(std::move(observation));
+                }
+                return true;
             }
-            return true;
         }
         return false;
     }
 
     bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
         lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
-            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-            return true;
+        if (lastSegmentation) {
+            if (imageDepthAdapter) {
+                if (transform_found && lastSegmentation->timestamp == depth_timestamp) {
+                    segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
+                    return true;
+                }
+            } else {
+                segmentation = lastSegmentation >> *image2dAdapter >> *segmentationAdapter;
+                return true;
+            }
         }
         return false;
     }
@@ -66,23 +89,25 @@ class RobotSim {
         pcl_conversions::toPCL(*msg, pcl_pc2);
         pcl::fromPCLPointCloud2(pcl_pc2, *pc);
 
-        wordDepthAdapter.updatePointCloud(pc);
-        imageDepthAdapter.updatePointCloud(pc);
+        wordDepthAdapter->updatePointCloud(pc);
+        imageDepthAdapter->updatePointCloud(pc);
         depth_timestamp = msg->header.stamp.toSec();
         bool handled = false;
-        if (transform_found && lastRgb && lastRgb->timestamp == depth_timestamp) {
-            auto observation = lastRgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter;
-            if (externalRostAdapter) {
-                observation >> *rostAdapter;
-                observation >> *externalRostAdapter;
-            } else {
-                (*rostAdapter)(std::move(observation));
+        if (transform_found) {
+            if (lastRgb && lastRgb->timestamp == depth_timestamp) {
+                auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
+                if (externalRostAdapter) {
+                    observation >> *rostAdapter;
+                    observation >> *externalRostAdapter;
+                } else {
+                    (*rostAdapter)(std::move(observation));
+                }
+                handled = true;
             }
-            handled = true;
-        }
-        if (transform_found && lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
-            segmentation = lastSegmentation >> imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-            handled = true;
+            if (lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
+                segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
+                handled = true;
+            }
         }
         return handled;
     };
@@ -118,7 +143,11 @@ class RobotSim {
                                   : std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&parameters,
                                                                                                                             true)),
               wordTransformAdapter(&parameters),
-              imageTransformAdapter(&parameters) {
+              imageTransformAdapter(&parameters),
+              wordDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>()),
+              imageDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>()),
+              word2dAdapter((depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>() : nullptr),
+              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>() : nullptr) {
         bagIter.add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
         bagIter.add_callback<sensor_msgs::Image>(segmentation_topic, [this](auto const &msg) { return this->segmentationCallback(msg); });
         bagIter.add_callback<sensor_msgs::PointCloud2>(depth_topic, [this](auto const &msg) { return this->depthCallback(msg); });
