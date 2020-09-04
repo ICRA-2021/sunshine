@@ -126,28 +126,19 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
     CountType total_weight = 0;
     std::vector<std::vector<CountType>> cooccurences(N, std::vector<CountType>(M, 0));
     std::map<std::array<int, 3>, LabelType> gt_labels;
-    for (auto obs = 0; obs < gt_seg.observations.
-
-            size();
-
-         ++obs) {
+    assert(gt_seg.observation_poses.size() == gt_seg.observations.size());
+    for (auto obs = 0; obs < gt_seg.observations.size(); ++obs) {
         gt_labels.insert({gt_seg.observation_poses[obs], gt_seg.observations[obs]});
     }
-    for (auto obs = 0ul; obs < topic_seg.observation_poses.
-
-            size();
-
-         ++obs) {
+    static_assert(std::tuple_size_v<typename decltype(topic_seg.observation_poses)::value_type> == pose_dimen);
+    assert(topic_seg.observation_poses.size() == topic_seg.observations.size());
+    for (auto obs = 0ul; obs < topic_seg.observation_poses.size(); ++obs) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
         constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
         std::array<int, 3> const pose{topic_seg.observation_poses[obs][offset], topic_seg.observation_poses[obs][1 + offset],
                                       topic_seg.observation_poses[obs][2 + offset]};
         auto iter = gt_labels.find(pose);
-        if (iter != gt_labels.
-
-                                     end()
-
-                ) {
+        if (iter != gt_labels.end()) {
             auto const &observed = topic_seg.observations[obs];
             auto const &actual = iter->second;
             if constexpr (is_vector<LabelType>::value) {
@@ -156,11 +147,12 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
                 double prod_weight = weight_observed * weight_actual;
                 for (auto i = 0ul; i < N; ++i) {
                     for (auto j = 0ul; j < M; ++j) {
-                        cooccurences[i][j] += static_cast
-                                                      <CountType>(observed[i] * actual[j]) / prod_weight;
+                        assert(i < observed.size() && j < actual.size());
+                        cooccurences[i][j] += static_cast<CountType>(observed[i] * actual[j]) / prod_weight;
                     }
                 }
             } else {
+                assert(observed < cooccurences.size() && actual < cooccurences[observed].size());
                 cooccurences[observed][actual] += 1;
             }
             total_weight += 1;

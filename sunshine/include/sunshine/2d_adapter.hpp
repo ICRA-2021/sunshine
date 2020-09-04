@@ -24,7 +24,7 @@ public:
             observation_pose.push_back({u, v, 0.0});
         }
 
-        return std::make_unique<CategoricalObservation<int, 3, double>>(wordObs2d->frame,
+        return std::make_unique<CategoricalObservation<int, 3, double>>("map",
             wordObs2d->timestamp,
             wordObs2d->id,
             wordObs2d->observations,
@@ -53,7 +53,7 @@ public:
             }
         }
 
-        return std::make_unique<SemanticObservation<std::array<uint8_t, 3>, 3, double>>(wordObs2d->frame,
+        return std::make_unique<SemanticObservation<std::array<uint8_t, 3>, 3, double>>("map",
         wordObs2d->timestamp,
         wordObs2d->id,
         std::move(observations),

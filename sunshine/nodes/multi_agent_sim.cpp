@@ -38,49 +38,46 @@ class RobotSim {
     std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
     double depth_timestamp = -1;
     bool transform_found = false;
+    bool processed_rgb = false;
+    bool const use_3d, use_segmentation;
+
+    bool tryProcess() {
+        if (!lastRgb || processed_rgb) return false;
+        if (use_3d && (!transform_found || lastRgb->timestamp != depth_timestamp)) return false;
+        if (use_segmentation && (!lastSegmentation || lastRgb->timestamp != lastSegmentation->timestamp)) return false;
+        // TODO: remove duplication between if branches below
+        if (use_3d) {
+            auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
+            if (externalRostAdapter) {
+                observation >> *rostAdapter;
+                observation >> *externalRostAdapter;
+            } else {
+                (*rostAdapter)(std::move(observation));
+            }
+            if (use_segmentation) segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
+        } else {
+            auto observation = lastRgb >> visualWordAdapter >> *word2dAdapter;
+            if (externalRostAdapter) {
+                observation >> *rostAdapter;
+                observation >> *externalRostAdapter;
+            } else {
+                (*rostAdapter)(std::move(observation));
+            }
+            if (use_segmentation) segmentation = lastSegmentation >> *image2dAdapter >> *segmentationAdapter;
+        }
+        processed_rgb = true;
+        return true;
+    }
 
     bool imageCallback(sensor_msgs::Image::ConstPtr image) {
         lastRgb = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (lastRgb) {
-            if (wordDepthAdapter) {
-                if (transform_found && lastRgb->timestamp == depth_timestamp) {
-                    auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
-                    if (externalRostAdapter) {
-                        observation >> *rostAdapter;
-                        observation >> *externalRostAdapter;
-                    } else {
-                        (*rostAdapter)(std::move(observation));
-                    }
-                    return true;
-                }
-            } else {
-                auto observation = lastRgb >> visualWordAdapter >> *word2dAdapter;
-                if (externalRostAdapter) {
-                    observation >> *rostAdapter;
-                    observation >> *externalRostAdapter;
-                } else {
-                    (*rostAdapter)(std::move(observation));
-                }
-                return true;
-            }
-        }
-        return false;
+        processed_rgb = false;
+        return tryProcess();
     }
 
     bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
         lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (lastSegmentation) {
-            if (imageDepthAdapter) {
-                if (transform_found && lastSegmentation->timestamp == depth_timestamp) {
-                    segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-                    return true;
-                }
-            } else {
-                segmentation = lastSegmentation >> *image2dAdapter >> *segmentationAdapter;
-                return true;
-            }
-        }
-        return false;
+        return tryProcess();
     }
 
     bool depthCallback(sensor_msgs::PointCloud2::ConstPtr const &msg) {
@@ -92,24 +89,7 @@ class RobotSim {
         wordDepthAdapter->updatePointCloud(pc);
         imageDepthAdapter->updatePointCloud(pc);
         depth_timestamp = msg->header.stamp.toSec();
-        bool handled = false;
-        if (transform_found) {
-            if (lastRgb && lastRgb->timestamp == depth_timestamp) {
-                auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
-                if (externalRostAdapter) {
-                    observation >> *rostAdapter;
-                    observation >> *externalRostAdapter;
-                } else {
-                    (*rostAdapter)(std::move(observation));
-                }
-                handled = true;
-            }
-            if (lastSegmentation && lastSegmentation->timestamp == depth_timestamp) {
-                segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-                handled = true;
-            }
-        }
-        return handled;
+        return tryProcess();
     };
 
     bool transformCallback(tf2_msgs::TFMessage::ConstPtr const &tfMsg) {
@@ -120,7 +100,7 @@ class RobotSim {
             imageTransformAdapter.addTransform(tfTransform);
         }
         transform_found = true;
-        return false;
+        return tryProcess();
     }
 
   public:
@@ -147,7 +127,9 @@ class RobotSim {
               wordDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>()),
               imageDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>()),
               word2dAdapter((depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>() : nullptr),
-              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>() : nullptr) {
+              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>() : nullptr),
+              use_3d(!depth_topic.empty()),
+              use_segmentation(!segmentation_topic.empty()) {
         bagIter.add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
         bagIter.add_callback<sensor_msgs::Image>(segmentation_topic, [this](auto const &msg) { return this->segmentationCallback(msg); });
         bagIter.add_callback<sensor_msgs::PointCloud2>(depth_topic, [this](auto const &msg) { return this->depthCallback(msg); });
@@ -206,10 +188,9 @@ std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &
                                                                             std::vector<int>(),
                                                                             segmentations[0]->observation_poses);
     for (auto i = 1; i < segmentations.size(); ++i) {
-        merged->observation_poses
-              .insert(merged->observation_poses.end(),
-                      segmentations[i]->observation_poses.begin(),
-                      segmentations[i]->observation_poses.end());
+        merged->observation_poses.insert(merged->observation_poses.end(),
+                                         segmentations[i]->observation_poses.begin(),
+                                         segmentations[i]->observation_poses.end());
     }
     if (lifting.empty()) {
         for (auto const &map : segmentations) {
@@ -228,12 +209,16 @@ std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &
                 std::transform(segmentations[i]->observations.begin(),
                                segmentations[i]->observations.end(),
                                std::back_inserter(merged->observations),
-                               [i, &lifting](int const &obs) { return lifting[i][obs]; });
+                               [i, &lifting](int const &obs) {
+                    assert(obs < lifting[i].size());
+                    return lifting[i][obs]; });
             } else {
                 std::transform(segmentations[i]->observations.begin(),
                                segmentations[i]->observations.end(),
                                std::back_inserter(merged->observations),
-                               [i, &lifting](std::vector<int> const &obs) { return lifting[i][argmax(obs)]; });
+                               [i, &lifting](std::vector<int> const &obs) {
+                    assert(argmax(obs) < lifting[i].size());
+                    return lifting[i][argmax(obs)]; });
             }
         }
     }
@@ -393,7 +378,7 @@ int main(int argc, char **argv) {
         }
         n_obs += active;
 
-        auto topic_models = fetch_new_topic_models(true);
+        auto topic_models = fetch_new_topic_models(false);
         auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
 
         auto const correspondences_clear = match_topics("clear-l1", {topic_models.begin(), topic_models.end()});

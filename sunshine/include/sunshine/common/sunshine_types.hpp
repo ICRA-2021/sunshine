@@ -32,6 +32,7 @@ struct Phi {
   }
 
   void remove_unused() {
+      throw std::logic_error("Needs re-thinking -- this will mess up map topic indices");
       auto const starting_size = topic_weights.size();
       for (size_t i = starting_size; i > 0; --i) {
           auto const idx = i - 1;
