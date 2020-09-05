@@ -33,6 +33,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 //    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
     typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >> ROST_t;
     using WordObservation = CategoricalObservation<int, POSEDIM - 1, WordInputDimType>;
+
+    constexpr static double DEFAULT_CELL_SPACE = 100;
   private:
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
@@ -132,9 +134,9 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
         num_threads = nh->template param<int>("num_threads", 4); // beta(1,tau) is used to pick cells for refinement
-        double const cell_size_space = nh->template param<double>("cell_space", 1);
+        double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
-        std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
+        std::string const cell_size_string = nh->template param<std::string>("cell_size", "3600x100x100x1");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);

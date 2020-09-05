@@ -13,7 +13,13 @@ namespace sunshine {
 
 template <size_t pose_dim = 3>
 class Word2DAdapter : public Adapter<Word2DAdapter<pose_dim>, CategoricalObservation<int, 2, int>, CategoricalObservation<int, pose_dim, double>> {
-public:
+    double const dx;
+    double const dy;
+    mutable double z;
+    bool const z_step;
+  public:
+    explicit Word2DAdapter(double x_offset = 0, double y_offset = 0, double z = 0, bool z_step = false) : dx(x_offset), dy(y_offset), z(z), z_step(z_step) {}
+
     std::unique_ptr<CategoricalObservation<int, pose_dim, double>> operator()(CategoricalObservation<int, 2, int> const * wordObs2d) const {
         auto const num_words = wordObs2d->observations.size();
 
@@ -21,9 +27,10 @@ public:
         observation_pose.reserve(num_words);
         for (size_t i = 0; i < num_words; ++i) {
             double const u = wordObs2d->observation_poses[i][0], v = wordObs2d->observation_poses[i][1];
-            observation_pose.push_back({u, v, 0.0});
+            observation_pose.push_back({u + dx, v + dy, z});
         }
 
+        z += z_step;
         return std::make_unique<CategoricalObservation<int, 3, double>>("map",
             wordObs2d->timestamp,
             wordObs2d->id,
@@ -37,7 +44,13 @@ public:
 
 template <size_t pose_dim = 3>
 class Image2DAdapter : public Adapter<Image2DAdapter<pose_dim>, ImageObservation, SemanticObservation<std::array<uint8_t, 3>, pose_dim, double>> {
+    double const dx;
+    double const dy;
+    mutable double z;
+    bool const z_step;
 public:
+    explicit Image2DAdapter(double x_offset = 0, double y_offset = 0, double z = 0, bool z_step = false) : dx(x_offset), dy(y_offset), z(z), z_step(z_step) {}
+
     std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> operator()(ImageObservation const* wordObs2d) const {
         auto const num_words = wordObs2d->image.rows * wordObs2d->image.cols;
 
@@ -49,15 +62,16 @@ public:
             for (int x = 0; x < wordObs2d->image.cols; ++x) {
                 auto const& rgb = wordObs2d->image.at<cv::Vec3b>(cv::Point(x, y));
                 observations.push_back({rgb[0], rgb[1], rgb[2]});
-                observation_pose.push_back({static_cast<double>(x), static_cast<double>(y), 0.0});
+                observation_pose.push_back({static_cast<double>(x) + dx, static_cast<double>(y) + dy, z});
             }
         }
 
+        z += z_step;
         return std::make_unique<SemanticObservation<std::array<uint8_t, 3>, 3, double>>("map",
-        wordObs2d->timestamp,
-        wordObs2d->id,
-        std::move(observations),
-                std::move(observation_pose));
+            wordObs2d->timestamp,
+            wordObs2d->id,
+            std::move(observations),
+            std::move(observation_pose));
     }
     using Adapter<Image2DAdapter<pose_dim>, ImageObservation, SemanticObservation<std::array<uint8_t, 3>, pose_dim, double>>::operator();
 };

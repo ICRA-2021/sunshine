@@ -112,7 +112,8 @@ class RobotSim {
              std::string const &depth_topic,
              std::string const &segmentation_topic,
              std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr)
+             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr,
+             double x_offset = 0)
             : name(std::move(name)),
               bagIter(bagfile),
               visualWordAdapter(&parameters),
@@ -126,8 +127,8 @@ class RobotSim {
               imageTransformAdapter(&parameters),
               wordDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>()),
               imageDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>()),
-              word2dAdapter((depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>() : nullptr),
-              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>() : nullptr),
+              word2dAdapter((depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr),
+              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr),
               use_3d(!depth_topic.empty()),
               use_segmentation(!segmentation_topic.empty()) {
         bagIter.add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
@@ -283,7 +284,8 @@ int main(int argc, char **argv) {
                                                        depth_topic_name,
                                                        segmentation_topic_name,
                                                        segmentationAdapter,
-                                                       aggregateRobot.getRost()));
+                                                       aggregateRobot.getRost(),
+                                                       (i - 4) * 2000));
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
     ros::Publisher naive_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
@@ -291,7 +293,7 @@ int main(int argc, char **argv) {
     ros::Publisher hungarian_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/hungarian_map", 0);
     ros::Publisher gt_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0);
 
-    auto const csv_filename = nh.param<std::string>("output_filename", "");
+    auto const csv_filename = nh.param<std::string>("output_filename", "test.csv");
     auto writer = (csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
     if (writer) {
         csv_row<> header{};

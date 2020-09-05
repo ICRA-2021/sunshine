@@ -16,16 +16,24 @@ class SegmentationAdapter : public Adapter<ImplClass, Input, Segmentation<LabelT
     std::array<PoseType, POSEDIM> const cell_size;
     template<typename ParameterServer>
     static inline decltype(cell_size) computeCellSize(ParameterServer *nh) {
-        double const cell_size_space       = nh->template param<double>("cell_space", 1);
-        std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
+        double const cell_size_space       = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
+        std::string const cell_size_string = nh->template param<std::string>("cell_size", "3600x100x100x1");
+        double cell_size_x = cell_size_space, cell_size_y = cell_size_space, cell_size_z = cell_size_space;
         if (!cell_size_string.empty()) {
-            return readNumbers<POSEDIM, 'x', PoseType>(cell_size_string);
-        } else if constexpr (POSEDIM == 2) {
-            return {static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space)};
-        } else if constexpr (POSEDIM == 3) {
-            return {static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space), static_cast<PoseType>(cell_size_space)};
+            auto cell_size = readNumbers<POSEDIM + 1, 'x', PoseType>(cell_size_string);
+            cell_size_x = cell_size[1];
+            cell_size_y = cell_size[2];
+            if constexpr (POSEDIM == 3) {
+                cell_size_z = cell_size[3];
+            }
         }
-        return {};
+        if constexpr (POSEDIM == 2) {
+            return {static_cast<PoseType>(cell_size_x), static_cast<PoseType>(cell_size_y)};
+        } else if constexpr (POSEDIM == 3) {
+            return {static_cast<PoseType>(cell_size_x), static_cast<PoseType>(cell_size_y), static_cast<PoseType>(cell_size_z)};
+        } else {
+            static_assert(always_false<SegmentationAdapter<ImplClass, Input, LabelType, PoseDim, CellPoseType, PoseType>>);
+        }
     }
 
   public:
@@ -63,6 +71,7 @@ class SemanticSegmentationAdapter
         std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> segmentation =
             std::make_unique<Output>(obs->frame, obs->timestamp, obs->id, this->cell_size, std::vector<LabelType>(),
                                      std::vector<std::array<CellPoseType, PoseDim>>());
+//        auto const size = counts.size();
         if (obs->observations.empty()) return std::move(segmentation);
         for (auto i = 0; i < obs->observations.size(); ++i) {
             std::array<CellPoseType, POSEDIM> const pose =
@@ -93,6 +102,8 @@ class SemanticSegmentationAdapter
         } else {
             static_assert(always_false<LabelType>, "Invalid template argument.");
         }
+//        auto const new_size = counts.size();
+//        std::cout << "Old: " << size << ", New: " << new_size << std::endl;
         return segmentation;
     }
 
