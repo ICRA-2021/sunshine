@@ -63,7 +63,7 @@ struct Eval {
   double const cell_space = 0.8;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 4);
+  BO_PARAM(size_t, dim_in, 3);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -83,9 +83,9 @@ struct Eval {
 //      boost::math::lognormal space_dist(0.0, 1.0);
       double const alpha = boost::math::quantile(alpha_dist, x(0));
       double const beta = boost::math::quantile(beta_dist, x(1));
-      double const gamma = boost::math::quantile(gamma_dist, x(2));
+      double const gamma = 0;
 //      double const cell_space = .5 * std::pow(3., x(3));
-      bool const use_clahe = (x(3) >= 0.5);
+      bool const use_clahe = (x(2) >= 0.5);
 //      bool const use_texton = (x(5) >= 0.75);
 //      bool const use_orb = (x(6) >= 0.25);
       sunshine::Parameters params{{{"alpha", alpha},
