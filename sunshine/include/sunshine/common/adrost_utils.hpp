@@ -2,7 +2,7 @@
 #define SUNSHINE_PROJECT_ADROST_UTILS_HPP
 
 #include <cmath>
-#include <munkres/munkres.h>
+#include <clear/Hungarian.h>
 #include <clear/MultiwayMatcher.hpp>
 #include <Eigen/Core>
 #include <numeric>
@@ -483,7 +483,6 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     for (auto i = 1ul; i < topic_models.size(); ++i) {
         auto const &right = topic_models[i].counts;
         auto const &right_weights = topic_models[i].topic_weights;
-        Matrix<double> matrix(left_weights.size(), right_weights.size());
 
         std::vector<std::vector<double>> pd_sq = compute_all_pairs<int>(left, right, left_weights, right_weights, normed_dist_sq<int>);
         results.ssd.push_back(0);
@@ -498,26 +497,36 @@ std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<doub
     if (costs.empty() || costs[0].empty()) throw std::invalid_argument("Cost matrix must be non-empty");
     auto const N = costs.size();
     auto const M = costs[0].size();
-    std::vector<std::vector<int>> assignment(N, std::vector<int>(M, -1));
+    std::vector<std::vector<int>> lifting(N, std::vector<int>(M, 0));
 
     // convert pd_sq to a Matrix
-    Matrix<double> matrix(N, M);
-    for (int fi = 0; fi < N; ++fi) {
-        for (int fj = 0; fj < M; ++fj) {
-            matrix(fi, fj) = costs[fi][fj];
-        }
-    }
+//    Matrix<double> matrix(N, M);
+//    for (int fi = 0; fi < N; ++fi) {
+//        for (int fj = 0; fj < M; ++fj) {
+//            matrix(fi, fj) = costs[fi][fj];
+//        }
+//    }
 
     // Apply Munkres algorithm to matrix.
-    Munkres<double> m;
-    m.solve(matrix);
+//    Munkres<double> m;
+//    m.solve(matrix);
 
-    for (int row = 0; row < N; row++) {
-        for (int col = 0; col < M; col++) {
-            assignment[row][col] = matrix(row, col);
-        }
+//    for (int row = 0; row < N; row++) {
+//        for (int col = 0; col < M; col++) {
+//            assignment[row][col] = matrix(row, col);
+//        }
+//    }
+    // assign to universe using Hungarian
+    std::vector<int> assignments;
+    HungarianAlgorithm hungarian;
+    hungarian.Solve(costs, assignments);
+
+    // copy results to assignments vector
+    for (unsigned i = 0; i < N; ++i) {
+        assert(assignments[i] >= 0 && assignments[i] < lifting[i].size());
+        lifting[i][assignments[i]] = 1;
     }
-    return assignment;
+    return lifting;
 }
 
 match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models, DistanceMetric<int> const &metric = normed_dist_sq<int>) {
@@ -538,7 +547,6 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
         auto const &right = topic_models[i].counts;
         auto const &right_weights = topic_models[i].topic_weights;
 //        ROS_WARN("%lu %lu %lu %lu", left.size(), right.size(), left_weights.size(), right_weights.size());
-        Matrix<double> matrix(left_weights.size(), right_weights.size());
 
         std::vector<int> perm;
 
