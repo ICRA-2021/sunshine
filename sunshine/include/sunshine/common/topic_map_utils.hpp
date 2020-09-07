@@ -15,7 +15,7 @@
 
 namespace sunshine {
 
-cv::Mat createTopicImg(const sunshine_msgs::TopicMapConstPtr& msg,
+cv::Mat createTopicImg(const sunshine_msgs::TopicMap& msg,
                        sunshine::WordColorMap<decltype(sunshine_msgs::TopicMap::cell_topics)::value_type>& wordColorMap,
                        double pixel_scale,
                        bool useColor,
@@ -25,14 +25,14 @@ cv::Mat createTopicImg(const sunshine_msgs::TopicMapConstPtr& msg,
                        bool debug                  = false) {
     using namespace sunshine_msgs;
     using namespace cv;
-    size_t const N = msg->cell_topics.size();
+    size_t const N = msg.cell_topics.size();
 
     struct Pose {
         double x, y, z;
     };
     static_assert(sizeof(Pose) == sizeof(double) * 3, "Pose struct has incorrect size.");
 
-    Pose const* poseIter = reinterpret_cast<Pose const*>(msg->cell_poses.data());
+    Pose const* poseIter = reinterpret_cast<Pose const*>(msg.cell_poses.data());
     double minX = poseIter->x, minY = poseIter->y, maxX = poseIter->x, maxY = poseIter->y;
     if (fixedBox.empty()) {
         for (size_t i = 0; i < N; i++, poseIter++) {
@@ -59,7 +59,7 @@ cv::Mat createTopicImg(const sunshine_msgs::TopicMapConstPtr& msg,
 
     Mat topicMapImg(numRows, numCols, (useColor) ? sunshine::cvType<Vec4b>::value : sunshine::cvType<double>::value, Scalar(0));
     std::set<std::pair<int, int>> points;
-    poseIter        = reinterpret_cast<Pose const*>(msg->cell_poses.data());
+    poseIter        = reinterpret_cast<Pose const*>(msg.cell_poses.data());
     size_t outliers = 0, overlaps = 0;
     for (size_t i = 0; i < N; i++, poseIter++) {
         Point const point(static_cast<int>(std::round((poseIter->x - minX) / pixel_scale)),
@@ -73,10 +73,10 @@ cv::Mat createTopicImg(const sunshine_msgs::TopicMapConstPtr& msg,
             overlaps++;
         }
         if (useColor) {
-            auto const color             = wordColorMap.colorForWord(msg->cell_topics[i]);
+            auto const color             = wordColorMap.colorForWord(msg.cell_topics[i]);
             topicMapImg.at<Vec4b>(point) = {color.r, color.g, color.b, color.a};
         } else {
-            topicMapImg.at<double>(point) = msg->cell_topics[i] + 1;
+            topicMapImg.at<double>(point) = msg.cell_topics[i] + 1;
         }
     }
     ROS_INFO_COND(outliers > 0, "Discarded %lu points outside of %s", outliers, fixedBox.c_str());

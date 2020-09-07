@@ -288,6 +288,11 @@ int main(int argc, char **argv) {
     std::string const segmentation_topic_name(argv[3]);
 
     ros::NodeHandle nh("~");
+
+    auto output_prefix = nh.param<std::string>("output_prefix", "");
+    output_prefix += (output_prefix.empty() || output_prefix.back() == '/') ? "" : "/";
+    auto const csv_filename = nh.param<std::string>("output_filename", output_prefix + "stats.csv");
+
     auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
     std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
@@ -306,7 +311,26 @@ int main(int argc, char **argv) {
         aggregateRobot.waitForProcessing();
     }
     aggregateRobot.pause();
-    auto const singleRobotSegmentation = aggregateRobot.getMap();
+    auto singleRobotSegmentation = aggregateRobot.getMap();
+    WordColorMap<int> topicColorMap;
+    auto const box = nh.param<std::string>("box", "");
+    if (!output_prefix.empty()) {
+        if (!segmentation_topic_name.empty()) {
+            std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
+            gt_segmentations.push_back(aggregateRobot.getGTMap());
+            auto const gt_merged = merge<3>(gt_segmentations);
+            auto const gtTopicImg = createTopicImg(toRosMsg(*gt_merged), topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
+                                                   true, 0, 0, box, true);
+            std::string const file_prefix = output_prefix + "0-ground_truth";
+            saveTopicImg(gtTopicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
+
+            align(*singleRobotSegmentation, *gt_merged);
+        }
+        auto const topicImg = createTopicImg(toRosMsg(*singleRobotSegmentation), topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
+                                                       true, 0, 0, box, true);
+        std::string const file_prefix = output_prefix + "0-single_robot";
+        saveTopicImg(topicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
+    }
     std::cout << "Finished single-agent simulation." << std::endl;
 
     //    std::vector<ros::Publisher> map_pubs;
@@ -324,8 +348,6 @@ int main(int argc, char **argv) {
         publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/" + sunshine::replace_all(method, "-", "_") + "_map", 0)));
     }
 
-    auto const output_prefix = nh.param<std::string>("output_prefix", "./");
-    auto const csv_filename = nh.param<std::string>("output_filename", output_prefix + ((output_prefix.empty()) ? "" : "/") + "stats.csv");
     auto writer = (csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
     if (writer) {
         csv_row<> header{};
@@ -462,7 +484,14 @@ int main(int argc, char **argv) {
             }
             if (writer) writer->flush();
 
-            publishers[i]->publish(toRosMsg(*merged_segmentations));
+            auto const merged_map = toRosMsg(*merged_segmentations);
+            if (!output_prefix.empty()) {
+                auto const topicImg = sunshine::createTopicImg(merged_map, topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
+                                                               true, 0, 0, box, true);
+                std::string const file_prefix = output_prefix + std::to_string(n_obs) + "-" + method;
+                saveTopicImg(topicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
+            }
+            publishers[i]->publish(merged_map);
         }
 
         start = std::chrono::steady_clock::now();

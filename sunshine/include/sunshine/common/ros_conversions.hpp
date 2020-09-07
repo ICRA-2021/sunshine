@@ -165,7 +165,7 @@ sunshine_msgs::TopicMap toRosMsg(Segmentation<LabelType, PoseDim, int, double> c
     if constexpr (std::is_same_v<LabelType, int>) {
         map.cell_topics = segmentation.observations;
     } else if constexpr (std::is_same_v<LabelType, std::vector<int>>) {
-        std::transform(segmentation.observations.begin(), segmentation.observations.end(), std::back_inserter(map.cell_topics), argmax<int>);
+        std::transform(segmentation.observations.begin(), segmentation.observations.end(), std::back_inserter(map.cell_topics), argmax<std::vector<int>>);
     } else {
         static_assert(always_false<LabelType>);
     }

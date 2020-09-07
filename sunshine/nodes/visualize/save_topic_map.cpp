@@ -83,7 +83,7 @@ int main(int argc, char** argv)
             }
         }
 
-        Mat topicMapImg = sunshine::createTopicImg(msg, wordColorMap, pixel_scale, useColor, minWidth, minHeight, fixedBox, true);
+        Mat topicMapImg = sunshine::createTopicImg(*msg, wordColorMap, pixel_scale, useColor, minWidth, minHeight, fixedBox, true);
         sunshine::saveTopicImg(topicMapImg, output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", output_prefix + "-" + std::to_string(msg->seq) + "-colors.csv", &wordColorMap);
         done = true;
     });

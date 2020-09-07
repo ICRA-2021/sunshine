@@ -92,6 +92,7 @@
     <param name="publish_2d_words" value="true" />
     <param name="output_prefix" value="$(arg maps_dir)" />
     <param name="output_filename" value="$(arg stats_filename)" />
+    <param name="box" value="-50x-50x100x100" />
   </node>
 
 <!--   <node pkg="sunshine" type="visualize3d" name="visualize_0" if="$(arg visualize_3d)"> -->
@@ -156,52 +157,52 @@
 
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/multi_agent_topics.rviz" if="$(arg use_rviz)" />
 
-  <node pkg="sunshine" type="save_topic_map" name="save_hungarian_topic_map" respawn="true" if="$(eval maps_dir != '')" >
-    <param name="input_topic" value="/hungarian_map" />
-  	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-hungarian" />
-	<param name="continuous" value="true" />
-	<param name="save_topic_timeseries" value="false" />
-	<param name="save_topic_model" value="false" />
-	<param name="save_topic_cells" value="false" />
-	<param name="save_perplexity_map" value="false" />
-	<param name="use_color" value="true" />
-        <param name="box" value="-50x-50x100x100" />
-        <param name="pixel_scale" value="$(arg cell_space)" />
-  </node>
-  <node pkg="sunshine" type="save_topic_map" name="save_naive_topic_map" respawn="true" if="$(eval maps_dir != '')" >
-    <param name="input_topic" value="/naive_map" />
-  	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-naive" />
-	<param name="continuous" value="true" />
-	<param name="save_topic_timeseries" value="false" />
-	<param name="save_topic_model" value="false" />
-	<param name="save_topic_cells" value="false" />
-	<param name="save_perplexity_map" value="false" />
-	<param name="use_color" value="true" />
-        <param name="box" value="-50x-50x100x100" />
-        <param name="pixel_scale" value="$(arg cell_space)" />
-  </node>
-  <node pkg="sunshine" type="save_topic_map" name="save_merged_topic_map" respawn="true" if="$(eval maps_dir != '')" >
-    <param name="input_topic" value="/merged_map" />
-  	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-merged" />
-	<param name="continuous" value="true" />
-	<param name="save_topic_timeseries" value="false" />
-	<param name="save_topic_model" value="false" />
-	<param name="save_topic_cells" value="false" />
-	<param name="save_perplexity_map" value="false" />
-	<param name="use_color" value="true" />
-        <param name="box" value="-50x-50x100x100" />
-        <param name="pixel_scale" value="$(arg cell_space)" />
-  </node>
-  <node pkg="sunshine" type="save_topic_map" name="save_gt_topic_map" respawn="true" if="$(eval maps_dir != '')" >
-    <param name="input_topic" value="/gt_map" />
-  	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-gt" />
-	<param name="continuous" value="true" />
-	<param name="save_topic_timeseries" value="false" />
-	<param name="save_topic_model" value="false" />
-	<param name="save_topic_cells" value="false" />
-	<param name="save_perplexity_map" value="false" />
-	<param name="use_color" value="true" />
-        <param name="box" value="-50x-50x100x100" />
-        <param name="pixel_scale" value="$(arg cell_space)" />
-  </node>
+<!--   <node pkg="sunshine" type="save_topic_map" name="save_hungarian_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
+<!--     <param name="input_topic" value="/hungarian_map" /> -->
+<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-hungarian" /> -->
+<!-- 	<param name="continuous" value="true" /> -->
+<!-- 	<param name="save_topic_timeseries" value="false" /> -->
+<!-- 	<param name="save_topic_model" value="false" /> -->
+<!-- 	<param name="save_topic_cells" value="false" /> -->
+<!-- 	<param name="save_perplexity_map" value="false" /> -->
+<!-- 	<param name="use_color" value="true" /> -->
+<!--         <param name="box" value="-50x-50x100x100" /> -->
+<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
+<!--   </node> -->
+<!--   <node pkg="sunshine" type="save_topic_map" name="save_naive_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
+<!--     <param name="input_topic" value="/naive_map" /> -->
+<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-naive" /> -->
+<!-- 	<param name="continuous" value="true" /> -->
+<!-- 	<param name="save_topic_timeseries" value="false" /> -->
+<!-- 	<param name="save_topic_model" value="false" /> -->
+<!-- 	<param name="save_topic_cells" value="false" /> -->
+<!-- 	<param name="save_perplexity_map" value="false" /> -->
+<!-- 	<param name="use_color" value="true" /> -->
+<!--         <param name="box" value="-50x-50x100x100" /> -->
+<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
+<!--   </node> -->
+<!--   <node pkg="sunshine" type="save_topic_map" name="save_merged_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
+<!--     <param name="input_topic" value="/merged_map" /> -->
+<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-merged" /> -->
+<!-- 	<param name="continuous" value="true" /> -->
+<!-- 	<param name="save_topic_timeseries" value="false" /> -->
+<!-- 	<param name="save_topic_model" value="false" /> -->
+<!-- 	<param name="save_topic_cells" value="false" /> -->
+<!-- 	<param name="save_perplexity_map" value="false" /> -->
+<!-- 	<param name="use_color" value="true" /> -->
+<!--         <param name="box" value="-50x-50x100x100" /> -->
+<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
+<!--   </node> -->
+<!--   <node pkg="sunshine" type="save_topic_map" name="save_gt_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
+<!--     <param name="input_topic" value="/gt_map" /> -->
+<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-gt" /> -->
+<!-- 	<param name="continuous" value="true" /> -->
+<!-- 	<param name="save_topic_timeseries" value="false" /> -->
+<!-- 	<param name="save_topic_model" value="false" /> -->
+<!-- 	<param name="save_topic_cells" value="false" /> -->
+<!-- 	<param name="save_perplexity_map" value="false" /> -->
+<!-- 	<param name="use_color" value="true" /> -->
+<!--         <param name="box" value="-50x-50x100x100" /> -->
+<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
+<!--   </node> -->
 </launch>
