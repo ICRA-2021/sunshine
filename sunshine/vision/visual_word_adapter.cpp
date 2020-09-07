@@ -5,7 +5,7 @@ using namespace sunshine;
 cv::Mat VisualWordAdapter::apply_clahe(cv::Mat img) const {
     // Adapted from https://stackoverflow.com/a/24341809
     cv::Mat &lab_image = img;
-    cv::cvtColor(img, lab_image, CV_BGR2Lab);
+    cv::cvtColor(img, lab_image, cv::COLOR_BGR2Lab);
 
     // Extract the L channel
     std::vector<cv::Mat> lab_planes(3);
@@ -22,7 +22,7 @@ cv::Mat VisualWordAdapter::apply_clahe(cv::Mat img) const {
 
     // convert back to RGB
     cv::Mat &image_clahe = img;
-    cv::cvtColor(lab_image, image_clahe, CV_Lab2BGR);
+    cv::cvtColor(lab_image, image_clahe, cv::COLOR_Lab2BGR);
     if (show_clahe) {
         cv::imshow("CLAHE", image_clahe);
         cv::waitKey(5);
