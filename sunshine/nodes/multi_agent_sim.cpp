@@ -23,7 +23,7 @@ using namespace sunshine;
 
 class RobotSim {
     std::string const name;
-    BagIterator bagIter;
+    std::unique_ptr<BagIterator> bagIter;
     VisualWordAdapter visualWordAdapter;
     std::shared_ptr<ROSTAdapter<4, double, double>> rostAdapter;
     std::shared_ptr<ROSTAdapter<4, double, double>> externalRostAdapter;
@@ -39,7 +39,8 @@ class RobotSim {
     double depth_timestamp = -1;
     bool transform_found = false;
     bool processed_rgb = false;
-    bool const use_3d, use_segmentation;
+    bool const use_3d;
+    bool use_segmentation;
 
     bool tryProcess() {
         if (!lastRgb || processed_rgb) return false;
@@ -106,16 +107,12 @@ class RobotSim {
   public:
     template<typename ParamServer>
     RobotSim(std::string name,
-             std::string const &bagfile,
              ParamServer const &parameters,
-             std::string const &image_topic,
-             std::string const &depth_topic,
-             std::string const &segmentation_topic,
+             bool const use_3d,
              std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr,
-             double x_offset = 0)
+             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr)
             : name(std::move(name)),
-              bagIter(bagfile),
+              bagIter(nullptr),
               visualWordAdapter(&parameters),
               rostAdapter(std::make_shared<ROSTAdapter<4, double, double>>(&parameters)),
               externalRostAdapter(std::move(external_rost_adapter)),
@@ -125,17 +122,26 @@ class RobotSim {
                                                                                                                             true)),
               wordTransformAdapter(&parameters),
               imageTransformAdapter(&parameters),
-              wordDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>()),
-              imageDepthAdapter((depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>()),
-              word2dAdapter((depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr),
-              image2dAdapter((depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr),
-              use_3d(!depth_topic.empty()),
-              use_segmentation(!segmentation_topic.empty()) {
-        bagIter.add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
-        bagIter.add_callback<sensor_msgs::Image>(segmentation_topic, [this](auto const &msg) { return this->segmentationCallback(msg); });
-        bagIter.add_callback<sensor_msgs::PointCloud2>(depth_topic, [this](auto const &msg) { return this->depthCallback(msg); });
-        bagIter.add_callback<tf2_msgs::TFMessage>("/tf", [this](auto const &msg) { return this->transformCallback(msg); });
-        bagIter.set_logging(true);
+              use_3d(use_3d) {}
+
+    void open(std::string const& bagFilename,
+              std::string const &image_topic,
+              std::string const &depth_topic = "",
+              std::string const &segmentation_topic= "",
+              double x_offset = 0) {
+        if (use_3d && depth_topic.empty()) throw std::invalid_argument("Must provide depth topic if operating in 3D mode");
+        wordDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>();
+        imageDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>();
+        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
+        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
+        use_segmentation = !segmentation_topic.empty();
+
+        bagIter = std::make_unique<BagIterator>(bagFilename);
+        bagIter->add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
+        bagIter->add_callback<sensor_msgs::Image>(segmentation_topic, [this](auto const &msg) { return this->segmentationCallback(msg); });
+        bagIter->add_callback<sensor_msgs::PointCloud2>(depth_topic, [this](auto const &msg) { return this->depthCallback(msg); });
+        bagIter->add_callback<tf2_msgs::TFMessage>("/tf", [this](auto const &msg) { return this->transformCallback(msg); });
+        bagIter->set_logging(true);
     }
 
     Phi getTopicModel(bool wait_for_refine = false) const {
@@ -171,7 +177,8 @@ class RobotSim {
      * @return false if finished, true if there are more messages to simulate
      */
     bool next() {
-        return !bagIter.play(false);
+        if (!bagIter) throw std::logic_error("No bag opened to play");
+        return !bagIter->play(false);
     }
 
     std::string getName() const {
@@ -274,18 +281,15 @@ int main(int argc, char **argv) {
     auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
 
     std::vector<std::unique_ptr<RobotSim>> robots;
-    RobotSim aggregateRobot("Aggregate", "", nh, "", "", "", segmentationAdapter);
+    RobotSim aggregateRobot("Aggregate", nh, !depth_topic_name.empty(), segmentationAdapter);
     //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
         robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4),
-                                                       std::string(argv[i]),
                                                        nh,
-                                                       image_topic_name,
-                                                       depth_topic_name,
-                                                       segmentation_topic_name,
+                                                       !depth_topic_name.empty(),
                                                        segmentationAdapter,
-                                                       aggregateRobot.getRost(),
-                                                       (i - 4) * 2000));
+                                                       aggregateRobot.getRost()));
+        robots.back()->open(std::string(argv[i]), image_topic_name, depth_topic_name, segmentation_topic_name, (i - 4) * 2000);
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
     ros::Publisher naive_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
