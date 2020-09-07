@@ -201,6 +201,15 @@ std::vector<std::string> split(const std::string &txt, char ch = ' ')
     return strs;
 }
 
+[[nodiscard]] std::string replace_all(std::string str, const std::string& old_str, const std::string& new_str) {
+    size_t pos = 0;
+    while ((pos = str.find(old_str, pos)) != std::string::npos) {
+        str.replace(pos, old_str.length(), new_str);
+        pos += new_str.length();
+    }
+    return str;
+}
+
 }
 
 #endif // UTILS_HPP

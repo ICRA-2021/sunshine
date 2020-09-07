@@ -91,6 +91,7 @@
     <param name="use_pc" value="$(arg use_pc)" />
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
+    <param name="output_prefix" value="$(arg maps_dir)" />
     <param name="output_filename" value="$(arg stats_filename)" />
   </node>
 

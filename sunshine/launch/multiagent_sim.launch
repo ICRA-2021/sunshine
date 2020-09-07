@@ -2,7 +2,7 @@
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
   <arg name="segmentation_topic" default="/camera/seg/image_color" /> <!--Rectified color image-->
-  <arg name="bagfiles" default="/home/stewart/reef-explore-rows_2020-08-07-13-04-21.bag /home/stewart/reef-explore-rows_2020-08-07-13-06-04.bag" />
+  <arg name="bagfiles" default="/home/stewart/datasets/airsim-bags/reef-explore-rows_2020-08-07-13-04-21.bag /home/stewart/datasets/airsim-bags/reef-explore-rows_2020-08-07-13-06-04.bag" />
   <arg name="file_prefix" default="" />
   <arg name="maps_dir" default="" />
   <arg name="stats_filename" default="$(eval maps_dir + '/stats.csv' if maps_dir != '' else '')" />
@@ -90,6 +90,7 @@
     <param name="use_pc" value="$(arg use_pc)" />
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
+    <param name="output_prefix" value="$(arg maps_dir)" />
     <param name="output_filename" value="$(arg stats_filename)" />
   </node>
 

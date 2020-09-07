@@ -195,9 +195,11 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
     }
 
     void stopWorkers() {
-        stopWork = true; //signal workers to stop
-        for (auto const &t : workers) { //wait for them to stop
-            if (t) t->join();
+        if (!stopWork) {
+            stopWork = true;                // signal workers to stop
+            for (auto const &t : workers) { // wait for them to stop
+                if (t) t->join();
+            }
         }
     }
 

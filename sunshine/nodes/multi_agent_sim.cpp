@@ -321,10 +321,11 @@ int main(int argc, char **argv) {
     std::unique_ptr<ros::Publisher> gt_map_pub = (segmentation_topic_name.empty()) ? nullptr : std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0));
     std::vector<std::unique_ptr<ros::Publisher>> publishers;
     for (auto const& method : match_methods) {
-        publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/" + method + "_map", 0)));
+        publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/" + sunshine::replace_all(method, "-", "_") + "_map", 0)));
     }
 
-    auto const csv_filename = nh.param<std::string>("output_filename", "test.csv");
+    auto const output_prefix = nh.param<std::string>("output_prefix", "./");
+    auto const csv_filename = nh.param<std::string>("output_filename", output_prefix + ((output_prefix.empty()) ? "" : "/") + "stats.csv");
     auto writer = (csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
     if (writer) {
         csv_row<> header{};
