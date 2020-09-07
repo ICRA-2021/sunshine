@@ -183,6 +183,24 @@ Ret dotp(T const& left, T const& right) {
     return std::inner_product(left.begin(), left.end(), right.begin(), Ret(0));
 }
 
+std::vector<std::string> split(const std::string &txt, char ch = ' ')
+{
+    size_t pos = txt.find( ch );
+    size_t initialPos = 0;
+    std::vector<std::string> strs = {};
+
+    // Decompose statement
+    while( pos != std::string::npos ) {
+        strs.push_back( txt.substr( initialPos, pos - initialPos ) );
+        initialPos = pos + 1;
+        pos = txt.find( ch, initialPos );
+    }
+
+    // Add the last one
+    strs.push_back( txt.substr( initialPos, std::min( pos, txt.size() ) - initialPos + 1 ) );
+    return strs;
+}
+
 }
 
 #endif // UTILS_HPP

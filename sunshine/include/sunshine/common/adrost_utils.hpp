@@ -497,7 +497,6 @@ std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<doub
     if (costs.empty() || costs[0].empty()) throw std::invalid_argument("Cost matrix must be non-empty");
     auto const N = costs.size();
     auto const M = costs[0].size();
-    std::vector<std::vector<int>> lifting(N, std::vector<int>(M, 0));
 
     // convert pd_sq to a Matrix
 //    Matrix<double> matrix(N, M);
@@ -521,12 +520,14 @@ std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<doub
     HungarianAlgorithm hungarian;
     hungarian.Solve(costs, assignments);
 
-    // copy results to assignments vector
+    // copy results to assignments matrix
+    std::vector<std::vector<int>> assignmentMat(N, std::vector<int>(M, -1));
     for (unsigned i = 0; i < N; ++i) {
-        assert(assignments[i] >= 0 && assignments[i] < lifting[i].size());
-        lifting[i][assignments[i]] = 1;
+        if (assignments[i] == -1) continue;
+        else if (assignments[i] < 0 || assignments[i] >= assignmentMat[i].size()) throw std::logic_error("Failed to process hungarian match results");
+        assignmentMat[i][assignments[i]] = 0;
     }
-    return lifting;
+    return assignmentMat;
 }
 
 match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models, DistanceMetric<int> const &metric = normed_dist_sq<int>) {

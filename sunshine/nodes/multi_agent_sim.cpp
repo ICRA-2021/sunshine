@@ -1,16 +1,18 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+#include "sunshine/2d_adapter.hpp"
+#include "sunshine/benchmark.hpp"
 #include "sunshine/common/adrost_utils.hpp"
 #include "sunshine/common/csv.hpp"
 #include "sunshine/common/metric.hpp"
 #include "sunshine/common/parameters.hpp"
 #include "sunshine/common/rosbag_utils.hpp"
+#include "sunshine/common/topic_map_utils.hpp"
+#include "sunshine/common/utils.hpp"
 #include "sunshine/depth_adapter.hpp"
 #include "sunshine/observation_transform_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
-#include "sunshine/benchmark.hpp"
-#include "sunshine/2d_adapter.hpp"
 #include "sunshine/visual_word_adapter.hpp"
 
 #include <sensor_msgs/Image.h>
@@ -287,6 +289,11 @@ int main(int argc, char **argv) {
 
     ros::NodeHandle nh("~");
     auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
+    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
+    auto const methods_str = nh.param<std::string>("match_methods", "");
+    if (!methods_str.empty()) {
+        match_methods = sunshine::split(methods_str, ',');
+    }
 
     std::vector<std::unique_ptr<RobotSim>> robots;
     std::cout << "Running single-agent simulation...." << std::endl;
@@ -311,10 +318,11 @@ int main(int argc, char **argv) {
         robots.back()->open(std::string(argv[i]), image_topic_name, depth_topic_name, segmentation_topic_name, (i - 4) * 2000);
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
-    ros::Publisher naive_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/naive_map", 0);
-    ros::Publisher merged_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/merged_map", 0);
-    ros::Publisher hungarian_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/hungarian_map", 0);
-    ros::Publisher gt_map_pub = nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0);
+    std::unique_ptr<ros::Publisher> gt_map_pub = (segmentation_topic_name.empty()) ? nullptr : std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0));
+    std::vector<std::unique_ptr<ros::Publisher>> publishers;
+    for (auto const& method : match_methods) {
+        publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/" + method + "_map", 0)));
+    }
 
     auto const csv_filename = nh.param<std::string>("output_filename", "test.csv");
     auto writer = (csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
@@ -343,7 +351,6 @@ int main(int argc, char **argv) {
         header.append("Single Robot GT AMI");
         writer->write_header(header);
     }
-
 
     auto const populate_row = [&robots](std::string const &name,
                                         size_t const &n_observations,
@@ -405,19 +412,6 @@ int main(int argc, char **argv) {
 
         auto topic_models = fetch_new_topic_models(false);
         auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-
-        auto const correspondences_clear = match_topics("clear-l1", {topic_models.begin(), topic_models.end()});
-        match_scores const scores_clear(topic_models, correspondences_clear.lifting, normed_dist_sq<double>);
-
-        auto const correspondences_hungarian = match_topics("hungarian-l1", {topic_models.begin(), topic_models.end()});
-        match_scores const scores_hungarian(topic_models, correspondences_hungarian.lifting, normed_dist_sq<double>);
-
-        auto const correspondences_naive = match_topics("id", {topic_models.begin(), topic_models.end()});
-        match_scores const scores_naive(topic_models, correspondences_naive.lifting, normed_dist_sq<double>);
-
-        uint32_t matched = 0;
-        for (auto const size : scores_clear.cluster_sizes) { matched += (size > 1); }
-        std::cout << "Matched: " << matched << "/" << correspondences_clear.num_unique << std::endl;
         std::cout << "Refine time: " << refine_time << std::endl;
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
@@ -428,53 +422,47 @@ int main(int argc, char **argv) {
             //            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
+        auto const gt_merged = (segmentation_topic_name.empty()) ? nullptr : merge<3>(gt_segmentations);
 
-        auto naive_merged = merge(segmentations);
-        auto clear_merged = merge(segmentations, correspondences_clear.lifting);
-        auto hungarian_merged = merge(segmentations, correspondences_hungarian.lifting);
+        for (auto i = 0ul; i < match_methods.size(); ++i) {
+            auto const& method = match_methods[i];
+            auto const correspondences = match_topics(method, {topic_models.begin(), topic_models.end()});
+            match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
 
-        auto const naive_metrics = compute_metrics(*singleRobotSegmentation, *naive_merged);
-        auto const clear_metrics = compute_metrics(*singleRobotSegmentation, *clear_merged);
-        auto const hungarian_metrics = compute_metrics(*singleRobotSegmentation, *hungarian_merged);
+            uint32_t matched = 0;
+            for (auto const size : scores.cluster_sizes) { matched += (size > 1); }
+            std::cout << method << " matched clusters: " << matched << "/" << correspondences.num_unique << std::endl;
 
-        if (!segmentation_topic_name.empty()) {
-            auto const gt_merged = merge<3>(gt_segmentations);
-            align(*naive_merged, *gt_merged);
-            align(*clear_merged, *gt_merged);
-            align(*hungarian_merged, *gt_merged);
+            auto merged_segmentations = merge(segmentations, correspondences.lifting);
+            auto const sr_ref_metrics = compute_metrics(*singleRobotSegmentation, *merged_segmentations);
+            std::cout << method << " SR AMI:" << std::get<2>(sr_ref_metrics) << std::endl;
+            if (gt_merged) {
+                align(*merged_segmentations, *gt_merged);
 
-            if (writer) {
-                std::vector<double> individ_mi, individ_nmi, individ_ami;
-                for (auto const& segmentation : segmentations) {
-                    auto const individ_metric = compute_metrics(*gt_merged, *segmentation);
-                    individ_mi.push_back(std::get<0>(individ_metric));
-                    individ_nmi.push_back(std::get<1>(individ_metric));
-                    individ_ami.push_back(std::get<2>(individ_metric));
+                if (writer) {
+                    std::vector<double> individ_mi, individ_nmi, individ_ami;
+                    for (auto const& segmentation : segmentations) {
+                        auto const individ_metric = compute_metrics(*gt_merged, *segmentation);
+                        individ_mi.push_back(std::get<0>(individ_metric));
+                        individ_nmi.push_back(std::get<1>(individ_metric));
+                        individ_ami.push_back(std::get<2>(individ_metric));
+                    }
+                    auto const individ_gt_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
+
+                    auto const gt_ref_metrics       = compute_metrics(*gt_merged, *merged_segmentations);
+                    auto const sr_gt_metrics        = compute_metrics(*gt_merged, *singleRobotSegmentation);
+                    writer->write_row(populate_row(method, n_obs, correspondences, sr_ref_metrics, scores, gt_ref_metrics, individ_gt_metrics, sr_gt_metrics));
+
+                    std::cout << method << " GT AMI:" << std::get<2>(gt_ref_metrics) << std::endl;
                 }
-                auto const individ_gt_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
-
-                auto const naive_gt_metrics = compute_metrics(*gt_merged, *naive_merged);
-                auto const clear_gt_metrics = compute_metrics(*gt_merged, *clear_merged);
-                auto const hungarian_gt_metrics = compute_metrics(*gt_merged, *hungarian_merged);
-                auto const single_gt_metrics = compute_metrics(*gt_merged, *singleRobotSegmentation);
-                writer->write_row(populate_row("Naive", n_obs, correspondences_naive, naive_metrics, scores_naive, naive_gt_metrics, individ_gt_metrics, single_gt_metrics));
-                writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, hungarian_metrics, scores_hungarian, hungarian_gt_metrics, individ_gt_metrics, single_gt_metrics));
-                writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, clear_metrics, scores_clear, clear_gt_metrics, individ_gt_metrics, single_gt_metrics));
-
-                std::cout << "Naive/CLEAR/Hungarian AMIs:" << std::get<2>(naive_gt_metrics) << "," << std::get<2>(clear_gt_metrics) << ","
-                          << std::get<2>(hungarian_gt_metrics) << std::endl;
+                gt_map_pub->publish(toRosMsg(*gt_merged));
+            } else if (writer) {
+                writer->write_row(populate_row("Naive", n_obs, correspondences, sr_ref_metrics, scores));
             }
-            gt_map_pub.publish(toRosMsg(*gt_merged));
-        } else if (writer) {
-            writer->write_row(populate_row("Naive", n_obs, correspondences_naive, naive_metrics, scores_naive));
-            writer->write_row(populate_row("Hungarian", n_obs, correspondences_hungarian, hungarian_metrics, scores_hungarian));
-            writer->write_row(populate_row("CLEAR", n_obs, correspondences_clear, clear_metrics, scores_clear));
-        }
-        if (writer) writer->flush();
+            if (writer) writer->flush();
 
-        naive_map_pub.publish(toRosMsg(*naive_merged));
-        merged_map_pub.publish(toRosMsg(*clear_merged));
-        hungarian_map_pub.publish(toRosMsg(*hungarian_merged));
+            publishers[i]->publish(toRosMsg(*merged_segmentations));
+        }
 
         start = std::chrono::steady_clock::now();
     }

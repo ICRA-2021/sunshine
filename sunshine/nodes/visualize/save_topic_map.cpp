@@ -1,20 +1,16 @@
+#include "sunshine/common/topic_map_utils.hpp"
 #include "sunshine/common/utils.hpp"
 #include "sunshine/common/word_coloring.hpp"
 #include <fstream>
 #include <iostream>
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
 #include <ros/ros.h>
-#include <sunshine_msgs/SaveObservationModel.h>
 #include <sunshine_msgs/GetTopicModel.h>
+#include <sunshine_msgs/SaveObservationModel.h>
 #include <sunshine_msgs/TopicMap.h>
 
 using namespace sunshine_msgs;
 using namespace cv;
-
-struct Pose {
-    double x, y, z;
-};
 
 int main(int argc, char** argv)
 {
@@ -87,80 +83,9 @@ int main(int argc, char** argv)
             }
         }
 
-        size_t const N = msg->cell_topics.size();
-        static_assert(sizeof(Pose) == sizeof(double) * 3, "Pose struct has incorrect size.");
-        Pose const* poseIter = reinterpret_cast<Pose const*>(msg->cell_poses.data());
-        double minX = poseIter->x, minY = poseIter->y, maxX = poseIter->x, maxY = poseIter->y;
-        if (fixedBox.empty()) {
-            for (size_t i = 0; i < N; i++, poseIter++) {
-                minX = std::min(poseIter->x, minX);
-                maxX = std::max(poseIter->x, maxX);
-                minY = std::min(poseIter->y, minY);
-                maxY = std::max(poseIter->y, maxY);
-            }
-
-            maxX = std::max(maxX, minX + minWidth);
-            maxY = std::max(maxY, minY + minHeight);
-        } else {
-            auto const size_spec = sunshine::readNumbers<4, 'x'>(fixedBox);
-            minX = size_spec[0];
-            minY = size_spec[1];
-            maxX = size_spec[0] + size_spec[2];
-            maxY = size_spec[1] + size_spec[3];
-        }
-
-        ROS_INFO("Saving map over region (%f, %f) to (%f, %f) (size spec %s)", minX, minY, maxX, maxY, fixedBox.c_str());
-
-        int const numRows = static_cast<int>((maxY - minY) / pixel_scale + 1);
-        int const numCols = static_cast<int>((maxX - minX) / pixel_scale + 1);
-
-        Mat topicMapImg(numRows, numCols, (useColor) ? sunshine::cvType<Vec4b>::value : sunshine::cvType<double>::value, Scalar(0));
-        Mat ppxMapImg(numRows, numCols, sunshine::cvType<double>::value, Scalar(0));
-        std::set<std::pair<int, int>> points;
-        poseIter = reinterpret_cast<Pose const*>(msg->cell_poses.data());
-        size_t outliers = 0, overlaps = 0;
-        for (size_t i = 0; i < N; i++, poseIter++) {
-            Point const point(static_cast<int>(std::round((poseIter->x - minX) / pixel_scale)),
-                static_cast<int>(std::round((maxY - poseIter->y) / pixel_scale)));
-            if (point.x < 0 || point.y < 0 || point.x >= numRows || point.y >= numCols) {
-                outliers++;
-                continue;
-            }
-            if (!points.insert({ point.x, point.y }).second) {
-                ROS_WARN_THROTTLE(1, "Duplicate cells found at (%d, %d)", point.x, point.y);
-                overlaps++;
-            }
-            if (useColor) {
-                auto const color = wordColorMap.colorForWord(msg->cell_topics[i]);
-                topicMapImg.at<Vec4b>(point) = { color.r, color.g, color.b, color.a };
-            } else {
-                topicMapImg.at<double>(point) = msg->cell_topics[i] + 1;
-            }
-            if (savePpx  && msg->cell_ppx.size() > i) ppxMapImg.at<double>(point) = msg->cell_ppx[i];
-        }
-        ROS_INFO_COND(outliers > 0, "Discarded %lu points outside of %s", outliers, fixedBox.c_str());
-        ROS_WARN_COND(overlaps > 0, "Dicarded %lu overlapped points.", overlaps);
-        ROS_INFO("Points: %lu, Rows: %d, Cols: %d, Colors: %lu", N, numRows, numCols, wordColorMap.getNumColors());
-        if (static_cast<unsigned long>(numRows) * static_cast<unsigned long>(numCols) < N){
-            ROS_WARN("More cells than space in grid - assuming there are overlapping cells.");
-        } else {
-            ROS_INFO("Gaps: %lu", static_cast<unsigned long>(numRows) * static_cast<unsigned long>(numCols) - N);
-        }
-
-        imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", topicMapImg);
-        if (savePpx) imwrite(output_prefix + "-" + std::to_string(msg->seq) + "-ppx.png", ppxMapImg);
-        std::ofstream colorWriter(output_prefix + "-" + std::to_string(msg->seq) + "-colors.csv");
-        for (auto const& entry : wordColorMap.getAllColors()) {
-            colorWriter << entry.first;
-            for (auto const& v : entry.second) {
-                colorWriter << "," << std::to_string(v);
-            }
-            colorWriter << "\n";
-        }
-        colorWriter.close();
-
+        Mat topicMapImg = sunshine::createTopicImg(msg, wordColorMap, pixel_scale, useColor, minWidth, minHeight, fixedBox, true);
+        sunshine::saveTopicImg(topicMapImg, output_prefix + "-" + std::to_string(msg->seq) + "-topics.png", output_prefix + "-" + std::to_string(msg->seq) + "-colors.csv", &wordColorMap);
         done = true;
-        return;
     });
 
     if (continuous) {
