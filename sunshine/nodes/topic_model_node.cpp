@@ -369,7 +369,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     auto const time_start = time_checkpoint;
 
     using namespace std;
-    rostAdapter.wait_for_processing();
+    rostAdapter.wait_for_processing(false);
     auto const duration_wait = record_lap(time_checkpoint);
 
     sunshine_msgs::WordObservation::Ptr topicObs(new sunshine_msgs::WordObservation);

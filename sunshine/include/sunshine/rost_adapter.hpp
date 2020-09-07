@@ -185,20 +185,31 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
             rost->set_topic_model(*rostWriteGuard, init_model);
         }
 
+        stopWorkers();
         if (num_threads <= 0) { //refine when requested
             ROS_INFO("Topics will only be refined on service request.");
         } else { //refine automatically
             ROS_DEBUG("Topics will be refined online.");
+            startWorkers();
+        }
+    }
+
+    void stopWorkers() {
+        stopWork = true; //signal workers to stop
+        for (auto const &t : workers) { //wait for them to stop
+            if (t) t->join();
+        }
+    }
+
+    void startWorkers() {
+        if (stopWork) {
             stopWork = false;
             workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
         }
     }
 
     ~ROSTAdapter() override {
-        stopWork = true; //signal workers to stop
-        for (auto const &t : workers) { //wait for them to stop
-            if (t) t->join();
-        }
+        stopWorkers();
         for (auto const &t : observationThreads) {
             if (t) t->join();
         }
@@ -372,7 +383,7 @@ std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses)
         rost->set_topic_model(write_token, phi.counts, phi.topic_weights);
     }
 
-    void wait_for_processing(bool const new_data = true) const {
+    void wait_for_processing(bool const new_data = false) const {
         using namespace std::chrono;
         auto const elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
         bool const delay = elapsedSinceAdd < min_obs_refine_time;

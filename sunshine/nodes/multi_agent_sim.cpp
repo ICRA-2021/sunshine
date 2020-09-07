@@ -181,6 +181,14 @@ class RobotSim {
         return !bagIter->play(false);
     }
 
+    void waitForProcessing() const {
+        rostAdapter->wait_for_processing(false);
+    }
+
+    void pause() {
+        rostAdapter->stopWorkers();
+    }
+
     std::string getName() const {
         return name;
     }
@@ -281,14 +289,25 @@ int main(int argc, char **argv) {
     auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
 
     std::vector<std::unique_ptr<RobotSim>> robots;
+    std::cout << "Running single-agent simulation...." << std::endl;
     RobotSim aggregateRobot("Aggregate", nh, !depth_topic_name.empty(), segmentationAdapter);
+    for (auto i = 4; i < argc; ++i) {
+        aggregateRobot.open(std::string(argv[i]), image_topic_name, depth_topic_name, segmentation_topic_name);
+        while (ros::ok() && aggregateRobot.next()) {
+            aggregateRobot.waitForProcessing();
+        }
+        aggregateRobot.waitForProcessing();
+    }
+    aggregateRobot.pause();
+    auto const singleRobotSegmentation = aggregateRobot.getMap();
+    std::cout << "Finished single-agent simulation." << std::endl;
+
     //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
         robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4),
                                                        nh,
                                                        !depth_topic_name.empty(),
-                                                       segmentationAdapter,
-                                                       aggregateRobot.getRost()));
+                                                       segmentationAdapter));
         robots.back()->open(std::string(argv[i]), image_topic_name, depth_topic_name, segmentation_topic_name, (i - 4) * 2000);
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
@@ -325,14 +344,15 @@ int main(int argc, char **argv) {
         writer->write_header(header);
     }
 
-    auto const populate_row = [&robots, &aggregateRobot](std::string const &name,
-                                                         size_t const &n_observations,
-                                                         match_results const &correspondences,
-                                                         std::tuple<double, double, double> metrics,
-                                                         match_scores const &scores,
-                                                         std::optional<std::tuple<double, double, double>> gt_metrics = {},
-                                                         std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_gt_metrics = {},
-                                                         std::optional<std::tuple<double, double, double>> single_gt_metrics = {}) {
+
+    auto const populate_row = [&robots](std::string const &name,
+                                        size_t const &n_observations,
+                                        match_results const &correspondences,
+                                        std::tuple<double, double, double> metrics,
+                                        match_scores const &scores,
+                                        std::optional<std::tuple<double, double, double>> gt_metrics = {},
+                                        std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_gt_metrics = {},
+                                        std::optional<std::tuple<double, double, double>> single_gt_metrics = {}) {
         csv_row<> row;
         row.append(name);
         row.append(robots.size());
@@ -361,7 +381,6 @@ int main(int argc, char **argv) {
         }
         return row;
     };
-
 
 
     auto const fetch_new_topic_models = [&robots](bool remove_unused = true) {
@@ -409,7 +428,6 @@ int main(int argc, char **argv) {
             //            auto const cooccurrence_data = compute_cooccurences(*(robots[i]->getGTMap()), *(robots[i]->getDistMap()));
             //            map_pubs[i].publish(toRosMsg(*segmentations.back()));
         }
-        auto const singleRobotSegmentation = aggregateRobot.getMap();
 
         auto naive_merged = merge(segmentations);
         auto clear_merged = merge(segmentations, correspondences_clear.lifting);
