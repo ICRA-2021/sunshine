@@ -2,7 +2,8 @@
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
   <arg name="segmentation_topic" default="/camera/seg/image_color" /> <!--Rectified color image-->
-  <arg name="bagfiles" default="/home/stewart/datasets/airsim-bags/reef-explore-rows_2020-08-07-13-04-21.bag /home/stewart/datasets/airsim-bags/reef-explore-rows_2020-08-07-13-06-04.bag" />
+  <arg name="bagfiles" default="/data/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/airsim-bags/reef-explore_3_part_3_of_5.bag
+/data/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/airsim-bags/reef-explore_3_part_5_of_5.bag" />
   <arg name="file_prefix" default="" />
   <arg name="maps_dir" default="" />
   <arg name="stats_filename" default="$(eval maps_dir + '/stats.csv' if maps_dir != '' else '')" />
@@ -52,7 +53,7 @@
   <arg name="use_rviz" default="true" />
   <arg name="visualize_3d" default="$(arg use_rviz)" />
 
-  <param name="/use_sim_time" value="true"/>
+  <param name="/use_sim_time" value="false"/>
 
 
   <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim" args="$(arg image_topic) $(arg depth_cloud_topic) $(arg segmentation_topic) $(arg bagfiles)">

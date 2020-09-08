@@ -99,6 +99,7 @@ class RobotSim {
         for (auto const &transform : tfMsg->transforms) {
             tf::StampedTransform tfTransform;
             tf::transformStampedMsgToTF(transform, tfTransform);
+            tfTransform.stamp_ = ros::Time::now();
             if (lastRgb && (tfTransform.frame_id_ == lastRgb->frame || tfTransform.child_frame_id_ == lastRgb->frame)) transform_found = true;
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
