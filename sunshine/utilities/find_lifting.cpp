@@ -38,10 +38,9 @@ std::vector<std::string> split_algs(const std::string &arg) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) throw std::invalid_argument("Usage: <TOPIC_BIN_DIR> <VOCAB_SIZE> <MATCHING_ALGORITHM>");
+    if (argc != 3) throw std::invalid_argument("Usage: <TOPIC_BIN_DIR> <MATCHING_ALGORITHM>");
     std::string const in_dir(argv[1]);
-    int const V = std::stoi(argv[2]);
-    auto const match_algs = split_algs(argv[3]);
+    auto const match_algs = split_algs(argv[2]);
 
     using namespace boost::filesystem;
     if (!is_directory(in_dir)) throw std::invalid_argument(in_dir + " is not a valid directory!");
@@ -57,8 +56,8 @@ int main(int argc, char **argv) {
         std::cerr << "Processing " << topic_bin.string() << std::endl;
         std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
 
-        auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
-        topic_models.emplace_back(file_reader, stem, V);
+//        auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
+        topic_models.emplace_back(file_reader);
         topic_models[topic_models.size() - 1].validate(true);
         topic_model_paths.emplace_back(topic_bin.string());
 

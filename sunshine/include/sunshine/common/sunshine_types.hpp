@@ -13,6 +13,7 @@
 namespace sunshine {
 
 struct Phi {
+  constexpr static int32_t VERSION = INT_MIN + 2; // increment added constant whenever serialization format changes
   std::string id;
   int K = 0, V = 0;
   std::vector<std::vector<int>> counts = {};
@@ -23,7 +24,7 @@ struct Phi {
   explicit Phi(std::string id)
         : id(std::move(id)) {}
 
-  Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
+  explicit Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
         : id(std::move(id))
         , K(K)
         , V(V)
@@ -76,23 +77,20 @@ struct Phi {
       return flag;
   }
 
-  void serialize(std::ostream &out) {
-      if (!out.good()) throw std::logic_error("Output stream in invalid state");
-      validate();
-      constexpr int VERSION = INT_MIN + 1; // increment added constant whenever serialization format changes
-      static_assert(VERSION < 0, "Version number must be negative!");
-      out.write(reinterpret_cast<char const *>(&VERSION), sizeof(VERSION) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&K), sizeof(K) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&V), sizeof(V) / sizeof(char));
-      out.write(reinterpret_cast<char const *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) / sizeof(char) * K);
+  void serialize(std::ostream &out) const {
+      if (!out.good()) throw std::invalid_argument("Output stream in invalid state");
+      if (id.size() > std::numeric_limits<uint8_t>::max()) throw std::invalid_argument("Identifier " + id + " is too long to serialize");
+      static_assert(VERSION < 0, "Version number must be negative!"); // just to keep it looking distinctive
+      out.write(reinterpret_cast<char const *>(&VERSION), sizeof(VERSION));
+      uint8_t const id_len = id.size();
+      out.write(reinterpret_cast<char const *>(&id_len), sizeof(uint8_t));
+      out.write(reinterpret_cast<char const *>(id.data()), id_len);
+      out.write(reinterpret_cast<char const *>(&K), sizeof(K));
+      out.write(reinterpret_cast<char const *>(&V), sizeof(V));
+      out.write(reinterpret_cast<char const *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) * K);
       for (auto word_dist : counts) {
-          out.write(reinterpret_cast<char const *>(word_dist.data()), sizeof(decltype(word_dist)::value_type) / sizeof(char) * V);
+          out.write(reinterpret_cast<char const *>(word_dist.data()), sizeof(decltype(word_dist)::value_type) * V);
       }
-  }
-
-  explicit Phi(std::istream &in) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      throw std::logic_error("Not yet implemented");
   }
 
 //  explicit Phi(Phi &&other)
@@ -103,21 +101,28 @@ struct Phi {
 //        , topic_weights(other.topic_weights) {
 //  }
 
-  explicit Phi(std::istream &in, std::string id, int const &vocab_size)
-        : id(std::move(id))
-        , K(0)
-        , V(vocab_size) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      std::vector<int> row(V, 0);
-      while (!in.eof()) {
-          in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) / sizeof(char) * V);
-          if (in.gcount() == 0) break;
-          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size or corrupt data");
-
-          K += 1;
-          topic_weights.push_back(std::accumulate(row.begin(), row.end(), 0));
+  explicit Phi(std::istream &in) {
+      if (!in.good()) throw std::invalid_argument("Input stream in invalid state");
+      int32_t version;
+      in.read(reinterpret_cast<char *>(&version), sizeof(version));
+      if (version != VERSION) throw std::invalid_argument("Unexpected serialization format.");
+      uint8_t id_len;
+      std::vector<char> id_chars;
+      in.read(reinterpret_cast<char *>(&id_len), sizeof(uint8_t));
+      id_chars.resize(id_len, 0);
+      in.read(id_chars.data(), id_len);
+      id = std::string(id_chars.begin(), id_chars.end());
+      in.read(reinterpret_cast<char *>(&K), sizeof(K));
+      in.read(reinterpret_cast<char *>(&V), sizeof(V));
+      topic_weights.resize(K, 0);
+      in.read(reinterpret_cast<char *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) * K);
+      decltype(counts)::value_type row(V, 0);
+      for (auto i = 0; i < K; ++i) {
+          in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) * V);
+          if (in.gcount() == 0 || in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size or corrupt data");
           counts.push_back(row);
       }
+      assert(in.eof());
       assert(validate(false));
   }
 };

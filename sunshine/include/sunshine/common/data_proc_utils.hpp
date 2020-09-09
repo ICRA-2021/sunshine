@@ -2,8 +2,8 @@
 // Created by stewart on 9/7/20.
 //
 
-#ifndef SUNSHINE_PROJECT_TOPIC_MAP_UTILS_HPP
-#define SUNSHINE_PROJECT_TOPIC_MAP_UTILS_HPP
+#ifndef SUNSHINE_PROJECT_DATA_PROC_UTILS_HPP
+#define SUNSHINE_PROJECT_DATA_PROC_UTILS_HPP
 
 #include "utils.hpp"
 #include "word_coloring.hpp"
@@ -12,6 +12,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <ros/console.h>
 #include <sunshine_msgs/TopicMap.h>
+#include <sunshine_msgs/TopicModel.h>
 
 namespace sunshine {
 
@@ -110,4 +111,4 @@ void saveTopicImg(cv::Mat const& topicMapImg,
 
 } // namespace sunshine
 
-#endif // SUNSHINE_PROJECT_TOPIC_MAP_UTILS_HPP
+#endif // SUNSHINE_PROJECT_DATA_PROC_UTILS_HPP

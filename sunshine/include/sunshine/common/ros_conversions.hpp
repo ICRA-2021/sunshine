@@ -117,8 +117,6 @@ ImageObservation fromRosMsg(const sensor_msgs::ImageConstPtr& msg) {
     return ImageObservation(msg->header.frame_id, msg->header.stamp.toSec(), msg->header.seq, std::move(img_ptr->image));
 }
 
-
-
 Phi fromRosMsg(sunshine_msgs::TopicModel const &topic_model) {
     Phi out(topic_model.identifier, topic_model.K, topic_model.V, {}, topic_model.topic_weights);
     assert(*std::min_element(topic_model.topic_weights.cbegin(), topic_model.topic_weights.cend()) >= 0);

@@ -1,4 +1,5 @@
-#include "sunshine/common/topic_map_utils.hpp"
+#include "sunshine/common/data_proc_utils.hpp"
+#include "sunshine/common/ros_conversions.hpp"
 #include "sunshine/common/utils.hpp"
 #include "sunshine/common/word_coloring.hpp"
 #include <fstream>
@@ -49,13 +50,10 @@ int main(int argc, char** argv)
             GetTopicModel getTopicModel;
             if (modelClient.call(getTopicModel)) {
                 std::string const filename = output_prefix + "-" + std::to_string(msg->seq) + "-modelweights.bin";
-                std::fstream writer(filename, std::ios::out | std::ios::binary);
-                if (writer.good()) {
-                    writer.write(reinterpret_cast<char *>(getTopicModel.response.topic_model.phi.data()),
-                                 sizeof(decltype(getTopicModel.response.topic_model.phi)::value_type) / sizeof(char)
-                                 * getTopicModel.response.topic_model.phi.size());
-                    writer.close();
-                } else {
+                try {
+                    std::ofstream writer(filename, std::ios::out | std::ios::binary);
+                    sunshine::fromRosMsg(getTopicModel.response.topic_model).serialize(writer);
+                } catch (std::logic_error const& e) {
                     ROS_ERROR("Failed to save topic model to file %s", filename.c_str());
                 }
             } else {

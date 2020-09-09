@@ -8,7 +8,7 @@
 #include "sunshine/common/metric.hpp"
 #include "sunshine/common/parameters.hpp"
 #include "sunshine/common/rosbag_utils.hpp"
-#include "sunshine/common/topic_map_utils.hpp"
+#include "sunshine/common/data_proc_utils.hpp"
 #include "sunshine/common/utils.hpp"
 #include "sunshine/depth_adapter.hpp"
 #include "sunshine/observation_transform_adapter.hpp"
@@ -49,6 +49,7 @@ class RobotSim {
         if (use_3d && (!transform_found || lastRgb->timestamp != depth_timestamp)) return false;
         if (use_segmentation && (!lastSegmentation || lastRgb->timestamp != lastSegmentation->timestamp)) return false;
         // TODO: remove duplication between if branches below
+        lastRgb->timestamp = ros::Time::now().toSec();
         if (use_3d) {
             auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
             if (externalRostAdapter) {
@@ -171,7 +172,7 @@ class RobotSim {
 
     auto getGTMap() const {
         double const timestamp = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-        segmentation->id = ros::Time(timestamp).sec;
+        if (segmentation) segmentation->id = ros::Time(timestamp).sec;
         return segmentation;
     }
 
@@ -414,7 +415,7 @@ int main(int argc, char **argv) {
     };
 
 
-    auto const fetch_new_topic_models = [&robots](bool remove_unused = true) {
+    auto const fetch_new_topic_models = [&robots](bool remove_unused = false) {
         std::vector<Phi> topic_models;
         for (auto const &robot : robots) {
             topic_models.push_back(robot->getTopicModel(true));
@@ -437,6 +438,12 @@ int main(int argc, char **argv) {
         auto topic_models = fetch_new_topic_models(false);
         auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
         std::cout << "Refine time: " << refine_time << std::endl;
+        std::string const topic_model_filename = output_prefix + std::to_string(n_obs) + "-models.bin";
+        std::ofstream topic_model_writer(topic_model_filename, ios_base::out | ios_base::binary);
+        for (auto const& phi : topic_models) {
+            phi.serialize(topic_model_writer);
+        }
+        topic_model_writer.close();
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
         std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
