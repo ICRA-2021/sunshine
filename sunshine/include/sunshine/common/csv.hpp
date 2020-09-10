@@ -179,7 +179,8 @@ class csv_writer {
     }
 
     ~csv_writer() {
-        close();
+        if (_constructed) close();
+        else flush();
     }
 };
 

@@ -28,8 +28,8 @@ int main(int argc, char **argv) {
 
 model_translator::model_translator(ros::NodeHandle *nh)
       : nh(nh)
-      , global_model("global") {
-    std::string const target_nodes = nh->param<std::string>("target_nodes", "");
+      , global_model(std::string("global")) {
+    auto const target_nodes = nh->param<std::string>("target_nodes", "");
     std::stringstream ss(target_nodes);
     std::string node;
     while (std::getline(ss, node, ',')) {
@@ -61,7 +61,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
         this->match_timer = nh->createTimer(ros::Duration(this->match_period), [this](ros::TimerEvent const &) {
             ROS_INFO("Beginning topic matching.");
             auto const topic_models = fetch_topic_models();
-            auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
+            auto const correspondences = match_topics(this->match_method, topic_models);
             TopicMatches topic_matches;
             for (auto const &topic_model : topic_models) {
                 topic_matches.robots.push_back(topic_model.id);
@@ -97,7 +97,7 @@ model_translator::model_translator(ros::NodeHandle *nh)
                 if (!topic_models.empty()) pause_topic_models(false);
                 return; // only merge if we have everything
             }
-            auto const correspondences = match_topics(this->match_method, {topic_models.begin(), topic_models.end()});
+            auto const correspondences = match_topics(this->match_method, topic_models);
             update_global_model(topic_models, correspondences);
             broadcast_global_model(true);
             if (this->stats_writer) {

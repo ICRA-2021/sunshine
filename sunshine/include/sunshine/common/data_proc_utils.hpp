@@ -12,7 +12,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <ros/console.h>
 #include <sunshine_msgs/TopicMap.h>
-#include <sunshine_msgs/TopicModel.h>
+#include <utility>
 
 namespace sunshine {
 

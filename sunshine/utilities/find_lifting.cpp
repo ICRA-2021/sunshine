@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
         std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
 
 //        auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
-        topic_models.emplace_back(file_reader);
+        topic_models.emplace_back(Phi::deserialize(file_reader));
         topic_models[topic_models.size() - 1].validate(true);
         topic_model_paths.emplace_back(topic_bin.string());
 

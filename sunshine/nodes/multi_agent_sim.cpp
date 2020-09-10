@@ -1,5 +1,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
 
 #include "sunshine/2d_adapter.hpp"
 #include "sunshine/benchmark.hpp"
@@ -20,6 +22,7 @@
 #include <sunshine/common/ros_conversions.hpp>
 #include <tf2_msgs/TFMessage.h>
 #include <utility>
+#include <iostream>
 
 using namespace sunshine;
 
@@ -439,11 +442,16 @@ int main(int argc, char **argv) {
         auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
         std::cout << "Refine time: " << refine_time << std::endl;
         std::string const topic_model_filename = output_prefix + std::to_string(n_obs) + "-models.bin";
-        std::ofstream topic_model_writer(topic_model_filename, ios_base::out | ios_base::binary);
-        for (auto const& phi : topic_models) {
-            phi.serialize(topic_model_writer);
+        {
+            std::ofstream topic_model_writer(topic_model_filename, ios_base::out | ios_base::binary);
+            boost::iostreams::filtering_ostream filtered_out;
+            filtered_out.set_auto_close(true);
+            filtered_out.push(boost::iostreams::zlib_compressor());
+            filtered_out.push(topic_model_writer);
+            for (auto const &phi : topic_models) {
+                phi.serialize(filtered_out);
+            }
         }
-        topic_model_writer.close();
 
         std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
         std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
@@ -457,7 +465,7 @@ int main(int argc, char **argv) {
 
         for (auto i = 0ul; i < match_methods.size(); ++i) {
             auto const& method = match_methods[i];
-            auto const correspondences = match_topics(method, {topic_models.begin(), topic_models.end()});
+            auto const correspondences = match_topics(method, topic_models);
             match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
 
             uint32_t matched = 0;

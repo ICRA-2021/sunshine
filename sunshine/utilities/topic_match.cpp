@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
         std::string const name = std::string(stem.substr(name_idx + 1));
 
         std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
-        model_map[name].emplace(file_reader);
+        model_map[name].emplace(Phi::deserialize(file_reader));
         assert(file_reader.eof());
         file_reader.close();
 
