@@ -1,5 +1,5 @@
-#ifndef SUNSHINE_PROJECT_ADROST_UTILS_HPP
-#define SUNSHINE_PROJECT_ADROST_UTILS_HPP
+#ifndef SUNSHINE_PROJECT_MATCHING_UTILS_HPP
+#define SUNSHINE_PROJECT_MATCHING_UTILS_HPP
 
 #include <cmath>
 #include <clear/Hungarian.h>
@@ -714,4 +714,4 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
 }
 }
 
-#endif //SUNSHINE_PROJECT_ADROST_UTILS_HPP
+#endif //SUNSHINE_PROJECT_MATCHING_UTILS_HPP

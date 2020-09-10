@@ -1,11 +1,10 @@
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/filter/zlib.hpp>
 
 #include "sunshine/2d_adapter.hpp"
-#include "sunshine/benchmark.hpp"
-#include "sunshine/common/adrost_utils.hpp"
+#include "sunshine/common/simulation_utils.hpp"
+#include "sunshine/common/matching_utils.hpp"
+#include "sunshine/common/segmentation_utils.hpp"
 #include "sunshine/common/csv.hpp"
 #include "sunshine/common/metric.hpp"
 #include "sunshine/common/parameters.hpp"
@@ -25,262 +24,6 @@
 #include <iostream>
 
 using namespace sunshine;
-
-class RobotSim {
-    std::string const name;
-    std::unique_ptr<BagIterator> bagIter;
-    VisualWordAdapter visualWordAdapter;
-    std::shared_ptr<ROSTAdapter<4, double, double>> rostAdapter;
-    std::shared_ptr<ROSTAdapter<4, double, double>> externalRostAdapter;
-    std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
-    ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
-    ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
-    std::unique_ptr<WordDepthAdapter> wordDepthAdapter;
-    std::unique_ptr<ImageDepthAdapter> imageDepthAdapter;
-    std::unique_ptr<Word2DAdapter<3>> word2dAdapter;
-    std::unique_ptr<Image2DAdapter<3>> image2dAdapter;
-    std::unique_ptr<ImageObservation> lastRgb, lastSegmentation;
-    std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
-    double depth_timestamp = -1;
-    bool transform_found = false;
-    bool processed_rgb = false;
-    bool const use_3d;
-    bool use_segmentation;
-
-    bool tryProcess() {
-        if (!lastRgb || processed_rgb) return false;
-        if (use_3d && (!transform_found || lastRgb->timestamp != depth_timestamp)) return false;
-        if (use_segmentation && (!lastSegmentation || lastRgb->timestamp != lastSegmentation->timestamp)) return false;
-        // TODO: remove duplication between if branches below
-        lastRgb->timestamp = ros::Time::now().toSec();
-        if (use_3d) {
-            auto observation = lastRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
-            if (externalRostAdapter) {
-                observation >> *rostAdapter;
-                observation >> *externalRostAdapter;
-            } else {
-                (*rostAdapter)(std::move(observation));
-            }
-            if (use_segmentation) segmentation = lastSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-        } else {
-            auto observation = lastRgb >> visualWordAdapter >> *word2dAdapter;
-            if (externalRostAdapter) {
-                observation >> *rostAdapter;
-                observation >> *externalRostAdapter;
-            } else {
-                (*rostAdapter)(std::move(observation));
-            }
-            if (use_segmentation) segmentation = lastSegmentation >> *image2dAdapter >> *segmentationAdapter;
-        }
-        processed_rgb = true;
-        return true;
-    }
-
-    bool imageCallback(sensor_msgs::Image::ConstPtr image) {
-        lastRgb = std::make_unique<ImageObservation>(fromRosMsg(image));
-        processed_rgb = false;
-        return tryProcess();
-    }
-
-    bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
-        lastSegmentation = std::make_unique<ImageObservation>(fromRosMsg(image));
-        return tryProcess();
-    }
-
-    bool depthCallback(sensor_msgs::PointCloud2::ConstPtr const &msg) {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::PCLPointCloud2 pcl_pc2;
-        pcl_conversions::toPCL(*msg, pcl_pc2);
-        pcl::fromPCLPointCloud2(pcl_pc2, *pc);
-
-        wordDepthAdapter->updatePointCloud(pc);
-        imageDepthAdapter->updatePointCloud(pc);
-        depth_timestamp = msg->header.stamp.toSec();
-        return tryProcess();
-    };
-
-    bool transformCallback(tf2_msgs::TFMessage::ConstPtr const &tfMsg) {
-        for (auto const &transform : tfMsg->transforms) {
-            tf::StampedTransform tfTransform;
-            tf::transformStampedMsgToTF(transform, tfTransform);
-            tfTransform.stamp_ = ros::Time::now();
-            if (lastRgb && (tfTransform.frame_id_ == lastRgb->frame || tfTransform.child_frame_id_ == lastRgb->frame)) transform_found = true;
-            wordTransformAdapter.addTransform(tfTransform);
-            imageTransformAdapter.addTransform(tfTransform);
-        }
-        return tryProcess();
-    }
-
-  public:
-    template<typename ParamServer>
-    RobotSim(std::string name,
-             ParamServer const &parameters,
-             bool const use_3d,
-             std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr)
-            : name(std::move(name)),
-              bagIter(nullptr),
-              visualWordAdapter(&parameters),
-              rostAdapter(std::make_shared<ROSTAdapter<4, double, double>>(&parameters)),
-              externalRostAdapter(std::move(external_rost_adapter)),
-              segmentationAdapter((shared_seg_adapter)
-                                  ? std::move(shared_seg_adapter)
-                                  : std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&parameters,
-                                                                                                                            true)),
-              wordTransformAdapter(&parameters),
-              imageTransformAdapter(&parameters),
-              use_3d(use_3d) {}
-
-    void open(std::string const& bagFilename,
-              std::string const &image_topic,
-              std::string const &depth_topic = "",
-              std::string const &segmentation_topic= "",
-              double x_offset = 0) {
-        if (use_3d && depth_topic.empty()) throw std::invalid_argument("Must provide depth topic if operating in 3D mode");
-        wordDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>();
-        imageDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>();
-        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
-        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
-        use_segmentation = !segmentation_topic.empty();
-
-        bagIter = std::make_unique<BagIterator>(bagFilename);
-        bagIter->add_callback<sensor_msgs::Image>(image_topic, [this](auto const &msg) { return this->imageCallback(msg); });
-        bagIter->add_callback<sensor_msgs::Image>(segmentation_topic, [this](auto const &msg) { return this->segmentationCallback(msg); });
-        bagIter->add_callback<sensor_msgs::PointCloud2>(depth_topic, [this](auto const &msg) { return this->depthCallback(msg); });
-        bagIter->add_callback<tf2_msgs::TFMessage>("/tf", [this](auto const &msg) { return this->transformCallback(msg); });
-        bagIter->set_logging(true);
-    }
-
-    Phi getTopicModel(bool wait_for_refine = false) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_topic_model(*token);
-    }
-
-    auto getRost() {
-        return rostAdapter;
-    }
-
-    auto getMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_map(*token);
-    }
-
-    auto getDistMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_dist_map(*token);
-    }
-
-    auto getGTMap() const {
-        double const timestamp = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
-        if (segmentation) segmentation->id = ros::Time(timestamp).sec;
-        return segmentation;
-    }
-
-    /**
-     *
-     * @return false if finished, true if there are more messages to simulate
-     */
-    bool next() {
-        if (!bagIter) throw std::logic_error("No bag opened to play");
-        return !bagIter->play(false);
-    }
-
-    void waitForProcessing() const {
-        rostAdapter->wait_for_processing(false);
-    }
-
-    void pause() {
-        rostAdapter->stopWorkers();
-    }
-
-    std::string getName() const {
-        return name;
-    }
-};
-
-template<uint32_t PoseDim = 4, typename Container>
-std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &segmentations,
-                                                               std::vector<std::vector<int>> const &lifting = {}) {
-    auto merged = std::make_unique<Segmentation<int, PoseDim, int, double>>(segmentations[0]->frame,
-                                                                            segmentations[0]->timestamp,
-                                                                            segmentations[0]->id,
-                                                                            segmentations[0]->cell_size,
-                                                                            std::vector<int>(),
-                                                                            segmentations[0]->observation_poses);
-    for (auto i = 1; i < segmentations.size(); ++i) {
-        merged->observation_poses.insert(merged->observation_poses.end(),
-                                         segmentations[i]->observation_poses.begin(),
-                                         segmentations[i]->observation_poses.end());
-    }
-    if (lifting.empty()) {
-        for (auto const &map : segmentations) {
-            if constexpr (std::is_integral_v<typename decltype(map->observations)::value_type>) {
-                merged->observations.insert(merged->observations.end(), map->observations.begin(), map->observations.end());
-            } else {
-                std::transform(map->observations.begin(),
-                               map->observations.end(),
-                               std::back_inserter(merged->observations),
-                               argmax<std::vector<int>>);
-            }
-        }
-    } else {
-        for (auto i = 0; i < segmentations.size(); ++i) {
-            if constexpr (std::is_integral_v<typename decltype(segmentations[i]->observations)::value_type>) {
-                std::transform(segmentations[i]->observations.begin(),
-                               segmentations[i]->observations.end(),
-                               std::back_inserter(merged->observations),
-                               [i, &lifting](int const &obs) {
-                    assert(obs < lifting[i].size());
-                    return lifting[i][obs]; });
-            } else {
-                std::transform(segmentations[i]->observations.begin(),
-                               segmentations[i]->observations.end(),
-                               std::back_inserter(merged->observations),
-                               [i, &lifting](std::vector<int> const &obs) {
-                    assert(argmax(obs) < lifting[i].size());
-                    return lifting[i][argmax(obs)]; });
-            }
-        }
-    }
-    return merged;
-}
-
-template<uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
-void align(Segmentation<int, LeftPoseDim, int, double> &segmentation, Segmentation<int, RightPoseDim, int, double> const &reference) {
-    auto const cooccurrence_data = compute_cooccurences(reference, segmentation);
-    auto const &counts = cooccurrence_data.first;
-    std::vector<std::vector<double>> costs(counts[0].size(), std::vector<double>(counts.size(), 0.0));
-    for (auto i = 0ul; i < counts.size(); ++i) {
-        for (auto j = 0ul; j < counts[0].size(); ++j) {
-            costs[j][i] = std::accumulate(counts[i].begin(), counts[i].end(), 0.0) - 2 * counts[i][j];
-        }
-    }
-    int num_topics = counts.size();
-    auto const lifting = get_permutation(hungarian_assignments(costs), &num_topics);
-    for (auto &obs : segmentation.observations) {
-        obs = lifting[obs];
-    }
-}
-
-template<uint32_t gt_pose_dim = 3>
-auto compute_metrics(sunshine::Segmentation<int, gt_pose_dim, int, double> const &gt_seg,
-                     sunshine::Segmentation<int, 4, int, double> const &topic_seg) {
-    auto const contingency_table = compute_matches<4, gt_pose_dim>(gt_seg, topic_seg);
-    auto const &matches = std::get<0>(contingency_table);
-    auto const &gt_weights = std::get<1>(contingency_table);
-    auto const &topic_weights = std::get<2>(contingency_table);
-    double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
-
-    double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
-    double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
-    double const nmi = compute_nmi(contingency_table, mi, ex, ey);
-    double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight);
-    double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
-    return std::make_tuple(mi, nmi, ami);
-};
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "multi_agent_sim");
@@ -336,7 +79,13 @@ int main(int argc, char **argv) {
         std::string const file_prefix = output_prefix + "0-single_robot";
         saveTopicImg(topicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
     }
-    std::cout << "Finished single-agent simulation." << std::endl;
+    {
+        CompressedFileWriter gt_map_writer("gt_map.bin");
+        gt_map_writer << *aggregateRobot.getGTMap();
+        CompressedFileWriter sr_map_writer("aggregate_map.bin");
+        sr_map_writer << *aggregateRobot.getDistMap();
+        std::cout << "Finished single-agent simulation." << std::endl;
+    }
 
     //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
@@ -443,13 +192,16 @@ int main(int argc, char **argv) {
         std::cout << "Refine time: " << refine_time << std::endl;
         std::string const topic_model_filename = output_prefix + std::to_string(n_obs) + "-models.bin";
         {
-            std::ofstream topic_model_writer(topic_model_filename, ios_base::out | ios_base::binary);
-            boost::iostreams::filtering_ostream filtered_out;
-            filtered_out.set_auto_close(true);
-            filtered_out.push(boost::iostreams::zlib_compressor());
-            filtered_out.push(topic_model_writer);
+            CompressedFileWriter topic_model_writer(topic_model_filename);
+            for (auto const& phi : topic_models) {
+                topic_model_writer << phi;
+            }
+        }
+        {
+            CompressedFileReader topic_model_reader(topic_model_filename);
             for (auto const &phi : topic_models) {
-                phi.serialize(filtered_out);
+                Phi test;
+                topic_model_reader >> test;
             }
         }
 

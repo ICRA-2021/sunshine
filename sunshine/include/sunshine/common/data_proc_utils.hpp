@@ -12,9 +12,86 @@
 #include <opencv2/imgcodecs.hpp>
 #include <ros/console.h>
 #include <sunshine_msgs/TopicMap.h>
+
 #include <utility>
+#include <fstream>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/zlib.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 
 namespace sunshine {
+
+class CompressedFileWriter {
+    std::ofstream file;
+    std::unique_ptr<boost::iostreams::filtering_ostream> filtered_out;
+    boost::archive::binary_oarchive output_stream;
+
+    static std::unique_ptr<boost::iostreams::filtering_ostream> configureStream(std::ofstream& file) {
+        auto filtered_out = std::make_unique<boost::iostreams::filtering_ostream>();
+        filtered_out->set_auto_close(true);
+        filtered_out->push(boost::iostreams::zlib_compressor());
+        filtered_out->push(file);
+        return filtered_out;
+    }
+
+  public:
+    explicit CompressedFileWriter(std::string const& filename)
+     : file(filename, std::ios_base::out | std::ios_base::binary)
+     , filtered_out(configureStream(file))
+     , output_stream(*filtered_out) {}
+
+    template <typename DataType>
+    void operator<<(DataType const& data) {
+        output_stream & data;
+    }
+
+    template <typename DataType>
+    [[deprecated]] void operator&(DataType const& data) {
+        this->operator<<(data);
+    }
+};
+
+class CompressedFileReader {
+    std::ifstream file;
+    std::unique_ptr<boost::iostreams::filtering_istream> filtered_in;
+    boost::archive::binary_iarchive input_stream;
+
+    static std::unique_ptr<boost::iostreams::filtering_istream> configureStream(std::ifstream& file) {
+        auto filtered_in = std::make_unique<boost::iostreams::filtering_istream>();
+        filtered_in->set_auto_close(true);
+        filtered_in->push(boost::iostreams::zlib_decompressor());
+        filtered_in->push(file);
+        return filtered_in;
+    }
+
+  public:
+    explicit CompressedFileReader(std::string const& filename)
+            : file(filename, std::ios_base::in | std::ios_base::binary)
+            , filtered_in(configureStream(file))
+            , input_stream(*filtered_in) {}
+
+    template <typename DataType>
+    void operator>>(DataType& data) {
+        input_stream & data;
+    }
+
+    template <typename DataType>
+    [[deprecated]] void operator&(DataType& data) {
+        this->operator>>(data);
+    }
+
+    template <typename DataType>
+    DataType read() {
+        DataType data;
+        input_stream & data;
+        return std::move(data);
+    }
+
+    bool eof() const {
+        return filtered_in->eof();
+    }
+};
 
 cv::Mat createTopicImg(const sunshine_msgs::TopicMap& msg,
                        sunshine::WordColorMap<decltype(sunshine_msgs::TopicMap::cell_topics)::value_type>& wordColorMap,

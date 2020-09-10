@@ -118,51 +118,6 @@ SegmentationMatch compute_matches(sunshine::Segmentation<int, gt_pose_dimen, int
     return {matches, gt_weights, topic_weights, total_weight};
 }
 
-template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double>
-std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(sunshine::Segmentation<LabelType, 3, int, double> const &gt_seg,
-                                                                               sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg) {
-    auto const N = get_num_topics(topic_seg);
-    auto const M = get_num_topics(gt_seg);
-    CountType total_weight = 0;
-    std::vector<std::vector<CountType>> cooccurences(N, std::vector<CountType>(M, 0));
-    std::map<std::array<int, 3>, LabelType> gt_labels;
-    assert(gt_seg.observation_poses.size() == gt_seg.observations.size());
-    for (auto obs = 0; obs < gt_seg.observations.size(); ++obs) {
-        gt_labels.insert({gt_seg.observation_poses[obs], gt_seg.observations[obs]});
-    }
-    static_assert(std::tuple_size_v<typename decltype(topic_seg.observation_poses)::value_type> == pose_dimen);
-    assert(topic_seg.observation_poses.size() == topic_seg.observations.size());
-    for (auto obs = 0ul; obs < topic_seg.observation_poses.size(); ++obs) {
-        static_assert(pose_dimen == 3 || pose_dimen == 4);
-        constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
-        std::array<int, 3> const pose{topic_seg.observation_poses[obs][offset], topic_seg.observation_poses[obs][1 + offset],
-                                      topic_seg.observation_poses[obs][2 + offset]};
-        auto iter = gt_labels.find(pose);
-        if (iter != gt_labels.end()) {
-            auto const &observed = topic_seg.observations[obs];
-            auto const &actual = iter->second;
-            if constexpr (is_vector<LabelType>::value) {
-                double const weight_observed = std::accumulate(observed.begin(), observed.end(), 0.0);
-                double const weight_actual = std::accumulate(actual.begin(), actual.end(), 0.0);
-                double prod_weight = weight_observed * weight_actual;
-                for (auto i = 0ul; i < N; ++i) {
-                    for (auto j = 0ul; j < M; ++j) {
-                        assert(i < observed.size() && j < actual.size());
-                        cooccurences[i][j] += static_cast<CountType>(observed[i] * actual[j]) / prod_weight;
-                    }
-                }
-            } else {
-                assert(observed < cooccurences.size() && actual < cooccurences[observed].size());
-                cooccurences[observed][actual] += 1;
-            }
-            total_weight += 1;
-        } else {
-            std::cerr << "Failed to find gt gt_seg for pose!" << std::endl;
-        }
-    }
-    return {cooccurences, total_weight};
-}
-
 double compute_mutual_info(std::vector<std::vector<uint32_t >> const &matches,
                            std::vector<uint32_t> const &gt_weights,
                            std::vector<uint32_t> const &topic_weights,
@@ -320,6 +275,24 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
     double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
     return ami;
 }
+
+template<uint32_t gt_pose_dim = 3>
+auto compute_metrics(sunshine::Segmentation<int, gt_pose_dim, int, double> const &gt_seg,
+                     sunshine::Segmentation<int, 4, int, double> const &topic_seg) {
+    auto const contingency_table = compute_matches<4, gt_pose_dim>(gt_seg, topic_seg);
+    auto const &matches = std::get<0>(contingency_table);
+    auto const &gt_weights = std::get<1>(contingency_table);
+    auto const &topic_weights = std::get<2>(contingency_table);
+    double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
+
+    double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
+    double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
+    double const nmi = compute_nmi(contingency_table, mi, ex, ey);
+    double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight);
+    double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
+    return std::make_tuple(mi, nmi, ami);
+};
+
 }
 
 #endif //SUNSHINE_PROJECT_METRIC_HPP

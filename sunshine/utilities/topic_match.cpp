@@ -20,9 +20,10 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <future>
+#include <sunshine/common/data_proc_utils.hpp>
 //#include <boost/sort/sort.hpp>
 #include "sunshine/common/csv.hpp"
-#include "sunshine/common/adrost_utils.hpp"
+#include "sunshine/common/matching_utils.hpp"
 
 using namespace sunshine;
 
@@ -93,11 +94,11 @@ int main(int argc, char **argv) {
         assert(name_idx > ms_idx && name_idx <= ms_idx + 4);
         int64_t const timestamp = std::stol(stem.substr(0, ms_idx)) * 1000000000 + std::stol(stem.substr(ms_idx + 1, name_idx)) * 1000000;
         std::string const name = std::string(stem.substr(name_idx + 1));
-
-        std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
-        model_map[name].emplace(Phi::deserialize(file_reader));
-        assert(file_reader.eof());
-        file_reader.close();
+        {
+            CompressedFileReader reader(topic_bin.string());
+            model_map[name].emplace(reader.read<Phi>());
+            assert(reader.eof());
+        }
 
         std::vector<Phi> topic_models;
         topic_models.reserve(model_map.size());

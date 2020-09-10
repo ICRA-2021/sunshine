@@ -20,9 +20,10 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <future>
+#include <sunshine/common/data_proc_utils.hpp>
 //#include <boost/sort/sort.hpp>
 #include "sunshine/common/csv.hpp"
-#include "sunshine/common/adrost_utils.hpp"
+#include "sunshine/common/matching_utils.hpp"
 
 using namespace sunshine;
 
@@ -54,15 +55,13 @@ int main(int argc, char **argv) {
     for (auto const &topic_bin : paths) {
         if (topic_bin.extension() != ".bin") continue;
         std::cerr << "Processing " << topic_bin.string() << std::endl;
-        std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
-
 //        auto const &stem = topic_bin.string().substr(topic_bin.string().find_last_of('/') + 1);
-        topic_models.emplace_back(Phi::deserialize(file_reader));
+        CompressedFileReader reader(topic_bin.string());
+        topic_models.emplace_back(reader.read<Phi>());
         topic_models[topic_models.size() - 1].validate(true);
         topic_model_paths.emplace_back(topic_bin.string());
 
-        assert(file_reader.eof());
-        file_reader.close();
+        assert(reader.eof());
     }
 
 //    csv_writer<> scores_writer((path(in_dir) / path("match_scores.csv")).string());

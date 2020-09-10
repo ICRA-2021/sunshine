@@ -126,6 +126,17 @@ struct Segmentation : public SemanticObservation<label_type, pose_dim, cell_pose
                  std::vector<std::array<CellPoseType, POSE_DIM>> &&poses)
         : SemanticObservation<label_type, pose_dim, cell_pose_type>(frame, timestamp, id, labels, poses)
         , cell_size(cell_size) { }
+
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & this->frame;
+        ar & this->timestamp;
+        ar & this->id;
+        ar & this->observations;
+        ar & this->observation_poses;
+        ar & this->cell_size;
+    }
 };
 
 } // namespace sunshine

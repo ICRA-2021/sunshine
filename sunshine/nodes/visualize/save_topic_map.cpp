@@ -51,8 +51,8 @@ int main(int argc, char** argv)
             if (modelClient.call(getTopicModel)) {
                 std::string const filename = output_prefix + "-" + std::to_string(msg->seq) + "-modelweights.bin";
                 try {
-                    std::ofstream writer(filename, std::ios::out | std::ios::binary);
-                    sunshine::fromRosMsg(getTopicModel.response.topic_model).serialize(writer);
+                    sunshine::CompressedFileWriter writer(filename);
+                    writer & sunshine::fromRosMsg(getTopicModel.response.topic_model);
                 } catch (std::logic_error const& e) {
                     ROS_ERROR("Failed to save topic model to file %s", filename.c_str());
                 }

@@ -31,8 +31,8 @@ find_package(catkin REQUIRED COMPONENTS
   )
 find_package(tf2_geometry_msgs REQUIRED)
 
-find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
+find_package(Boost REQUIRED program_options filesystem system serialization iostreams )
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 4.2 QUIET)
@@ -139,10 +139,10 @@ find_library(libnlopt libnlopt.so NAMES libnlopt_cxx.so)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES sunshine_vision_adapters
+  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
+#  DEPENDS boost
 )
 
 ###########
@@ -239,10 +239,10 @@ target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_IN
 target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(save_topic_map ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_link_libraries(save_topic_map ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
-target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
@@ -267,21 +267,23 @@ if (libclear)
     add_executable(utils.topic_match utilities/topic_match.cpp)
     add_executable(utils.find_lifting utilities/find_lifting.cpp)
     add_executable(utils.multi_agent_match nodes/multi_agent_sim.cpp)
+#    add_executable(utils.map_match utilities/map_match.cpp)
 
     add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
     target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
     target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
 
-    target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR})
+    target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
     target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.topic_match PRIVATE cxx_std_17)
 
-    target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.find_lifting ${Boost_LIBRARIES} ${libclear})
+    target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
+    target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
 
     add_dependencies(utils.multi_agent_match sunshine_msgs_generate_messages_cpp)
     target_include_directories(utils.multi_agent_match PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+#    message(WARNING "${Boost_LIBRARIES}")
     target_link_libraries(utils.multi_agent_match ${Boost_LIBRARIES} ${libclear} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
     target_compile_features(utils.multi_agent_match PRIVATE cxx_std_17)
 else()
