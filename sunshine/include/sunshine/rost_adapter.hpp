@@ -80,14 +80,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return words_by_cell_pose;
     }
 
-    std::vector<std::vector<int>> getTopicDistsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
+    template<typename T>
+    std::vector<T> getTopicDistsForPoses(const std::vector<cell_pose_t> &cell_poses, std::function<T(std::vector<int>)> const& f) const {
         auto rostReadToken = rost->get_read_token();
-        std::vector<std::vector<int>> topics;
+        std::vector<T> topics;
         topics.reserve(cell_poses.size());
         for (auto const &pose : cell_poses) {
             auto const cell = rost->get_cell(pose);
             if (cell->nZ.size() == this->K) {
-                topics.push_back(cell->nZ);
+                topics.push_back(f(cell->nZ));
             } else {
                 ROS_WARN_THROTTLE(1, "ROSTAdapter::getObservationForPoses() : Skipping cells with wrong number of topics");
                 continue;
@@ -97,21 +98,13 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return topics;
     }
 
-std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
-    auto rostReadToken = rost->get_read_token();
-    std::vector<int> topics;
-    topics.reserve(cell_poses.size());
-    for (auto const &pose : cell_poses) {
-        auto const cell = rost->get_cell(pose);
-        if (cell->nZ.size() == this->K) {
-            topics.push_back(std::max_element(cell->nZ.cbegin(), cell->nZ.cend()) - cell->nZ.cbegin());
-        } else {
-            ROS_WARN_THROTTLE(1, "ROSTAdapter::getObservationForPoses() : Skipping cells with wrong number of topics");
-            continue;
-        }
+    std::vector<std::vector<int>> getTopicDistsForPoses(std::vector<cell_pose_t> const& cell_poses) const {
+        return getTopicDistsForPoses<std::vector<int>>(cell_poses, [](std::vector<int>const & nZ){return nZ;});
     }
-    return topics;
-}
+
+    std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
+        return getTopicDistsForPoses<int>(cell_poses, [](std::vector<int> const& nZ){return argmax(nZ);});
+    }
 
   public:
 #ifndef NDEBUG

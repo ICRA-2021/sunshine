@@ -25,6 +25,40 @@
 
 using namespace sunshine;
 
+class MultiAgentSimulation {
+    std::vector<std::string> const bagfiles;
+    std::string const image_topic;
+    std::string const depth_topic;
+    std::string const segmentation_topic;
+    std::map<std::string, std::string> params;
+
+  public:
+    MultiAgentSimulation() = default;
+    explicit MultiAgentSimulation(std::vector<std::string> bagfiles,
+                                  std::string image_topic,
+                                  std::string depth_topic,
+                                  std::string segmentation_topic)
+                                  : bagfiles(std::move(bagfiles))
+                                  , image_topic(std::move(image_topic))
+                                  , depth_topic(std::move(depth_topic))
+                                  , segmentation_topic(std::move(segmentation_topic)) {}
+
+    template<typename ParamServer>
+    void record(ParamServer const& paramServer, std::vector<std::string> const& match_methods = {}) {
+
+    }
+
+    void play(std::string const& logfile, std::vector<std::string> const& match_methods) {
+
+    }
+
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        throw std::logic_error("Not implemented");
+    }
+};
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "multi_agent_sim");
     if (argc < 5) {
@@ -67,15 +101,27 @@ int main(int argc, char **argv) {
             std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
             gt_segmentations.push_back(aggregateRobot.getGTMap());
             auto const gt_merged = merge<3>(gt_segmentations);
-            auto const gtTopicImg = createTopicImg(toRosMsg(*gt_merged), topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
-                                                   true, 0, 0, box, true);
+            auto const gtTopicImg = createTopicImg(toRosMsg(*gt_merged),
+                                                   topicColorMap,
+                                                   aggregateRobot.getRost()->get_cell_size()[1],
+                                                   true,
+                                                   0,
+                                                   0,
+                                                   box,
+                                                   true);
             std::string const file_prefix = output_prefix + "0-ground_truth";
             saveTopicImg(gtTopicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
 
             align(*singleRobotSegmentation, *gt_merged);
         }
-        auto const topicImg = createTopicImg(toRosMsg(*singleRobotSegmentation), topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
-                                                       true, 0, 0, box, true);
+        auto const topicImg = createTopicImg(toRosMsg(*singleRobotSegmentation),
+                                             topicColorMap,
+                                             aggregateRobot.getRost()->get_cell_size()[1],
+                                             true,
+                                             0,
+                                             0,
+                                             box,
+                                             true);
         std::string const file_prefix = output_prefix + "0-single_robot";
         saveTopicImg(topicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
     }
@@ -89,17 +135,17 @@ int main(int argc, char **argv) {
 
     //    std::vector<ros::Publisher> map_pubs;
     for (auto i = 4; i < argc; ++i) {
-        robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4),
-                                                       nh,
-                                                       !depth_topic_name.empty(),
-                                                       segmentationAdapter));
+        robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i - 4), nh, !depth_topic_name.empty(), segmentationAdapter));
         robots.back()->open(std::string(argv[i]), image_topic_name, depth_topic_name, segmentation_topic_name, (i - 4) * 2000);
         //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
     }
-    std::unique_ptr<ros::Publisher> gt_map_pub = (segmentation_topic_name.empty()) ? nullptr : std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0));
+    std::unique_ptr<ros::Publisher> gt_map_pub = (segmentation_topic_name.empty())
+                                                 ? nullptr
+                                                 : std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 0));
     std::vector<std::unique_ptr<ros::Publisher>> publishers;
-    for (auto const& method : match_methods) {
-        publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>("/" + sunshine::replace_all(method, "-", "_") + "_map", 0)));
+    for (auto const &method : match_methods) {
+        publishers.push_back(std::make_unique<ros::Publisher>(nh.advertise<sunshine_msgs::TopicMap>(
+                "/" + sunshine::replace_all(method, "-", "_") + "_map", 0)));
     }
 
     auto writer = (csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
@@ -166,7 +212,6 @@ int main(int argc, char **argv) {
         return row;
     };
 
-
     auto const fetch_new_topic_models = [&robots](bool remove_unused = false) {
         std::vector<Phi> topic_models;
         for (auto const &robot : robots) {
@@ -193,7 +238,7 @@ int main(int argc, char **argv) {
         std::string const topic_model_filename = output_prefix + std::to_string(n_obs) + "-models.bin";
         {
             CompressedFileWriter topic_model_writer(topic_model_filename);
-            for (auto const& phi : topic_models) {
+            for (auto const &phi : topic_models) {
                 topic_model_writer << phi;
             }
         }
@@ -216,7 +261,7 @@ int main(int argc, char **argv) {
         auto const gt_merged = (segmentation_topic_name.empty()) ? nullptr : merge<3>(gt_segmentations);
 
         for (auto i = 0ul; i < match_methods.size(); ++i) {
-            auto const& method = match_methods[i];
+            auto const &method = match_methods[i];
             auto const correspondences = match_topics(method, topic_models);
             match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
 
@@ -232,7 +277,7 @@ int main(int argc, char **argv) {
 
                 if (writer) {
                     std::vector<double> individ_mi, individ_nmi, individ_ami;
-                    for (auto const& segmentation : segmentations) {
+                    for (auto const &segmentation : segmentations) {
                         auto const individ_metric = compute_metrics(*gt_merged, *segmentation);
                         individ_mi.push_back(std::get<0>(individ_metric));
                         individ_nmi.push_back(std::get<1>(individ_metric));
@@ -240,9 +285,16 @@ int main(int argc, char **argv) {
                     }
                     auto const individ_gt_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
 
-                    auto const gt_ref_metrics       = compute_metrics(*gt_merged, *merged_segmentations);
-                    auto const sr_gt_metrics        = compute_metrics(*gt_merged, *singleRobotSegmentation);
-                    writer->write_row(populate_row(method, n_obs, correspondences, sr_ref_metrics, scores, gt_ref_metrics, individ_gt_metrics, sr_gt_metrics));
+                    auto const gt_ref_metrics = compute_metrics(*gt_merged, *merged_segmentations);
+                    auto const sr_gt_metrics = compute_metrics(*gt_merged, *singleRobotSegmentation);
+                    writer->write_row(populate_row(method,
+                                                   n_obs,
+                                                   correspondences,
+                                                   sr_ref_metrics,
+                                                   scores,
+                                                   gt_ref_metrics,
+                                                   individ_gt_metrics,
+                                                   sr_gt_metrics));
 
                     std::cout << method << " GT AMI:" << std::get<2>(gt_ref_metrics) << std::endl;
                 }
@@ -254,8 +306,14 @@ int main(int argc, char **argv) {
 
             auto const merged_map = toRosMsg(*merged_segmentations);
             if (!output_prefix.empty()) {
-                auto const topicImg = sunshine::createTopicImg(merged_map, topicColorMap, aggregateRobot.getRost()->get_cell_size()[1],
-                                                               true, 0, 0, box, true);
+                auto const topicImg = sunshine::createTopicImg(merged_map,
+                                                               topicColorMap,
+                                                               aggregateRobot.getRost()->get_cell_size()[1],
+                                                               true,
+                                                               0,
+                                                               0,
+                                                               box,
+                                                               true);
                 std::string const file_prefix = output_prefix + std::to_string(n_obs) + "-" + method;
                 saveTopicImg(topicImg, file_prefix + "-map.png", file_prefix + "-colors.csv", &topicColorMap);
             }

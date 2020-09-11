@@ -74,7 +74,7 @@ cv::Mat toMat(std::vector<IdxType> const &idxes, std::vector<ValueType> const &v
 }
 
 template<int COUNT, char DELIM = 'x', typename WordDimType = double>
-static inline std::array<WordDimType, COUNT> readNumbers(std::string const &str) {
+inline std::array<WordDimType, COUNT> readNumbers(std::string const &str) {
     std::array<WordDimType, COUNT> nums = {0};
     size_t idx = 0;
     for (size_t i = 1; i <= COUNT; i++) {
@@ -91,7 +91,7 @@ static inline std::array<WordDimType, COUNT> readNumbers(std::string const &str)
 }
 
 template<int POSE_DIM, typename WordDimType = double>
-static inline std::array<WordDimType, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space) {
+inline std::array<WordDimType, POSE_DIM> computeCellSize(double cell_size_time, double cell_size_space) {
     std::array<WordDimType, POSE_DIM> cell_size = {};
     cell_size[0] = cell_size_time;
     for (size_t i = 1; i < POSE_DIM; i++) {
@@ -117,13 +117,13 @@ struct build_indices<0> {
 template<std::size_t N> using BuildIndices = typename build_indices<N>::type;
 
 template<std::size_t... I, typename Iter, typename ValueType=typename Iter::value_type, typename Array = std::array<ValueType, sizeof...(I)>>
-Array make_array(Iter first, indices<I...>) {
+inline Array make_array(Iter first, indices<I...>) {
     return Array{{first[I]...}};
 }
 }
 
 template<std::size_t N, typename Iter, typename ValueType=typename Iter::value_type>
-std::array<ValueType, N> make_array(Iter start) {
+inline std::array<ValueType, N> make_array(Iter start) {
     using namespace _make_array;
     return make_array(start, BuildIndices<N>{});
 }
@@ -137,7 +137,7 @@ struct hasharray {
 };
 
 template<typename T>
-long record_lap(T &time_checkpoint) {
+inline long record_lap(T &time_checkpoint) {
     auto const duration = std::chrono::steady_clock::now() - time_checkpoint;
     time_checkpoint = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
@@ -164,12 +164,12 @@ std::vector<std::vector<T>> identity_mat(size_t const dimen) {
 //}
 
 template<typename T>
-typename T::value_type argmax(T const& array) {
+inline typename T::value_type argmax(T const& array) {
     return std::max_element(array.begin(), array.end()) - array.begin();
 }
 
 template<typename T, typename C = T>
-C normalize(T const& array) {
+inline C normalize(T const& array) {
     static_assert(std::is_floating_point_v<typename C::value_type>);
     C out;
     typename T::value_type const sum = std::accumulate(array.begin(), array.end(), typename T::value_type(0));
@@ -179,7 +179,7 @@ C normalize(T const& array) {
 }
 
 template<typename T, typename Ret = typename T::value_type>
-Ret dotp(T const& left, T const& right) {
+inline Ret dotp(T const& left, T const& right) {
     return std::inner_product(left.begin(), left.end(), right.begin(), Ret(0));
 }
 
