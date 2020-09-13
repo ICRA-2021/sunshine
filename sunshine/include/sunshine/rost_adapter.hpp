@@ -34,7 +34,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >> ROST_t;
     using WordObservation = CategoricalObservation<int, POSEDIM - 1, WordInputDimType>;
 
-    constexpr static double DEFAULT_CELL_SPACE = 100;
+    constexpr static double DEFAULT_CELL_SPACE = 1;
   private:
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
@@ -129,7 +129,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         num_threads = nh->template param<int>("num_threads", 4); // beta(1,tau) is used to pick cells for refinement
         double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
-        std::string const cell_size_string = nh->template param<std::string>("cell_size", "3600x100x100x1");
+        std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
@@ -426,35 +426,35 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return rost->get_ml_topics_and_ppx_for_pose(pose);
     }
 
-    static inline cell_pose_t toCellId(word_pose_t const &word, std::array<WordDimType, POSEDIM> cell_size) {
+    static inline cell_pose_t toCellId(word_pose_t const &word, std::array<WordDimType, POSEDIM> const& cell_size) {
         static_assert(std::numeric_limits<CellDimType>::max() <= std::numeric_limits<WordDimType>::max(),
                       "Word dim type must be larger than cell dim type!");
         if constexpr (POSEDIM == 4) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[3] / cell_size[3], std::numeric_limits<CellDimType>::max()))};
+            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
+                    safeNumericCast<CellDimType>(word[1] / cell_size[1]),
+                    safeNumericCast<CellDimType>(word[2] / cell_size[2]),
+                    safeNumericCast<CellDimType>(word[3] / cell_size[3])};
         } else if constexpr (POSEDIM == 3) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max()))};
+            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
+                    safeNumericCast<CellDimType>(word[1] / cell_size[1]),
+                    safeNumericCast<CellDimType>(word[2] / cell_size[2])};
         } else if constexpr (POSEDIM == 2) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                    static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max()))};
+            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
+                    safeNumericCast<CellDimType>(word[1] / cell_size[1])};
         } else {
             static_assert(always_false<POSEDIM>);
         }
     }
 
-    static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<double, POSEDIM> cell_size) {
+    static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<WordDimType, POSEDIM> const& cell_size) {
         if constexpr(POSEDIM == 4) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                    static_cast<WordDimType>(cell[2] * cell_size[2]), static_cast<WordDimType>(cell[3] * cell_size[3])};
+            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
+                    safeNumericCast<WordDimType>(cell[2] * cell_size[2]), safeNumericCast<WordDimType>(cell[3] * cell_size[3])};
         } else if constexpr(POSEDIM == 3) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                    static_cast<WordDimType>(cell[2] * cell_size[2])};
+            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
+                    safeNumericCast<WordDimType>(cell[2] * cell_size[2])};
         } else if constexpr(POSEDIM == 2) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1])};
+            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1])};
         } else {
             static_assert(always_false<POSEDIM>);
         }

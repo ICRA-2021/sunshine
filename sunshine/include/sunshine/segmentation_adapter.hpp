@@ -17,7 +17,7 @@ class SegmentationAdapter : public Adapter<ImplClass, Input, Segmentation<LabelT
     template<typename ParameterServer>
     static inline decltype(cell_size) computeCellSize(ParameterServer *nh) {
         double const cell_size_space       = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
-        std::string const cell_size_string = nh->template param<std::string>("cell_size", "3600x100x100x1");
+        std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         double cell_size_x = cell_size_space, cell_size_y = cell_size_space, cell_size_z = cell_size_space;
         if (!cell_size_string.empty()) {
             auto cell_size = readNumbers<POSEDIM + 1, 'x', PoseType>(cell_size_string);

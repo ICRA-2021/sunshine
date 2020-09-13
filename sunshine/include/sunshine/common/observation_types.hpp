@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include <boost/serialization/array.hpp>
+
 namespace sunshine {
 
 struct Observation {
@@ -108,6 +110,10 @@ struct Segmentation : public SemanticObservation<label_type, pose_dim, cell_pose
     static uint32_t constexpr POSE_DIM = pose_dim;
 
     std::array<PoseType, POSE_DIM> cell_size;
+
+    Segmentation()
+        : SemanticObservation<label_type, pose_dim, cell_pose_type>("", 0, 0, {}, {})
+        , cell_size({}) { }
 
     Segmentation(decltype(Observation::frame) const &frame,
                  decltype(Observation::timestamp) timestamp,

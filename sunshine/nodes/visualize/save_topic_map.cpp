@@ -52,7 +52,7 @@ int main(int argc, char** argv)
                 std::string const filename = output_prefix + "-" + std::to_string(msg->seq) + "-modelweights.bin";
                 try {
                     sunshine::CompressedFileWriter writer(filename);
-                    writer & sunshine::fromRosMsg(getTopicModel.response.topic_model);
+                    writer << sunshine::fromRosMsg(getTopicModel.response.topic_model);
                 } catch (std::logic_error const& e) {
                     ROS_ERROR("Failed to save topic model to file %s", filename.c_str());
                 }

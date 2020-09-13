@@ -45,11 +45,6 @@ class CompressedFileWriter {
     void operator<<(DataType const& data) {
         output_stream & data;
     }
-
-    template <typename DataType>
-    [[deprecated]] void operator&(DataType const& data) {
-        this->operator<<(data);
-    }
 };
 
 class CompressedFileReader {
@@ -77,14 +72,9 @@ class CompressedFileReader {
     }
 
     template <typename DataType>
-    [[deprecated]] void operator&(DataType& data) {
-        this->operator>>(data);
-    }
-
-    template <typename DataType>
     DataType read() {
         DataType data;
-        input_stream & data;
+        *this >> data;
         return std::move(data);
     }
 

@@ -168,6 +168,13 @@ inline typename T::value_type argmax(T const& array) {
     return std::max_element(array.begin(), array.end()) - array.begin();
 }
 
+template <typename T>
+inline std::vector<T> make_vector(T val) {
+    std::vector<T> vec;
+    vec.emplace_back(std::move(val));
+    return vec;
+}
+
 template<typename T, typename C = T>
 inline C normalize(T const& array) {
     static_assert(std::is_floating_point_v<typename C::value_type>);
@@ -208,6 +215,34 @@ std::vector<std::string> split(const std::string &txt, char ch = ' ')
         pos += new_str.length();
     }
     return str;
+}
+
+template<typename To>
+To safeNumericCast(uintmax_t val) {
+    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    return static_cast<To>(val);
+}
+
+template<typename To>
+To safeNumericCast(intmax_t val) {
+    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    return static_cast<To>(val);
+}
+
+template<typename To>
+To safeNumericCast(double val) {
+    if (val >= (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    if constexpr (std::is_integral_v<To>) return static_cast<To>(std::round(val));
+    else return static_cast<To>(val);
 }
 
 }

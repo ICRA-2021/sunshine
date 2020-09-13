@@ -17,6 +17,9 @@ std::array<double, 3> inline DepthAdapter::get_pose(int u, int v) const {
     auto const &cloud = *pc;
     assert(u < cloud.width && v < cloud.height);
     auto const pcPose = cloud.at(u, v).getArray3fMap();
+    if (pcPose.x() <= -14 && pcPose.y() <= -8 && pcPose.z() <= -6) {
+        std::cerr << "Weird pose" << std::endl;
+    }
     return {pcPose.x(), pcPose.y(), pcPose.z()};
 }
 
