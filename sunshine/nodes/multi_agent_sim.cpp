@@ -288,7 +288,9 @@ int main(int argc, char **argv) {
         for (auto i = 0; i < n_trials; ++i) {
             ROS_INFO("Starting simulation %d", i);
             simulations.emplace_back(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
-            if (!simulations.back().record(nh)) {
+            try {
+                if (!simulations.back().record(nh)) throw std::runtime_error("Simulation aborted");
+            } catch (std::exception const& ex) {
                 ROS_ERROR("Simulation %d failed -- aborting and discarding partial simulation data", i);
                 simulations.pop_back();
                 break;
