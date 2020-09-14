@@ -26,22 +26,22 @@
   <arg name="use_tf" default="true" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="20" />
+  <arg name="K" default="10" />
   <arg name="V" default="15436" />
-  <arg name="alpha" default="0.6722" />
-  <arg name="beta" default="0.078899" />
-  <arg name="gamma" default="0.00000139" />
+  <arg name="alpha" default="0.3" />
+  <arg name="beta" default="0.05" />
+  <arg name="gamma" default="0.0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
-  <arg name="num_threads" default="7" />
-  <arg name="cell_space" default="1.211" />
+  <arg name="num_threads" default="2" />
+  <arg name="cell_space" default="0.8" />
   <arg name="cell_time" default="3600" />
   <arg name="cell_size" default="" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
-  <arg name="min_obs_refine_time" default="300" />
+  <arg name="min_obs_refine_time" default="600" />
 
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
@@ -52,7 +52,7 @@
   <arg name="show_equalized" default="true" />
   <arg name="ppx_display_factor" default="0.75" />
 
-  <arg name="use_rviz" default="true" />
+  <arg name="use_rviz" default="false" />
   <arg name="visualize_3d" default="$(arg use_rviz)" />
 
   <param name="/use_sim_time" value="false"/>

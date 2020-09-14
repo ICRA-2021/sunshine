@@ -130,14 +130,15 @@ class MultiAgentSimulation {
                                   , segmentation_topic(std::move(segmentation_topic)) {}
 
     template<typename ParamServer>
-    void record(ParamServer const& nh) {
+    bool record(ParamServer const& nh) {
         ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
         std::cout << "Running single-agent simulation...." << std::endl;
         auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         RobotSim aggregateRobot("Aggregate", paramPassthrough, !depth_topic.empty(), segmentationAdapter);
         for (auto const& bag : bagfiles) {
             aggregateRobot.open(bag, image_topic, depth_topic, segmentation_topic);
-            while (ros::ok() && aggregateRobot.next()) {
+            while (aggregateRobot.next()) {
+                if (!ros::ok()) return false;
                 aggregateRobot.waitForProcessing();
             }
             aggregateRobot.waitForProcessing();
@@ -168,7 +169,8 @@ class MultiAgentSimulation {
         bool active = true;
         size_t n_obs = 0;
         auto start = std::chrono::steady_clock::now();
-        while (active && ros::ok()) {
+        while (active) {
+            if (!ros::ok()) return false;
             active = false;
             for (auto &robot : robots) {
                 auto const robot_active = robot->next();
@@ -191,6 +193,7 @@ class MultiAgentSimulation {
 
             start = std::chrono::steady_clock::now();
         }
+        return true;
     }
 
     void process(std::vector<std::string> const& match_methods, bool const overwrite = false) {
@@ -283,8 +286,13 @@ int main(int argc, char **argv) {
         for (auto i = offset; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
         for (auto i = 0; i < n_trials; ++i) {
+            ROS_INFO("Starting simulation %d", i);
             simulations.emplace_back(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
-            simulations.back().record(nh);
+            if (!simulations.back().record(nh)) {
+                ROS_ERROR("Simulation %d failed -- aborting and discarding partial simulation data", i);
+                simulations.pop_back();
+                break;
+            }
         }
     } else if (argc >= 2 && std::string(argv[1]) == "replay") {
         if (argc != 3) {
@@ -298,17 +306,21 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    json results = json::array();
-    for (auto& sim : simulations) {
-        sim.process(match_methods);
-        results.push_back(sim.getResults());
+    if (ros::ok()) {
+        json results = json::array();
+        for (auto& sim : simulations) {
+            sim.process(match_methods);
+            results.push_back(sim.getResults());
+        }
+
+        std::ofstream resultsWriter(results_filename);
+        resultsWriter << results.dump(2);
+        resultsWriter.close();
+    } else {
+        ROS_WARN("ROS is shutting down -- writing simulation data but skipping result processing");
     }
     CompressedFileWriter writer(data_filename);
     writer << simulations;
-
-    std::ofstream resultsWriter(results_filename);
-    resultsWriter << results.dump(2);
-    resultsWriter.close();
 
     return 0;
 }
