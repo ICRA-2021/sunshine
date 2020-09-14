@@ -2,10 +2,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 #include "sunshine/2d_adapter.hpp"
+#include "sunshine/external/json.hpp"
 #include "sunshine/common/simulation_utils.hpp"
 #include "sunshine/common/matching_utils.hpp"
 #include "sunshine/common/segmentation_utils.hpp"
-#include "sunshine/common/csv.hpp"
 #include "sunshine/common/metric.hpp"
 #include "sunshine/common/parameters.hpp"
 #include "sunshine/common/data_proc_utils.hpp"
@@ -21,6 +21,7 @@
 #include <iostream>
 
 using namespace sunshine;
+using json = nlohmann::ordered_json;
 
 class MultiAgentSimulation {
     std::vector<std::string> bagfiles;
@@ -30,6 +31,13 @@ class MultiAgentSimulation {
     std::map<std::string, std::string> params;
     decltype(std::declval<RobotSim>().getGTMap()) gtMap;
     decltype(std::declval<RobotSim>().getDistMap()) aggregateMap;
+    std::vector<std::vector<decltype(std::declval<RobotSim>().getDistMap())>> robotMaps;
+    std::vector<std::vector<decltype(std::declval<RobotSim>().getTopicModel())>> robotModels;
+
+    // Derived data -- not serialized (can be recovered exactly from above data)
+    std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
+    std::unique_ptr<Segmentation<int, 4, int, double>> aggregateMLMap;
+    json results = json::object();
 
   public:
 
@@ -66,7 +74,7 @@ class MultiAgentSimulation {
                                   , segmentation_topic(std::move(segmentation_topic)) {}
 
     template<typename ParamServer>
-    void record(ParamServer const& nh, std::vector<std::string> const& match_methods = {}) {
+    void record(ParamServer const& nh) {
         ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
         std::cout << "Running single-agent simulation...." << std::endl;
         auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
@@ -80,12 +88,11 @@ class MultiAgentSimulation {
         }
         aggregateRobot.pause();
         aggregateMap = aggregateRobot.getDistMap();
-        WordColorMap<int> topicColorMap;
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
+            gtMLMap = merge<3>(make_vector(gtMap.get()));
         }
-        auto const gt_merged = (segmentation_topic.empty()) ? nullptr : merge<3>(make_vector(gtMap.get()));
-        auto const sr_merged = merge<4>(make_vector(aggregateMap.get()));
+        aggregateMLMap = merge<4>(make_vector(aggregateMap.get()));
 
         //    std::vector<ros::Publisher> map_pubs;
         std::vector<std::unique_ptr<RobotSim>> robots;
@@ -94,70 +101,6 @@ class MultiAgentSimulation {
             robots.back()->open(bagfiles[i], image_topic, depth_topic, segmentation_topic, i * 2000);
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
-
-        std::unique_ptr<csv_writer<',', '"'>> writer = nullptr; //(csv_filename.empty()) ? nullptr : std::make_unique<csv_writer<',', '"'>>(csv_filename);
-        if (writer) {
-            csv_row<> header{};
-            header.append("Method");
-            header.append("Number of Robots");
-            header.append("Number of Observations");
-            header.append("Unique Topics");
-            header.append("SSD");
-            header.append("Single Robot MI");
-            header.append("Single Robot NMI");
-            header.append("Single Robot AMI");
-            header.append("Cluster Size");
-            header.append("Matched Mean-Square Cluster Distance");
-            header.append("Matched Silhouette Index");
-            header.append("Matched Davies-Bouldin Index");
-            header.append("GT MI");
-            header.append("GT NMI");
-            header.append("GT AMI");
-            header.append("Individual GT MIs");
-            header.append("Individual GT NMIs");
-            header.append("Individual GT AMIs");
-            header.append("Single Robot GT MI");
-            header.append("Single Robot GT NMI");
-            header.append("Single Robot GT AMI");
-            writer->write_header(header);
-        }
-
-        auto const populate_row = [&robots](std::string const &name,
-                                            size_t const &n_observations,
-                                            match_results const &correspondences,
-                                            std::tuple<double, double, double> metrics,
-                                            match_scores const &scores,
-                                            std::optional<std::tuple<double, double, double>> gt_metrics = {},
-                                            std::optional<std::tuple<std::vector<double>, std::vector<double>, std::vector<double>>> individ_gt_metrics = {},
-                                            std::optional<std::tuple<double, double, double>> single_gt_metrics = {}) {
-            csv_row<> row;
-            row.append(name);
-            row.append(robots.size());
-            row.append(n_observations);
-            row.append(correspondences.num_unique);
-            row.append(correspondences.ssd);
-            row.append(std::get<0>(metrics));
-            row.append(std::get<1>(metrics));
-            row.append(std::get<2>(metrics));
-            row.append(scores.cluster_sizes);
-            row.append(scores.mscd);
-            row.append(scores.silhouette);
-            row.append(scores.davies_bouldin);
-            if (gt_metrics) {
-                row.append(std::get<0>(gt_metrics.value()));
-                row.append(std::get<1>(gt_metrics.value()));
-                row.append(std::get<2>(gt_metrics.value()));
-                row.append(std::get<0>(individ_gt_metrics.value()));
-                row.append(std::get<1>(individ_gt_metrics.value()));
-                row.append(std::get<2>(individ_gt_metrics.value()));
-                row.append(std::get<0>(single_gt_metrics.value()));
-                row.append(std::get<1>(single_gt_metrics.value()));
-                row.append(std::get<2>(single_gt_metrics.value()));
-            } else {
-                for (auto i = 0; i < 9; ++i) row.append("");
-            }
-            return row;
-        };
 
         auto const fetch_new_topic_models = [&robots](bool remove_unused = false) {
             std::vector<Phi> topic_models;
@@ -183,62 +126,96 @@ class MultiAgentSimulation {
             auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
             std::cout << "Refine time: " << refine_time << std::endl;
 
-            std::vector<std::unique_ptr<Segmentation<int, 4, int, double>>> segmentations;
-            std::vector<std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>>> gt_segmentations;
-            for (auto & robot : robots) {
-                segmentations.emplace_back(robot->getMap());
-                if (!segmentation_topic.empty()) gt_segmentations.push_back(robot->getGTMap());
-            }
-
-            for (const auto & method : match_methods) {
-                auto const correspondences = match_topics(method, topic_models);
-                match_scores const scores(topic_models, correspondences.lifting, normed_dist_sq<double>);
-
-                uint32_t matched = 0;
-                for (auto const size : scores.cluster_sizes) { matched += (size > 1); }
-                std::cout << method << " matched clusters: " << matched << "/" << correspondences.num_unique << std::endl;
-
-                auto merged_segmentations = merge(segmentations, correspondences.lifting);
-                auto const sr_ref_metrics = compute_metrics(*sr_merged, *merged_segmentations);
-                std::cout << method << " SR AMI:" << std::get<2>(sr_ref_metrics) << std::endl;
-                if (gt_merged) {
-                    align(*merged_segmentations, *gt_merged);
-
-                    if (writer) {
-                        std::vector<double> individ_mi, individ_nmi, individ_ami;
-                        for (auto const &segmentation : segmentations) {
-                            auto const individ_metric = compute_metrics(*gt_merged, *segmentation);
-                            individ_mi.push_back(std::get<0>(individ_metric));
-                            individ_nmi.push_back(std::get<1>(individ_metric));
-                            individ_ami.push_back(std::get<2>(individ_metric));
-                        }
-                        auto const individ_gt_metrics = std::make_tuple(individ_mi, individ_nmi, individ_ami);
-
-                        auto const gt_ref_metrics = compute_metrics(*gt_merged, *merged_segmentations);
-                        auto const sr_gt_metrics = compute_metrics(*gt_merged, *sr_merged);
-                        writer->write_row(populate_row(method,
-                                                       n_obs,
-                                                       correspondences,
-                                                       sr_ref_metrics,
-                                                       scores,
-                                                       gt_ref_metrics,
-                                                       individ_gt_metrics,
-                                                       sr_gt_metrics));
-
-                        std::cout << method << " GT AMI:" << std::get<2>(gt_ref_metrics) << std::endl;
-                    }
-                } else if (writer) {
-                    writer->write_row(populate_row("Naive", n_obs, correspondences, sr_ref_metrics, scores));
-                }
-                if (writer) writer->flush();
+            robotMaps.emplace_back();
+            robotMaps.back().reserve(robots.size());
+            robotModels.emplace_back();
+            robotModels.back().reserve(robots.size());
+            for (auto i = 0; i < robots.size(); ++i) {
+                robotMaps.back().emplace_back(robots[i]->getDistMap());
+                robotModels.back().emplace_back(topic_models[i]);
             }
 
             start = std::chrono::steady_clock::now();
         }
     }
 
-    void play(std::string const& logfile, std::vector<std::string> const& match_methods) {
+    void process(std::vector<std::string> const& match_methods, bool const overwrite = false) {
+        if (!aggregateMap) throw std::logic_error("No simulation data to process");
+        if (gtMap && !gtMLMap) gtMLMap = merge<3>(make_vector(gtMap.get()));
+        if (!aggregateMLMap) aggregateMLMap = merge<4>(make_vector(aggregateMap.get()));
 
+        results["Bagfiles"] = json(bagfiles);
+        results["Image Topic"] = image_topic;
+        results["Depth Topic"] = depth_topic;
+        results["Segmentation Topic"] = segmentation_topic;
+        results["Number of Robots"] = bagfiles.size();
+        results["Parameters"] = json(params);
+        if (gtMLMap) {
+            auto const sr_gt_metrics = compute_metrics(*gtMLMap, *aggregateMLMap);
+            results["Single Robot GT-MI"] = std::get<0>(sr_gt_metrics);
+            results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
+            results["Single Robot GT-AMI"] = std::get<2>(sr_gt_metrics);
+        }
+
+        assert(robotMaps.size() == robotModels.size());
+        for (auto const& method : match_methods) {
+            if (overwrite || !results.contains(method)) results["Match Results"][method] = match(robotModels, robotMaps, method);
+        }
+    }
+
+    [[nodiscard]] json match(decltype(robotModels) const& topic_models, decltype(robotMaps) const& maps, std::string const& match_method) const {
+        json match_results = json::array();
+        for (auto i = 0ul; i < maps.size(); ++i) {
+            json match_result;
+            match_result["Number of Observations"] = (i + 1);
+
+            auto const correspondences = match_topics(match_method, topic_models[i]);
+            match_result["Unique Topics"] = correspondences.num_unique;
+            match_result["SSD"] = correspondences.ssd;
+
+            match_scores const scores(topic_models[i], correspondences.lifting, normed_dist_sq<double>);
+            match_result["Cluster Size"] = scores.cluster_sizes;
+            match_result["Mean-Square Cluster Distances"] = scores.mscd;
+            match_result["Silhouette Indices"] = scores.silhouette;
+            match_result["Davies-Bouldin Indices"] = scores.davies_bouldin;
+
+            uint32_t matched = 0;
+            for (auto const size : scores.cluster_sizes) { matched += (size > 1); }
+            std::cout << match_method << " matched clusters: " << matched << "/" << correspondences.num_unique << std::endl;
+
+            auto merged_segmentations = merge(maps[i], correspondences.lifting);
+            {
+                auto const sr_ref_metrics = compute_metrics(*aggregateMLMap, *merged_segmentations);
+                match_result["SR-MI"]     = std::get<0>(sr_ref_metrics);
+                match_result["SR-NMI"]    = std::get<1>(sr_ref_metrics);
+                match_result["SR-AMI"]    = std::get<2>(sr_ref_metrics);
+                std::cout << match_method << " SR AMI:" << std::get<2>(sr_ref_metrics) << std::endl;
+            }
+
+            if (gtMap) {
+                align(*merged_segmentations, *gtMLMap);
+                {
+                    auto const gt_ref_metrics = compute_metrics(*gtMLMap, *merged_segmentations);
+                    match_result["GT-MI"]     = std::get<0>(gt_ref_metrics);
+                    match_result["GT-NMI"]    = std::get<1>(gt_ref_metrics);
+                    match_result["GT-AMI"]    = std::get<2>(gt_ref_metrics);
+                    std::cout << match_method << " GT AMI:" << std::get<2>(gt_ref_metrics) << std::endl;
+                }
+
+                std::vector<double> individ_mi, individ_nmi, individ_ami;
+                for (auto const &segmentation : maps[i]) {
+                    auto const individ_metric = compute_metrics(*gtMLMap, *segmentation);
+                    individ_mi.push_back(std::get<0>(individ_metric));
+                    individ_nmi.push_back(std::get<1>(individ_metric));
+                    individ_ami.push_back(std::get<2>(individ_metric));
+                }
+                match_result["Individual GT-MI"] = individ_mi;
+                match_result["Individual GT-NMI"] = individ_nmi;
+                match_result["Individual GT-AMI"] = individ_ami;
+            }
+            match_results.push_back(match_result);
+        }
+        return match_results;
     }
 
     template<class Archive>
@@ -251,24 +228,31 @@ class MultiAgentSimulation {
         ar & params;
         ar & gtMap;
         ar & aggregateMap;
+        ar & robotMaps;
+        ar & robotModels;
+        std::string resultsStr;
+        if (results.empty()) {
+            ar & resultsStr;
+            if (!resultsStr.empty()) results = json::parse(resultsStr);
+        } else {
+            resultsStr = results.dump();
+            ar & resultsStr;
+        }
+    }
+
+    [[nodiscard]] json const& getResults() const {
+        return results;
     }
 };
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "multi_agent_sim");
-    if (argc < 5) {
-        std::cerr << "Usage: ./sunshine_eval image_topic depth_topic segmentation_topic bagfiles..." << std::endl;
-        return 1;
-    }
-    std::string const image_topic_name(argv[1]);
-    std::string const depth_topic_name(argv[2]);
-    std::string const segmentation_topic_name(argv[3]);
-
     ros::NodeHandle nh("~");
 
     auto output_prefix = nh.param<std::string>("output_prefix", "");
     output_prefix += (output_prefix.empty() || output_prefix.back() == '/') ? "" : "/";
-    auto const csv_filename = nh.param<std::string>("output_filename", output_prefix + "stats.csv");
+    auto const data_filename = output_prefix + "data.bin.zz";
+    auto const results_filename = output_prefix + "results.json";
 
     std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
@@ -276,22 +260,42 @@ int main(int argc, char **argv) {
         match_methods = sunshine::split(methods_str, ',');
     }
 
-    std::vector<std::string> bagfiles;
-    bagfiles.reserve(argc - 4);
-    for (auto i = 4; i < argc; ++i) bagfiles.emplace_back(argv[i]);
+    MultiAgentSimulation sim;
+    if (argc >= 2 && std::string(argv[1]) == "record") {
+        if (argc < 6) {
+            std::cerr << "Usage: ./multi_agent_sim record image_topic depth_topic segmentation_topic bagfiles..." << std::endl;
+            return 1;
+        }
+        std::string const image_topic_name(argv[2]);
+        std::string const depth_topic_name(argv[3]);
+        std::string const segmentation_topic_name(argv[4]);
 
+        std::vector<std::string> bagfiles;
+        bagfiles.reserve(argc - 5);
+        for (auto i = 5; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
-    MultiAgentSimulation ref(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
-    {
-        CompressedFileReader reader("test.sim");
-        reader >> ref;
+        sim = MultiAgentSimulation(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
+        sim.record(nh);
+    } else if (argc >= 2 && std::string(argv[1]) == "replay") {
+        if (argc != 3) {
+            std::cerr << "Usage: ./multi_agent_sim replay data_file.bin.zz" << std::endl;
+            return 1;
+        }
+        CompressedFileReader reader(argv[2]);
+        reader >> sim;
+    } else {
+        std::cerr << "Usage: ./multi_agent_sim <record|replay> <args...>" << std::endl;
+        return 1;
     }
 
-    MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
-    sim.record(nh, match_methods);
-
-    CompressedFileWriter writer("test.sim");
+    sim.process(match_methods, true);
+    CompressedFileWriter writer(data_filename);
     writer << sim;
+
+    auto const& results = sim.getResults();
+    std::ofstream resultsWriter(results_filename);
+    resultsWriter << results.dump(4);
+    resultsWriter.close();
 
     return 0;
 }

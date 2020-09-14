@@ -80,9 +80,9 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
     return {matches, gt_weights, topic_weights, total_weight};
 }
 
-template<uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
-SegmentationMatch compute_matches(sunshine::Segmentation<int, gt_pose_dimen, int, double> const &gt_seg,
-                                  sunshine::Segmentation<int, pose_dimen, int, double> const &topic_seg) {
+template<typename ObsA, typename ObsB, uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
+SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, int, double> const &gt_seg,
+                                  sunshine::Segmentation<ObsB, pose_dimen, int, double> const &topic_seg) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     auto const gt_num_topics = get_num_topics(gt_seg);
     auto const num_topics = get_num_topics(topic_seg);
@@ -90,7 +90,10 @@ SegmentationMatch compute_matches(sunshine::Segmentation<int, gt_pose_dimen, int
     std::vector<std::vector<uint32_t>> matches(num_topics, std::vector<uint32_t>(gt_num_topics, 0));
     double total_weight = 0;
     for (auto i = 0; i < gt_seg.observations.size(); ++i) {
-        auto const label = gt_seg.observations[i];
+        uint32_t label;
+        if constexpr (std::is_same_v<ObsA, int>) label = gt_seg.observations[i];
+        else if constexpr (std::is_same_v<ObsA, std::vector<int>>) label = argmax(gt_seg.observations[i]);
+        else static_assert(always_false<ObsA>);
         constexpr size_t offset = (gt_pose_dimen == 4) ? 1 : 0;
         std::array<int, 3> const pose{gt_seg.observation_poses[i][offset], gt_seg.observation_poses[i][1 + offset],
                                       gt_seg.observation_poses[i][2 + offset]};
@@ -101,7 +104,10 @@ SegmentationMatch compute_matches(sunshine::Segmentation<int, gt_pose_dimen, int
         constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
         std::array<int, 3> const pose{topic_seg.observation_poses[i][offset], topic_seg.observation_poses[i][1 + offset],
                                       topic_seg.observation_poses[i][2 + offset]};
-        auto const topic_label = topic_seg.observations[i];
+        uint32_t topic_label;
+        if constexpr (std::is_integral_v<ObsB>) topic_label = topic_seg.observations[i];
+        else if constexpr (std::is_same_v<ObsB, std::vector<int>>) topic_label = argmax(topic_seg.observations[i]);
+        else static_assert(always_false<ObsB>);
         topic_labels.insert({pose, topic_label});
 
         auto iter = gt_labels.find(pose);
@@ -276,10 +282,10 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
     return ami;
 }
 
-template<uint32_t gt_pose_dim = 3>
-auto compute_metrics(sunshine::Segmentation<int, gt_pose_dim, int, double> const &gt_seg,
-                     sunshine::Segmentation<int, 4, int, double> const &topic_seg) {
-    auto const contingency_table = compute_matches<4, gt_pose_dim>(gt_seg, topic_seg);
+template<uint32_t gt_pose_dim = 3, typename ObsA, typename ObsB>
+auto compute_metrics(sunshine::Segmentation<ObsA, gt_pose_dim, int, double> const &gt_seg,
+                     sunshine::Segmentation<ObsB, 4, int, double> const &topic_seg) {
+    auto const contingency_table = compute_matches<ObsA, ObsB, 4, gt_pose_dim>(gt_seg, topic_seg);
     auto const &matches = std::get<0>(contingency_table);
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);

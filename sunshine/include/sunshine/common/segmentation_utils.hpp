@@ -104,8 +104,8 @@ std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &
     return merged;
 }
 
-template<uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
-void align(Segmentation<int, LeftPoseDim, int, double> &segmentation, Segmentation<int, RightPoseDim, int, double> const &reference) {
+template<typename LabelType, uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
+void align(Segmentation<LabelType, LeftPoseDim, int, double> &segmentation, Segmentation<LabelType, RightPoseDim, int, double> const &reference) {
     auto const cooccurrence_data = compute_cooccurences(reference, segmentation);
     auto const &counts = cooccurrence_data.first;
     std::vector<std::vector<double>> costs(counts[0].size(), std::vector<double>(counts.size(), 0.0));
@@ -117,7 +117,13 @@ void align(Segmentation<int, LeftPoseDim, int, double> &segmentation, Segmentati
     int num_topics = counts.size();
     auto const lifting = get_permutation(hungarian_assignments(costs), &num_topics);
     for (auto &obs : segmentation.observations) {
-        obs = lifting[obs];
+        if constexpr (std::is_integral_v<LabelType>) obs = lifting[obs];
+        else {
+            std::remove_reference_t<decltype(obs)> copy{obs};
+            assert(&copy != &obs);
+            assert(obs.size() <= lifting.size());
+            for (auto i = 0ul; i < obs.size(); ++i) obs[i] = copy[lifting[i]];
+        }
     }
 }
 }
