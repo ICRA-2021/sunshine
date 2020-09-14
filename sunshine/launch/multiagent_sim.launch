@@ -1,12 +1,13 @@
 <launch>
+  <arg name="n_trials" default="1" />
+  <arg name="bagfiles" default="/data/stewart/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_3_of_5.bag
+/data/stewart/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_5_of_5.bag" />
+
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
   <arg name="segmentation_topic" default="/camera/seg/image_color" /> <!--Rectified color image-->
-  <arg name="bagfiles" default="/data/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/airsim-bags/reef-explore_3_part_3_of_5.bag
-/data/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/airsim-bags/reef-explore_3_part_5_of_5.bag" />
   <arg name="file_prefix" default="" />
-  <arg name="maps_dir" default="" />
-  <arg name="stats_filename" default="$(eval maps_dir + '/stats.csv' if maps_dir != '' else '')" />
+  <arg name="output_dir" default="" />
   <arg name="match_methods" default="id,hungarian-l1,clear-l1" />
 
   <!-- Vision arguments -->
@@ -57,7 +58,11 @@
   <param name="/use_sim_time" value="false"/>
 
 
-  <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim" args="$(arg image_topic) $(arg depth_cloud_topic) $(arg segmentation_topic) $(arg bagfiles)">
+  <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim" args="record $(arg n_trials) $(arg bagfiles)">
+    <param name="image_topic" value="$(arg image_topic)" />
+    <param name="depth_cloud_topic" value="$(arg depth_cloud_topic)" />
+    <param name="segmentation_topic" value="$(arg segmentation_topic)" />
+
     <param name="K" type="int" value="$(arg K)" />
     <param name="V" type="int" value="$(arg V)" />
     <param name="alpha" type="double" value="$(arg alpha)" />
@@ -92,8 +97,7 @@
     <param name="use_pc" value="$(arg use_pc)" />
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
-    <param name="output_prefix" value="$(arg maps_dir)" />
-    <param name="output_filename" value="$(arg stats_filename)" />
+    <param name="output_prefix" value="$(arg output_dir)" />
     <param name="box" value="-50x-50x100x100" />
     <param name="match_methods" value="$(arg match_methods)" />
   </node>
@@ -159,53 +163,4 @@
   </node>
 
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find sunshine)/rviz/multi_agent_topics.rviz" if="$(arg use_rviz)" />
-
-<!--   <node pkg="sunshine" type="save_topic_map" name="save_hungarian_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
-<!--     <param name="input_topic" value="/hungarian_map" /> -->
-<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-hungarian" /> -->
-<!-- 	<param name="continuous" value="true" /> -->
-<!-- 	<param name="save_topic_timeseries" value="false" /> -->
-<!-- 	<param name="save_topic_model" value="false" /> -->
-<!-- 	<param name="save_topic_cells" value="false" /> -->
-<!-- 	<param name="save_perplexity_map" value="false" /> -->
-<!-- 	<param name="use_color" value="true" /> -->
-<!--         <param name="box" value="-50x-50x100x100" /> -->
-<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
-<!--   </node> -->
-<!--   <node pkg="sunshine" type="save_topic_map" name="save_naive_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
-<!--     <param name="input_topic" value="/naive_map" /> -->
-<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-naive" /> -->
-<!-- 	<param name="continuous" value="true" /> -->
-<!-- 	<param name="save_topic_timeseries" value="false" /> -->
-<!-- 	<param name="save_topic_model" value="false" /> -->
-<!-- 	<param name="save_topic_cells" value="false" /> -->
-<!-- 	<param name="save_perplexity_map" value="false" /> -->
-<!-- 	<param name="use_color" value="true" /> -->
-<!--         <param name="box" value="-50x-50x100x100" /> -->
-<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
-<!--   </node> -->
-<!--   <node pkg="sunshine" type="save_topic_map" name="save_merged_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
-<!--     <param name="input_topic" value="/merged_map" /> -->
-<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-merged" /> -->
-<!-- 	<param name="continuous" value="true" /> -->
-<!-- 	<param name="save_topic_timeseries" value="false" /> -->
-<!-- 	<param name="save_topic_model" value="false" /> -->
-<!-- 	<param name="save_topic_cells" value="false" /> -->
-<!-- 	<param name="save_perplexity_map" value="false" /> -->
-<!-- 	<param name="use_color" value="true" /> -->
-<!--         <param name="box" value="-50x-50x100x100" /> -->
-<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
-<!--   </node> -->
-<!--   <node pkg="sunshine" type="save_topic_map" name="save_gt_topic_map" respawn="true" if="$(eval maps_dir != '')" > -->
-<!--     <param name="input_topic" value="/gt_map" /> -->
-<!--   	<param name="output_prefix" value="$(arg maps_dir)/$(arg file_prefix)topic-map-gt" /> -->
-<!-- 	<param name="continuous" value="true" /> -->
-<!-- 	<param name="save_topic_timeseries" value="false" /> -->
-<!-- 	<param name="save_topic_model" value="false" /> -->
-<!-- 	<param name="save_topic_cells" value="false" /> -->
-<!-- 	<param name="save_perplexity_map" value="false" /> -->
-<!-- 	<param name="use_color" value="true" /> -->
-<!--         <param name="box" value="-50x-50x100x100" /> -->
-<!--         <param name="pixel_scale" value="$(arg cell_space)" /> -->
-<!--   </node> -->
 </launch>
