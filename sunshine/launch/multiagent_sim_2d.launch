@@ -1,10 +1,10 @@
 <launch>
   <arg name="n_trials" default="1" />
-  <arg name="bagfiles" default="/data/stewart/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_3_of_5.bag
-/data/stewart/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_5_of_5.bag" />
 
-  <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
-  <arg name="segmentation_topic" default="/camera/seg/image_color" /> <!--Rectified color image-->
+  <arg name="image_topic" default="/bluerov/sensors/zed/left/image_rect_color" /> <!--Rectified color image-->
+  <arg name="segmentation_topic" default="" /> <!--Rectified color image-->
+  <arg name="bagfiles" default="/home/stewart/bluerov_2019-01-16-20-37-23_pt1_of_6.bag  /home/stewart/bluerov_2019-01-16-20-37-23_pt3_of_6.bag  /home/stewart/bluerov_2019-01-16-20-37-23_pt5_of_6.bag
+/home/stewart/bluerov_2019-01-16-20-37-23_pt2_of_6.bag  /home/stewart/bluerov_2019-01-16-20-37-23_pt4_of_6.bag  /home/stewart/bluerov_2019-01-16-20-37-23_pt6_of_6.bag" />
   <arg name="file_prefix" default="" />
   <arg name="maps_dir" default="" />
   <arg name="stats_filename" default="$(eval maps_dir + '/stats.csv' if maps_dir != '' else '')" />
@@ -25,14 +25,14 @@
   <arg name="use_tf" default="true" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="20" />
+  <arg name="K" default="10" />
   <arg name="V" default="15436" />
-  <arg name="alpha" default="0.37" />
-  <arg name="beta" default="0.127" />
-  <arg name="gamma" default="3.43E-7" />
+  <arg name="alpha" default="0.073" />
+  <arg name="beta" default="0.15" />
+  <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
-  <arg name="num_threads" default="7" />
+  <arg name="num_threads" default="1" />
   <arg name="cell_space" default="100" />
   <arg name="cell_time" default="3600" />
   <arg name="cell_size" default="3600x100x100x1" />
@@ -40,7 +40,7 @@
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
-  <arg name="min_obs_refine_time" default="300" />
+  <arg name="min_obs_refine_time" default="1200" />
 
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
