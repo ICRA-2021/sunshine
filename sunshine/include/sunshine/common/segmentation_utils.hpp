@@ -51,7 +51,9 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
             }
             total_weight += 1;
         } else {
-            throw std::runtime_error("Failed to find gt_pose for observation");
+            std::cerr << "Failed to find gt gt_seg for pose " << pose
+                      << " with gt_seg cell_size = " << gt_seg.cell_size
+                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
         }
     }
     return {cooccurences, total_weight};

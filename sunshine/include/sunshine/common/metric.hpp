@@ -74,7 +74,9 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
             topic_weights[topic_label] += 1;
             total_weight += 1;
         } else {
-            std::cerr << "Failed to find gt gt_seg for pose!" << std::endl;
+            std::cerr << "Failed to find gt gt_seg for pose " << pose
+                      << " with gt_seg cell_size = " << gt_seg.cell_size
+                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
         }
     }
     return {matches, gt_weights, topic_weights, total_weight};
@@ -118,7 +120,9 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
             topic_weights[topic_label] += 1;
             total_weight += 1;
         } else {
-            std::cerr << "Failed to find gt gt_seg for pose!" << std::endl;
+            std::cerr << "Failed to find gt gt_seg for pose " << pose
+                      << " with gt_seg cell_size = " << gt_seg.cell_size
+                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
         }
     }
     return {matches, gt_weights, topic_weights, total_weight};

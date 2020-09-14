@@ -8,6 +8,7 @@
 #include <chrono>
 #include <opencv2/core.hpp>
 #include <boost/functional/hash.hpp>
+#include <ostream>
 
 namespace sunshine {
 
@@ -243,6 +244,17 @@ To safeNumericCast(double val) {
     if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
     if constexpr (std::is_integral_v<To>) return static_cast<To>(std::round(val));
     else return static_cast<To>(val);
+}
+
+template<typename T, size_t N>
+std::ostream& operator<<(std::ostream& stream, std::array<T, N> const& arr) {
+    stream << "[";
+    for (auto const& a : arr) {
+        if constexpr (std::is_same_v<T, std::string>) stream << "\"";
+        stream << a;
+        if constexpr (std::is_same_v<T, std::string>) stream << "\"";
+    }
+    return (stream << "]");
 }
 
 }
