@@ -32,7 +32,7 @@ class MultiAgentSimulation {
     decltype(std::declval<RobotSim>().getGTMap()) gtMap;
     decltype(std::declval<RobotSim>().getDistMap()) aggregateMap;
     std::vector<std::vector<decltype(std::declval<RobotSim>().getDistMap())>> robotMaps;
-    std::vector<std::vector<decltype(std::declval<RobotSim>().getTopicModel())>> robotModels;
+    std::vector<std::vector<Phi>> robotModels;
 
     // Derived data -- not serialized (can be recovered exactly from above data)
     std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
@@ -172,11 +172,10 @@ class MultiAgentSimulation {
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
 
-        auto const fetch_new_topic_models = [&robots](bool remove_unused = false) {
+        std::function<std::vector<Phi>()> const fetch_new_topic_models = [&robots]() {
             std::vector<Phi> topic_models;
             for (auto const &robot : robots) {
                 topic_models.push_back(robot->getTopicModel(true));
-                if (remove_unused) topic_models.back().remove_unused();
             }
             return topic_models;
         };
