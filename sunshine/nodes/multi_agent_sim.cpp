@@ -156,7 +156,7 @@ class MultiAgentSimulation {
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
             std::set<std::array<int, 3>> aggregate_poses;
-            gtPoses = std::set(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
+            gtPoses = std::set<std::array<int, 3>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
             for (auto const& pose : aggregateMap->observation_poses) {
                 uint32_t const offset = pose.size() == 4;
                 aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
