@@ -30,8 +30,8 @@ class MultiAgentSimulation {
     std::string segmentation_topic;
     std::map<std::string, std::string> params;
     decltype(std::declval<RobotSim>().getGTMap()) gtMap;
-    decltype(std::declval<RobotSim>().getDistMap()) aggregateMap;
-    std::vector<std::vector<decltype(std::declval<RobotSim>().getDistMap())>> robotMaps;
+    std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)> aggregateMap;
+    std::vector<std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>>> robotMaps;
     std::vector<std::vector<Phi>> robotModels;
 
     // Derived data -- not serialized (can be recovered exactly from above data)
@@ -152,7 +152,7 @@ class MultiAgentSimulation {
             aggregateRobot.waitForProcessing();
         }
         aggregateRobot.pause();
-        aggregateMap = aggregateRobot.getDistMap();
+        aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
             std::set<std::array<int, 3>> aggregate_poses;
@@ -172,14 +172,6 @@ class MultiAgentSimulation {
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
 
-        std::function<std::vector<Phi>()> const fetch_new_topic_models = [&robots]() {
-            std::vector<Phi> topic_models;
-            for (auto const &robot : robots) {
-                topic_models.push_back(robot->getTopicModel(true));
-            }
-            return topic_models;
-        };
-
         bool active = true;
         size_t n_obs = 0;
         auto start = std::chrono::steady_clock::now();
@@ -192,14 +184,18 @@ class MultiAgentSimulation {
             }
             n_obs += active;
 
-            robotModels.push_back(fetch_new_topic_models(false));
             auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
             std::cout << "Refine time: " << refine_time << std::endl;
 
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
+            robotModels.emplace_back();
+            robotModels.back().reserve(robots.size());
             for (auto const& robot : robots) {
-                robotMaps.back().emplace_back(robot->getDistMap());
+                robot->waitForProcessing();
+                auto token = robot->getReadToken();
+                robotModels.back().emplace_back(robot->getTopicModel(*token));
+                robotMaps.back().emplace_back(robot->getDistMap(*token));
             }
 
             start = std::chrono::steady_clock::now();

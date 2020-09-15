@@ -174,26 +174,20 @@ class RobotSim {
         bagIter->set_logging(true);
     }
 
-    Phi getTopicModel(bool wait_for_refine = false) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_topic_model(*token);
+    Phi getTopicModel(activity_manager::ReadToken const& token) const {
+        return rostAdapter->get_topic_model(token);
     }
 
     auto getRost() {
         return rostAdapter;
     }
 
-    auto getMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_map(*token);
+    auto getMap(activity_manager::ReadToken const& token) const {
+        return rostAdapter->get_map(token);
     }
 
-    auto getDistMap(bool wait_for_refine = true) const {
-        if (wait_for_refine) rostAdapter->wait_for_processing(false);
-        auto token = rostAdapter->get_rost().get_read_token();
-        return rostAdapter->get_dist_map(*token);
+    auto getDistMap(activity_manager::ReadToken const& token) const {
+        return rostAdapter->get_dist_map(token);
     }
 
     auto getGTMap() const {
@@ -218,6 +212,10 @@ class RobotSim {
 
     void waitForProcessing() const {
         rostAdapter->wait_for_processing(false);
+    }
+
+    [[nodiscard]] auto getReadToken() const {
+        return rostAdapter->get_rost().get_read_token();
     }
 
     void pause() {
