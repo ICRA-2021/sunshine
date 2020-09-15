@@ -139,8 +139,9 @@ struct hasharray {
 
 template<typename T>
 inline long record_lap(T &time_checkpoint) {
-    auto const duration = std::chrono::steady_clock::now() - time_checkpoint;
-    time_checkpoint = std::chrono::steady_clock::now();
+    auto const new_time = std::chrono::steady_clock::now();
+    auto const duration = new_time - time_checkpoint;
+    time_checkpoint = new_time;
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 }
 
@@ -255,6 +256,24 @@ std::ostream& operator<<(std::ostream& stream, std::array<T, N> const& arr) {
         if constexpr (std::is_same_v<T, std::string>) stream << "\"";
     }
     return (stream << "]");
+}
+
+template<typename T>
+bool includes(std::vector<T> parent, std::vector<T> child) {
+    std::sort(parent.begin(), parent.end());
+    std::sort(child.begin(), child.end());
+    return std::includes(parent.begin(), parent.end(), child.begin(), child.end());
+}
+
+template<typename T>
+bool includes(std::set<T> const& parent, std::set<T> const& child) {
+    return std::includes(parent.begin(), parent.end(), child.begin(), child.end());
+}
+
+template<typename T>
+bool includes(std::set<T> const& parent, std::vector<T> child) {
+    std::sort(child.begin(), child.end());
+    return std::includes(parent.begin(), parent.end(), child.begin(), child.end());
 }
 
 }

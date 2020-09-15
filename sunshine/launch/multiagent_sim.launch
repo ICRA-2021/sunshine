@@ -29,7 +29,7 @@
   <arg name="K" default="10" />
   <arg name="V" default="15436" />
   <arg name="alpha" default="0.3" />
-  <arg name="beta" default="0.05" />
+  <arg name="beta" default="0.04" />
   <arg name="gamma" default="0.0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />

@@ -8,7 +8,7 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <string>
-#include <unordered_map>
+#include <map>
 #include <memory>
 
 namespace sunshine {
@@ -18,8 +18,9 @@ class BagIterator
     rosbag::Bag bag;
     std::unique_ptr<rosbag::View> view;
     std::unique_ptr<rosbag::View::const_iterator> iterator;
-    std::unordered_multimap<std::string, std::function<bool(rosbag::MessageInstance const &)>> callbacks;
+    std::multimap<std::string, std::function<bool(rosbag::MessageInstance const &)>> callbacks;
     bool logging = false;
+    decltype(std::chrono::steady_clock::now()) clock = std::chrono::steady_clock::now();
 
     void open(std::string const& filename) {
         if (bag.isOpen()) bag.close();
@@ -40,16 +41,23 @@ class BagIterator
 
     /**
      *
-     * @tparam Callback Callback class (implied by function argument>
+     * @param topic Name of the topic to assign the callback to
+     * @param callback Function that returns true if the playback should break
+     */
+    void add_callback(std::string const &topic, std::function<bool(rosbag::MessageInstance const&)> callback) {
+        callbacks.emplace(std::make_pair(topic, std::move(callback)));
+    }
+
+    /**
+     *
      * @tparam MessageClass Type that message should be instantiated as
      * @param topic Name of the topic to assign the callback to
      * @param callback Function that returns true if the playback should break
      */
-    template<class MessageClass = rosbag::MessageInstance, typename Callback>
-    void add_callback(std::string const &topic, Callback callback) {
+    template<class MessageClass>
+    void add_callback(std::string const &topic, std::function<bool(boost::shared_ptr<MessageClass>)> callback) {
         callbacks.emplace(std::make_pair(topic, [callback](rosbag::MessageInstance const &msg) {
-            if constexpr (std::is_same_v<MessageClass, rosbag::MessageInstance>) { return callback(msg); }
-            else { return callback(msg.instantiate<MessageClass>()); }
+            return callback(msg.instantiate<MessageClass>());
         }));
     }
 
@@ -59,20 +67,28 @@ class BagIterator
      * @return true if finished playing bag up to a maximum of max_msgs, false otherwise
      */
     bool play(bool ignore_breakpoints = false) {
-        if (!view) view = std::make_unique<rosbag::View>(bag);
+//        ROS_INFO("%ld ms since last played", record_lap(clock));
+        if (!view) view = std::make_unique<rosbag::View>(bag, [this](rosbag::ConnectionInfo const* ci){
+                       bool const matches = callbacks.find(ci->topic) != callbacks.end();
+                       ROS_INFO_COND(!matches && logging, "Skipped message from topic %s", ci->topic.c_str());
+                       return matches;
+            });
         if (!iterator) iterator = std::make_unique<rosbag::View::const_iterator>(view->begin());
         bool flagged = false;
-        for (; *iterator != view->end() && !flagged; (*iterator)++) {
+        for (; *iterator != view->end() && (ignore_breakpoints || !flagged); (*iterator)++) {
+            auto const dt = record_lap(clock);
             auto const &m = **iterator;
+//            ROS_INFO("parsing %s; %ld ms since last msg parsed", m.getTopic().c_str(), dt);
             if (auto callback_range = callbacks.equal_range(m.getTopic()); callback_range.first != callbacks.end()) {
+//                ROS_INFO("%ld ms spent finding callback", record_lap(clock));
                 for (auto callback = callback_range.first; callback != callback_range.second; ++callback) {
-                    flagged = (callback->second(m)) ? true : flagged;
+                    flagged = (callback->second(m)) || flagged;
                 }
-            } else {
-                ROS_INFO_COND(logging, "Skipped message from topic %s", m.getTopic().c_str());
-                add_callback(m.getTopic(), [](rosbag::MessageInstance const &msg) { return false; });
+                auto const dt2 = record_lap(clock);
+//                ROS_INFO("%ld ms spent in callbacks", dt2);
             }
         }
+//        ROS_INFO("%ld ms since last callback finished", record_lap(clock));
         return !flagged;
     }
 

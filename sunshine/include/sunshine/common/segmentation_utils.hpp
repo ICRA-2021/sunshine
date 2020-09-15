@@ -11,7 +11,6 @@
 
 namespace sunshine {
 
-
 template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double>
 std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(sunshine::Segmentation<LabelType, 3, int, double> const &gt_seg,
                                                                                sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg) {

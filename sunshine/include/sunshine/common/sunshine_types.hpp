@@ -64,8 +64,7 @@ struct Phi {
               flag = false;
               V = counts[k].size();
           }
-          int weight = 0;
-          for (auto w = 0; w < V; ++w) weight += counts[k][w];
+          int const weight = std::accumulate(counts[k].cbegin(), counts[k].cend(), 0);
           if (weight != topic_weights[k]) {
               if (verbose) {
                   std::cerr << "Mismatch between computed topic weight " << weight << " and topic_weights[k]=" << topic_weights[k]

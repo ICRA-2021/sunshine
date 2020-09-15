@@ -37,6 +37,7 @@ class MultiAgentSimulation {
     // Derived data -- not serialized (can be recovered exactly from above data)
     std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
     std::unique_ptr<Segmentation<int, 4, int, double>> aggregateMLMap;
+    std::set<decltype(decltype(gtMap)::element_type::observation_poses)::value_type> gtPoses;
     json results = json::object();
 
   protected:
@@ -70,6 +71,13 @@ class MultiAgentSimulation {
             }
 
             if (gtMap) {
+                std::set<std::array<int, 3>> merged_poses;
+                for (auto const& pose : merged_segmentations->observation_poses) {
+                    uint32_t const offset = pose.size() == 4;
+                    merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+                }
+                if (!includes(gtPoses, merged_poses)) throw std::logic_error("Ground truth is missing poses!");
+
                 align(*merged_segmentations, *gtMLMap);
                 {
                     auto const gt_ref_metrics = compute_metrics(*gtMLMap, *merged_segmentations);
@@ -147,6 +155,13 @@ class MultiAgentSimulation {
         aggregateMap = aggregateRobot.getDistMap();
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
+            std::set<std::array<int, 3>> aggregate_poses;
+            gtPoses = std::set(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
+            for (auto const& pose : aggregateMap->observation_poses) {
+                uint32_t const offset = pose.size() == 4;
+                aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+            }
+            if (!includes(gtPoses, aggregate_poses)) throw std::logic_error("Ground truth is missing poses!");
         }
 
         //    std::vector<ros::Publisher> map_pubs;
@@ -178,17 +193,14 @@ class MultiAgentSimulation {
             }
             n_obs += active;
 
-            auto topic_models = fetch_new_topic_models(false);
+            robotModels.push_back(fetch_new_topic_models(false));
             auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
             std::cout << "Refine time: " << refine_time << std::endl;
 
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
-            robotModels.emplace_back();
-            robotModels.back().reserve(robots.size());
-            for (auto i = 0; i < robots.size(); ++i) {
-                robotMaps.back().emplace_back(robots[i]->getDistMap());
-                robotModels.back().emplace_back(topic_models[i]);
+            for (auto const& robot : robots) {
+                robotMaps.back().emplace_back(robot->getDistMap());
             }
 
             start = std::chrono::steady_clock::now();
