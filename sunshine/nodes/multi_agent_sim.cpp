@@ -315,8 +315,8 @@ int main(int argc, char **argv) {
         bagfiles.reserve(argc - offset);
         for (auto i = offset; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
-        for (auto i = 0; i < n_trials; ++i) {
-            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i+1) + "-of-" + std::to_string(n_trials) + ".bin.zz";
+        for (auto i = 1; i <= n_trials && ros::ok(); ++i) {
+            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i) + "-of-" + std::to_string(n_trials) + ".bin.zz";
             CompressedFileWriter writer(data_filename);
             ROS_INFO("Starting simulation %d", i);
             MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
