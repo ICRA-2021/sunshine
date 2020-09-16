@@ -285,9 +285,10 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh("~");
 
     auto output_prefix = nh.param<std::string>("output_prefix", "");
+    auto file_prefix = nh.param<std::string>("file_prefix", "");
     output_prefix += (output_prefix.empty() || output_prefix.back() == '/') ? "" : "/";
-    auto const data_filename = (mode == "record") ? output_prefix + "data.bin.zz" : argv[2];
-    auto const results_filename = output_prefix + "results.json";
+    file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
+    auto const results_filename = output_prefix + file_prefix + "results.json";
 
     std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
@@ -295,6 +296,7 @@ int main(int argc, char **argv) {
         match_methods = sunshine::split(methods_str, ',');
     }
 
+    std::vector<std::string> data_files;
     if (argc >= 2 && mode == "record") {
         auto const image_topic_name = nh.param<std::string>("image_topic", "/camera/rgb/image_color");
         auto const depth_topic_name = nh.param<std::string>("depth_cloud_topic", "/camera/points");
@@ -313,8 +315,9 @@ int main(int argc, char **argv) {
         bagfiles.reserve(argc - offset);
         for (auto i = offset; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
-        CompressedFileWriter writer(data_filename);
         for (auto i = 0; i < n_trials; ++i) {
+            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i+1) + "-of-" + std::to_string(n_trials) + ".bin.zz";
+            CompressedFileWriter writer(data_filename);
             ROS_INFO("Starting simulation %d", i);
             MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
             try {
@@ -324,21 +327,25 @@ int main(int argc, char **argv) {
                 continue;
             }
             writer << sim;
+            data_files.push_back(data_filename);
         }
-    } else if (argc != 3 || mode != "replay") {
-        std::cerr << "Usage: ./multi_agent_sim replay data_file.bin.zz" << std::endl;
-        return 1;
+    } else if (mode == "replay") {
+        for (auto i = 2; i < argc; ++i) {
+            data_files.emplace_back(argv[i]);
+        }
     }
 
-    CompressedFileReader reader(data_filename);
     if (ros::ok()) {
         json results = json::array();
-        while (reader) {
+        for (auto const& file : data_files) {
+            CompressedFileReader reader(file);
             MultiAgentSimulation sim;
             reader >> sim;
             sim.process(match_methods);
             results.push_back(sim.getResults());
+            if (!ros::ok()) break;
         }
+        if (!ros::ok()) ROS_WARN("ROS is shutting down -- saving partial results");
 
         std::ofstream resultsWriter(results_filename);
         resultsWriter << results.dump(2);

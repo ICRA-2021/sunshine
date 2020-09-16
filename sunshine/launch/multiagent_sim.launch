@@ -98,6 +98,7 @@
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
     <param name="output_prefix" value="$(arg output_dir)" />
+    <param name="file_prefix" value="$(arg file_prefix)" />
     <param name="box" value="-50x-50x100x100" />
     <param name="match_methods" value="$(arg match_methods)" />
   </node>
