@@ -84,7 +84,7 @@ class sparse_vector {
     T operator[](IndexT const& idx) const {
         if (idx < 0 || idx >= vec_size) throw std::invalid_argument("Index out of range");
         auto const iter = sparse.find(idx);
-        return (iter == sparse.end()) ? default_value : iter.second;
+        return (iter == sparse.end()) ? default_value : iter->second;
     }
 };
 } // namespace sunshine

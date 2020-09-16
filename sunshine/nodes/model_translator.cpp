@@ -193,7 +193,7 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
         global_model.K = matches.num_unique;
         global_model.V = topic_models[0].V;
         global_model.topic_weights.resize(matches.num_unique, 0);
-        global_model.counts.resize(matches.num_unique, sparse_vector<int, uint32_t>(global_model.V, 0));
+        global_model.counts.resize(matches.num_unique, sparse_vector<int, uint32_t>(static_cast<uint32_t>(global_model.V), 0));
     }
     assert(total_weight(global_model.topic_weights) == total_num_observations);
 
