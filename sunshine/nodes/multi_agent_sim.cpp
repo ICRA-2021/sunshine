@@ -155,8 +155,8 @@ class MultiAgentSimulation {
         aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
-            std::set<std::array<int, 3>> aggregate_poses;
             gtPoses = std::set<std::array<int, 3>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
+            std::set<std::array<int, 3>> aggregate_poses;
             for (auto const& pose : aggregateMap->observation_poses) {
                 uint32_t const offset = pose.size() == 4;
                 aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
@@ -176,9 +176,9 @@ class MultiAgentSimulation {
         size_t n_obs = 0;
         auto start = std::chrono::steady_clock::now();
         while (active) {
-            if (!ros::ok()) return false;
             active = false;
             for (auto &robot : robots) {
+                if (!ros::ok()) return false;
                 auto const robot_active = robot->next();
                 active = active || robot_active;
             }
@@ -192,12 +192,14 @@ class MultiAgentSimulation {
             robotModels.emplace_back();
             robotModels.back().reserve(robots.size());
             for (auto const& robot : robots) {
+                if (!ros::ok()) return false;
                 robot->waitForProcessing();
                 auto token = robot->getReadToken();
                 robotModels.back().emplace_back(robot->getTopicModel(*token));
                 robotMaps.back().emplace_back(robot->getDistMap(*token));
             }
 
+            ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
             start = std::chrono::steady_clock::now();
         }
         return true;
@@ -249,18 +251,37 @@ class MultiAgentSimulation {
         }
     }
 
+    [[nodiscard]] size_t approxBytesSize() const {
+        auto gtMapSize = gtMap->bytesSize();
+        auto aggregateMapSize = aggregateMap->bytesSize();
+        size_t robotMapsSize = 0;
+        size_t robotModelsSize = 0;
+        for (size_t i = 0ul; i < robotMaps.size(); ++i) {
+            for (size_t j = 0ul; j < robotMaps[i].size(); ++j) {
+                robotMapsSize += robotMaps[i][j]->bytesSize();
+                robotModelsSize += robotModels[i][j].bytesSize();
+            }
+        }
+        return gtMapSize + aggregateMapSize + robotMapsSize + robotModelsSize;
+    }
+
     [[nodiscard]] json const& getResults() const {
         return results;
     }
 };
 
 int main(int argc, char **argv) {
+    if (argc < 3) {
+        std::cerr << "Usage: ./multi_agent_sim <record|replay> <args...>" << std::endl;
+        return 1;
+    }
+    std::string const mode(argv[1]);
     ros::init(argc, argv, "multi_agent_sim");
     ros::NodeHandle nh("~");
 
     auto output_prefix = nh.param<std::string>("output_prefix", "");
     output_prefix += (output_prefix.empty() || output_prefix.back() == '/') ? "" : "/";
-    auto const data_filename = output_prefix + "data.bin.zz";
+    auto const data_filename = (mode == "record") ? output_prefix + "data.bin.zz" : argv[2];
     auto const results_filename = output_prefix + "results.json";
 
     std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
@@ -269,12 +290,7 @@ int main(int argc, char **argv) {
         match_methods = sunshine::split(methods_str, ',');
     }
 
-    std::vector<MultiAgentSimulation> simulations;
-    if (argc >= 2 && std::string(argv[1]) == "record") {
-        if (argc < 3) {
-            std::cerr << "Usage: ./multi_agent_sim record [n_trials=1] bagfiles..." << std::endl;
-            return 1;
-        }
+    if (argc >= 2 && mode == "record") {
         auto const image_topic_name = nh.param<std::string>("image_topic", "/camera/rgb/image_color");
         auto const depth_topic_name = nh.param<std::string>("depth_cloud_topic", "/camera/points");
         auto const segmentation_topic_name = nh.param<std::string>("segmentation_topic", "/camera/seg/image_color");
@@ -292,32 +308,29 @@ int main(int argc, char **argv) {
         bagfiles.reserve(argc - offset);
         for (auto i = offset; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
+        CompressedFileWriter writer(data_filename);
         for (auto i = 0; i < n_trials; ++i) {
             ROS_INFO("Starting simulation %d", i);
-            simulations.emplace_back(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
+            MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
             try {
-                if (!simulations.back().record(nh)) throw std::runtime_error("Simulation aborted");
+                if (!sim.record(nh)) throw std::runtime_error("Simulation aborted");
             } catch (std::exception const& ex) {
-                ROS_ERROR("Simulation %d failed -- aborting and discarding partial simulation data", i);
-                simulations.pop_back();
-                break;
+                ROS_ERROR("Simulation %d failed.", i);
+                continue;
             }
+            writer << sim;
         }
-    } else if (argc >= 2 && std::string(argv[1]) == "replay") {
-        if (argc != 3) {
-            std::cerr << "Usage: ./multi_agent_sim replay data_file.bin.zz" << std::endl;
-            return 1;
-        }
-        CompressedFileReader reader(argv[2]);
-        reader >> simulations;
-    } else {
-        std::cerr << "Usage: ./multi_agent_sim <record|replay> <args...>" << std::endl;
+    } else if (argc != 3 || mode != "replay") {
+        std::cerr << "Usage: ./multi_agent_sim replay data_file.bin.zz" << std::endl;
         return 1;
     }
 
+    CompressedFileReader reader(data_filename);
     if (ros::ok()) {
         json results = json::array();
-        for (auto& sim : simulations) {
+        while (!reader.eof()) {
+            MultiAgentSimulation sim;
+            reader >> sim;
             sim.process(match_methods);
             results.push_back(sim.getResults());
         }
@@ -328,8 +341,6 @@ int main(int argc, char **argv) {
     } else {
         ROS_WARN("ROS is shutting down -- writing simulation data but skipping result processing");
     }
-    CompressedFileWriter writer(data_filename);
-    writer << simulations;
 
     return 0;
 }

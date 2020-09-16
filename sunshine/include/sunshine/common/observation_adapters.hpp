@@ -27,7 +27,6 @@ class Adapter {
         return adapter(input.get());
     }
 
-  public:
     auto operator()(std::unique_ptr<Input>&& input) {
         Input const* const inputPtr = input.get();
         return dynamic_cast<ImplClass*>(this)->operator()(inputPtr);

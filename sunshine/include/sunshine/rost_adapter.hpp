@@ -375,7 +375,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     void set_topic_model(activity_manager::WriteToken const &write_token, Phi const &phi) {
-        rost->set_topic_model(write_token, phi.counts, phi.topic_weights);
+        rost->set_topic_model(write_token, (std::vector<std::vector<int>>) phi, phi.topic_weights);
     }
 
     void wait_for_processing(bool const new_data = false) const {

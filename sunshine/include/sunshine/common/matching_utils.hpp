@@ -52,13 +52,14 @@ struct match_scores {
                     cluster_scales.resize(K, 0.);
                 }
 
-                sorted_points.insert(clusterEnd(sorted_points, cluster), std::vector<double>{data[topic].begin(), data[topic].end()});
+                auto topicDist = (std::vector<int>) data[topic];
+                sorted_points.insert(clusterEnd(sorted_points, cluster), std::vector<double>{topicDist.begin(), topicDist.end()});
                 point_scales.insert(clusterEnd(point_scales, cluster), scale);
 
                 cluster_sizes[cluster]++;
                 std::transform(cluster_centers[cluster].begin(),
                                cluster_centers[cluster].end(),
-                               data[topic].begin(),
+                               topicDist.begin(),
                                cluster_centers[cluster].begin(),
                                [scale](double const& sum, int const& val){return sum + (static_cast<double>(val) / ((scale > 0) ? scale : 1.));});
                 cluster_scales[cluster] += (scale > 0) ? 1 : 0;
@@ -470,7 +471,7 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
-    auto const &left = topic_models[0].counts;
+    auto const left = (std::vector<std::vector<int>>) topic_models[0];
     auto const &left_weights = topic_models[0].topic_weights;
 
     std::vector<int> Ks;
@@ -481,7 +482,7 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
-        auto const &right = topic_models[i].counts;
+        auto const right = (std::vector<std::vector<int>>) topic_models[i];
         auto const &right_weights = topic_models[i].topic_weights;
 
         std::vector<std::vector<double>> pd_sq = compute_all_pairs<int>(left, right, left_weights, right_weights, normed_dist_sq<int>);
@@ -534,7 +535,7 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     match_results results = {};
     if (topic_models.empty()) return results;
 
-    auto const &left = topic_models[0].counts;
+    auto const left = (std::vector<std::vector<int>>) topic_models[0];
     auto const &left_weights = topic_models[0].topic_weights;
 
     results.num_unique = left_weights.size();
@@ -545,7 +546,7 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
-        auto const &right = topic_models[i].counts;
+        auto const right = (std::vector<std::vector<int>>) topic_models[i];
         auto const &right_weights = topic_models[i].topic_weights;
 //        ROS_WARN("%lu %lu %lu %lu", left.size(), right.size(), left_weights.size(), right_weights.size());
 
@@ -581,12 +582,12 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
 
     size_t i = 0, j_offset = 0;
     for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
-        auto const &left = topic_models[left_idx].counts;
+        auto const left = (std::vector<std::vector<int>>) topic_models[left_idx];
         auto const &left_weights = topic_models[left_idx].topic_weights;
 
         size_t j = j_offset;
         for (auto right_idx = left_idx; right_idx < topic_models.size(); ++right_idx) {
-            auto const &right = topic_models[right_idx].counts;
+            auto const right = (std::vector<std::vector<int>>) topic_models[right_idx];
             auto const &right_weights = topic_models[right_idx].topic_weights;
 
             Eigen::MatrixXf matrix = Eigen::MatrixXf::Constant(left_weights.size(), right_weights.size(), 0);

@@ -110,6 +110,10 @@ class SemanticSegmentationAdapter
     auto operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> input) {
         return (*this)(input.get());
     }
+
+    auto const& getRawCounts() const {
+        return counts;
+    }
 };
 } // namespace sunshine
 #endif // SUNSHINE_PROJECT_SEGMENTATION_ADAPTER_HPP

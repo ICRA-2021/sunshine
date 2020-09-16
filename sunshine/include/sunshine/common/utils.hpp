@@ -276,6 +276,19 @@ bool includes(std::set<T> const& parent, std::vector<T> child) {
     return std::includes(parent.begin(), parent.end(), child.begin(), child.end());
 }
 
+template<typename T, typename V, typename H>
+bool includes(std::unordered_map<T, V, H> const& parent, std::vector<T> const& child) {
+    for (auto const& e : child) {
+        if (parent.find(e) == parent.end()) return false;
+    }
+    return true;
+}
+
+template<typename T, typename V>
+bool includes(std::map<T, V> const& parent, std::vector<T> const& child) {
+    return includes(std::set<T>(parent.begin(), parent.end()), child);
+}
+
 }
 
 #endif // UTILS_HPP

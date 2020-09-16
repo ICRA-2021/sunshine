@@ -140,7 +140,8 @@ sunshine_msgs::TopicModel toRosMsg(Phi const &phi) {
     topicModel.topic_weights = phi.topic_weights;
     topicModel.phi.reserve(phi.K * phi.V);
     for (auto i = 0ul; i < phi.K; ++i) {
-        topicModel.phi.insert(topicModel.phi.end(), phi.counts[i].begin(), phi.counts[i].end());
+        auto topicDist = (std::vector<int>) phi.counts[i];
+        topicModel.phi.insert(topicModel.phi.end(), topicDist.begin(), topicDist.end());
     }
     assert(topicModel.phi.size() == phi.K * phi.V);
     return topicModel;

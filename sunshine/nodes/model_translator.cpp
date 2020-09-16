@@ -193,12 +193,12 @@ void model_translator::update_global_model(std::vector<Phi> const &topic_models,
         global_model.K = matches.num_unique;
         global_model.V = topic_models[0].V;
         global_model.topic_weights.resize(matches.num_unique, 0);
-        global_model.counts.resize(matches.num_unique, std::vector<int>(global_model.V, 0));
+        global_model.counts.resize(matches.num_unique, sparse_vector<int, uint32_t>(global_model.V, 0));
     }
     assert(total_weight(global_model.topic_weights) == total_num_observations);
 
 //    auto const old_weights = global_model.topic_weights;
-    std::vector<std::vector<int>> const old_counts = global_model.counts; // DO NOT use copy constructor!
+    auto const old_counts = (std::vector<std::vector<int>>) global_model;
     for (auto i = 0ul; i < topic_models.size(); ++i) {
         std::vector<int> weight_ref = topic_models[i].topic_weights;
         for (auto k2 = 0ul; k2 < topic_models[i].K; ++k2) {

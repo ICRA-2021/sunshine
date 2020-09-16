@@ -143,6 +143,13 @@ struct Segmentation : public SemanticObservation<label_type, pose_dim, cell_pose
         ar & this->observation_poses;
         ar & this->cell_size;
     }
+
+    [[nodiscard]] size_t bytesSize() const {
+        auto const headerSize = this->frame.size() + sizeof(this->timestamp) + sizeof(this->id) + sizeof(this->cell_size);
+        auto const poseSize = sizeof(this->observation_poses) + sizeof(typename decltype(this->observation_poses)::value_type) * this->observation_poses.capacity();
+        auto const dataSize = sizeof(this->observations) + sizeof(typename decltype(this->observations)::value_type) * this->observations.capacity();
+        return headerSize + poseSize + dataSize;
+    }
 };
 
 } // namespace sunshine

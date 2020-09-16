@@ -59,10 +59,11 @@ class RobotSim {
         if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp.toSec() != lastSegmentation->header.stamp.toSec())) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
 
+        ROS_DEBUG("%ld ms since last observation", record_lap(clock));
         auto newRgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
         auto newSegmentation = (use_segmentation) ? std::make_unique<ImageObservation>(fromRosMsg(lastSegmentation)) : nullptr;
         newRgb->timestamp = ros::Time::now().toSec();
-//        ROS_INFO("%ld ms parsing images", record_lap(clock));
+        ROS_DEBUG("%ld ms parsing images", record_lap(clock));
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PCLPointCloud2 pcl_pc2;
@@ -70,7 +71,7 @@ class RobotSim {
         pcl::fromPCLPointCloud2(pcl_pc2, *pc);
         wordDepthAdapter->updatePointCloud(pc);
         imageDepthAdapter->updatePointCloud(pc);
-//        ROS_INFO("%ld ms parsing depth cloud", record_lap(clock)); // ~3ms optimized
+        ROS_DEBUG("%ld ms parsing depth cloud", record_lap(clock)); // ~3ms optimized
 
         // TODO: remove duplication between if branches below
         if (use_3d) {
@@ -81,9 +82,16 @@ class RobotSim {
             } else {
                 (*rostAdapter)(std::move(observation));
             }
-//            ROS_INFO("%ld ms adding to topic model", record_lap(clock)); // ~40-80ms optimized
+            ROS_DEBUG("%ld ms adding to topic model", record_lap(clock)); // ~40-80ms optimized
             if (use_segmentation) segmentation = newSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
-//            ROS_INFO("%ld ms parsing segmentation", record_lap(clock)); // ~30-40ms optimized
+            ROS_DEBUG("%ld ms parsing segmentation", record_lap(clock)); // ~30-40ms optimized
+            std::vector<std::array<int, 3>> reduced_dim_poses;
+            reduced_dim_poses.reserve(rostAdapter->get_rost().cell_pose.size());
+            for (auto const& pose : rostAdapter->get_rost().cell_pose) {
+                reduced_dim_poses.push_back({pose[1], pose[2], pose[3]});
+            }
+            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), reduced_dim_poses)) throw std::runtime_error("Latest observation includes unrecongized poses!");
+            ROS_DEBUG("%ld ms validating poses", record_lap(clock));
         } else {
             auto observation = newRgb >> visualWordAdapter >> *word2dAdapter;
             if (externalRostAdapter) {
