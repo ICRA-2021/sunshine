@@ -156,7 +156,7 @@ int main(int argc, char** argv)
                 maxY = max(maxY, point.y);
             } while (dataPtr < end);
             if (dataPtr != end) {
-                throw std::logic_error("Heartbleed bug when reading point cloud!");
+                throw std::logic_error("Read past end of point cloud!");
             }
         }
         ROS_INFO("X in [%f, %f], Y in [%f, %f]", minX, maxX, minY, maxY);

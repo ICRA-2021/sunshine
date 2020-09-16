@@ -1,5 +1,5 @@
 <launch>
-  <arg name="n_trials" default="1" />
+  <arg name="n_trials" default="3" />
   <arg name="bagfiles" default="/data/stewart/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_3_of_5.bag
 /data/stewart/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_5_of_5.bag" />
 

@@ -37,7 +37,7 @@ class MultiAgentSimulation {
     // Derived data -- not serialized (can be recovered exactly from above data)
     std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
     std::unique_ptr<Segmentation<int, 4, int, double>> aggregateMLMap;
-    std::set<decltype(decltype(gtMap)::element_type::observation_poses)::value_type> gtPoses;
+    std::unique_ptr<std::set<decltype(decltype(gtMap)::element_type::observation_poses)::value_type>> gtPoses;
     json results = json::object();
 
   protected:
@@ -63,7 +63,7 @@ class MultiAgentSimulation {
 
             auto merged_segmentations = merge(maps[i], correspondences.lifting);
             {
-                auto const sr_ref_metrics = compute_metrics(*aggregateMLMap, *merged_segmentations);
+                auto const sr_ref_metrics = compute_metrics(*aggregateMLMap, *merged_segmentations, false);
                 match_result["SR-MI"]     = std::get<0>(sr_ref_metrics);
                 match_result["SR-NMI"]    = std::get<1>(sr_ref_metrics);
                 match_result["SR-AMI"]    = std::get<2>(sr_ref_metrics);
@@ -76,7 +76,9 @@ class MultiAgentSimulation {
                     uint32_t const offset = pose.size() == 4;
                     merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
                 }
-                if (!includes(gtPoses, merged_poses)) throw std::logic_error("Ground truth is missing poses!");
+                if (!includes(*gtPoses, merged_poses)) {
+                    throw std::logic_error("Ground truth is missing poses!");
+                }
 
                 align(*merged_segmentations, *gtMLMap);
                 {
@@ -155,13 +157,15 @@ class MultiAgentSimulation {
         aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
-            gtPoses = std::set<std::array<int, 3>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
+            gtPoses = std::make_unique<std::set<std::array<int, 3>>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
             std::set<std::array<int, 3>> aggregate_poses;
             for (auto const& pose : aggregateMap->observation_poses) {
                 uint32_t const offset = pose.size() == 4;
                 aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
             }
-            if (!includes(gtPoses, aggregate_poses)) throw std::logic_error("Ground truth is missing poses!");
+            if (!includes(*gtPoses, aggregate_poses)) {
+                throw std::logic_error("Ground truth is missing poses!");
+            }
         }
 
         //    std::vector<ros::Publisher> map_pubs;
@@ -207,8 +211,9 @@ class MultiAgentSimulation {
 
     void process(std::vector<std::string> const& match_methods, bool const overwrite = false) {
         if (!aggregateMap) throw std::logic_error("No simulation data to process");
-        if (gtMap && !gtMLMap) gtMLMap = merge<3>(make_vector(gtMap.get()));
         if (!aggregateMLMap) aggregateMLMap = merge<4>(make_vector(aggregateMap.get()));
+        if (gtMap && !gtMLMap) gtMLMap = merge<3>(make_vector(gtMap.get()));
+        if (gtMap && !gtPoses) gtPoses = std::make_unique<std::set<std::array<int, 3>>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
 
         results["Bagfiles"] = json(bagfiles);
         results["Image Topic"] = image_topic;
@@ -328,7 +333,7 @@ int main(int argc, char **argv) {
     CompressedFileReader reader(data_filename);
     if (ros::ok()) {
         json results = json::array();
-        while (!reader.eof()) {
+        while (reader) {
             MultiAgentSimulation sim;
             reader >> sim;
             sim.process(match_methods);

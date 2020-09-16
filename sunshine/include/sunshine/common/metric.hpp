@@ -46,7 +46,7 @@ auto get_num_topics(SegmentationType const &seg) {
 
 template<uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
 SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_pose_dimen, int, double> const &gt_seg,
-                                  sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
+                                  sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg, bool const warn_missing = true) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     std::vector<uint32_t> gt_weights(gt_seg.observations[0].size(), 0), topic_weights(topic_seg.observations[0].size(), 0);
     std::vector<std::vector<uint32_t>> matches(topic_seg.observations[0].size(), std::vector<uint32_t>(gt_seg.observations[0].size(), 0));
@@ -73,7 +73,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
             gt_weights[gt_label] += 1;
             topic_weights[topic_label] += 1;
             total_weight += 1;
-        } else {
+        } else if (warn_missing) {
             std::cerr << "Failed to find gt gt_seg for pose " << pose
                       << " with gt_seg cell_size = " << gt_seg.cell_size
                       << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
@@ -84,7 +84,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
 
 template<typename ObsA, typename ObsB, uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
 SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, int, double> const &gt_seg,
-                                  sunshine::Segmentation<ObsB, pose_dimen, int, double> const &topic_seg) {
+                                  sunshine::Segmentation<ObsB, pose_dimen, int, double> const &topic_seg, bool const warn_missing = true) {
     std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
     auto const gt_num_topics = get_num_topics(gt_seg);
     auto const num_topics = get_num_topics(topic_seg);
@@ -119,7 +119,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
             gt_weights[gt_label] += 1;
             topic_weights[topic_label] += 1;
             total_weight += 1;
-        } else {
+        } else if (warn_missing) {
             std::cerr << "Failed to find gt gt_seg for pose " << pose
                       << " with gt_seg cell_size = " << gt_seg.cell_size
                       << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
@@ -288,8 +288,8 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
 
 template<uint32_t gt_pose_dim = 3, typename ObsA, typename ObsB>
 auto compute_metrics(sunshine::Segmentation<ObsA, gt_pose_dim, int, double> const &gt_seg,
-                     sunshine::Segmentation<ObsB, 4, int, double> const &topic_seg) {
-    auto const contingency_table = compute_matches<ObsA, ObsB, 4, gt_pose_dim>(gt_seg, topic_seg);
+                     sunshine::Segmentation<ObsB, 4, int, double> const &topic_seg, bool const warn_missing = true) {
+    auto const contingency_table = compute_matches<ObsA, ObsB, 4, gt_pose_dim>(gt_seg, topic_seg, warn_missing);
     auto const &matches = std::get<0>(contingency_table);
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);

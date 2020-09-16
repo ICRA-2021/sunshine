@@ -90,7 +90,9 @@ class RobotSim {
             for (auto const& pose : rostAdapter->get_rost().cell_pose) {
                 reduced_dim_poses.push_back({pose[1], pose[2], pose[3]});
             }
-            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), reduced_dim_poses)) throw std::runtime_error("Latest observation includes unrecongized poses!");
+            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), reduced_dim_poses)) {
+                throw std::runtime_error("Latest observation includes unrecongized poses!");
+            }
             ROS_DEBUG("%ld ms validating poses", record_lap(clock));
         } else {
             auto observation = newRgb >> visualWordAdapter >> *word2dAdapter;

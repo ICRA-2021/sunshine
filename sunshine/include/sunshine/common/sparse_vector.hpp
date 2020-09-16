@@ -31,7 +31,7 @@ class sparse_vector {
         }
     }
 
-    template<typename Iter, typename = typename std::enable_if<std::is_same_v<typename std::iterator_traits<Iter>::iterator_category, std::input_iterator_tag>>::type>
+    template<typename Iter>
     explicit sparse_vector(Iter first, Iter const last, T const default_value = T()) : default_value(default_value) {
         for (; first != last; first++) {
             auto const& val = *first;

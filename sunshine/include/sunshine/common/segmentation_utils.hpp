@@ -13,7 +13,8 @@ namespace sunshine {
 
 template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double>
 std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(sunshine::Segmentation<LabelType, 3, int, double> const &gt_seg,
-                                                                               sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg) {
+                                                                               sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg,
+                                                                               bool const warn_missing = true) {
     auto const N = get_num_topics(topic_seg);
     auto const M = get_num_topics(gt_seg);
     CountType total_weight = 0;
@@ -49,7 +50,7 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
                 cooccurences[observed][actual] += 1;
             }
             total_weight += 1;
-        } else {
+        } else if (warn_missing) {
             std::cerr << "Failed to find gt gt_seg for pose " << pose
                       << " with gt_seg cell_size = " << gt_seg.cell_size
                       << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;

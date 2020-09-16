@@ -250,10 +250,13 @@ To safeNumericCast(double val) {
 template<typename T, size_t N>
 std::ostream& operator<<(std::ostream& stream, std::array<T, N> const& arr) {
     stream << "[";
+    bool first = true;
     for (auto const& a : arr) {
+        if (!first) stream << ",";
         if constexpr (std::is_same_v<T, std::string>) stream << "\"";
         stream << a;
         if constexpr (std::is_same_v<T, std::string>) stream << "\"";
+        first = false;
     }
     return (stream << "]");
 }

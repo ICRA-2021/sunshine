@@ -126,7 +126,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
-        num_threads = nh->template param<int>("num_threads", 4); // beta(1,tau) is used to pick cells for refinement
+        num_threads = nh->template param<int>("num_threads", 2); // beta(1,tau) is used to pick cells for refinement
         double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");

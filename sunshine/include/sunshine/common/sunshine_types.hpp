@@ -53,7 +53,7 @@ struct Phi {
 
   bool validate(bool verbose = true) {
       bool flag = true;
-      if (K != counts.size() || K != topic_weights.size()) {
+      if (static_cast<uint32_t>(K) != counts.size() || static_cast<uint32_t>(K) != topic_weights.size()) {
           if (verbose) {
               std::cerr << "Mismatch between K=" << K << ", counts.size()=" << counts.size() << ", and topic_weights.size()="
                         << topic_weights.size() << std::endl;
@@ -63,8 +63,8 @@ struct Phi {
           topic_weights.resize(K, 0);
       }
       for (auto k = 0; k < K; ++k) {
-          assert(k == 0 || V == counts[k].size());
-          if (V != counts[k].size()) {
+          assert(k == 0 || static_cast<uint32_t>(V) == counts[k].size());
+          if (static_cast<uint32_t>(V) != counts[k].size()) {
               if (verbose) std::cerr << "Mismatch between V=" << V << ", counts[k].size()=" << counts[k].size() << std::endl;
               flag = false;
               V = counts[k].size();
