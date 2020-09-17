@@ -23,9 +23,14 @@ class ObservationTransformAdapter : public Adapter<ObservationTransformAdapter<T
         target_frame = nh->template param<std::string>("world_frame", "map");
     }
 
-    std::unique_ptr<Type> operator()(std::unique_ptr<Type>&& in) const {
+    tf::StampedTransform getLatestTransform(std::string const& frame, ros::Time time = ros::Time(0)) const {
         tf::StampedTransform transform;
-        transformer.lookupTransform(target_frame, in->frame, ros::Time(0), transform);
+        transformer.lookupTransform(target_frame, frame, time, transform);
+        return transform;
+    }
+
+    std::unique_ptr<Type> operator()(std::unique_ptr<Type>&& in) const {
+        tf::StampedTransform const transform = getLatestTransform(in->frame, ros::Time(in->timestamp));
 //        tf::Stamped<tf::Point> outputPoint;
         for (auto i = 0; i < in->observation_poses.size(); ++i) {
             // Using ros::Time(0) gets the latest transform
@@ -41,8 +46,7 @@ class ObservationTransformAdapter : public Adapter<ObservationTransformAdapter<T
     }
 
     std::unique_ptr<Type> operator()(Type const* in) const {
-        tf::StampedTransform transform;
-        transformer.lookupTransform(target_frame, in->frame_id, ros::Time(in->timestamp), transform);
+        tf::StampedTransform const transform = getLatestTransform(in->frame, ros::Time(in->timestamp));
         tf::Stamped<tf::Point> outputPoint;
         auto out = std::make_unique<Type>(*in);
         for (auto i = 0; i < in->observation_poses.size(); ++i) {

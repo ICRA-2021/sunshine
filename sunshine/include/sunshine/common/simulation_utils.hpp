@@ -35,7 +35,7 @@ class RobotSim {
     std::unique_ptr<BagIterator> bagIter;
     VisualWordAdapter visualWordAdapter;
     std::shared_ptr<ROSTAdapter<4, double, double>> rostAdapter;
-    std::shared_ptr<ROSTAdapter<4, double, double>> externalRostAdapter;
+    std::shared_ptr<ROSTAdapter<4, double, double>> externalRostAdapter = nullptr;
     std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
@@ -50,7 +50,9 @@ class RobotSim {
     bool transform_found = false;
     bool processed_rgb = false;
     bool const use_3d;
+    bool const read_only_segmentation;
     bool use_segmentation = false;
+    double offset_time = 0;
     decltype(std::chrono::steady_clock::now()) clock = std::chrono::steady_clock::now();
 
     bool tryProcess() {
@@ -58,24 +60,63 @@ class RobotSim {
         if (use_3d && (!transform_found || lastRgb->header.stamp.toSec() != depth_timestamp)) return false;
         if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp.toSec() != lastSegmentation->header.stamp.toSec())) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
-
+        try {
+            tf::StampedTransform const transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, ros::Time(lastRgb->header.stamp.toSec() + offset_time));
+#ifndef NDEBUG
+            ROS_DEBUG("PROCESSING NEW OBSERVATION");
+            ROS_DEBUG("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
+            ROS_DEBUG("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
+            ROS_DEBUG("Depth: #%d, %f s, %s", lastPc->header.seq, lastPc->header.stamp.toSec(), lastPc->header.frame_id.c_str());
+            ROS_DEBUG("Transform: %f s, %s, child: %s", transform.stamp_.toSec() - offset_time, transform.frame_id_.c_str(), transform.child_frame_id_.c_str());
+#endif
+        } catch (tf::ExtrapolationException const& ex) {
+            return false;
+        } catch (...) {
+            ROS_ERROR("Unexpected error when checking for transform!");
+            return false;
+        }
         ROS_DEBUG("%ld ms since last observation", record_lap(clock));
         auto newRgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
+        newRgb->timestamp += offset_time;
         auto newSegmentation = (use_segmentation) ? std::make_unique<ImageObservation>(fromRosMsg(lastSegmentation)) : nullptr;
-        newRgb->timestamp = ros::Time::now().toSec();
+        if (newSegmentation) newSegmentation->timestamp += offset_time;
         ROS_DEBUG("%ld ms parsing images", record_lap(clock));
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::PCLPointCloud2 pcl_pc2;
-        pcl_conversions::toPCL(*lastPc, pcl_pc2);
-        pcl::fromPCLPointCloud2(pcl_pc2, *pc);
-        wordDepthAdapter->updatePointCloud(pc);
-        imageDepthAdapter->updatePointCloud(pc);
-        ROS_DEBUG("%ld ms parsing depth cloud", record_lap(clock)); // ~3ms optimized
+        auto const word_poses_toCellSet = [this](auto const& poses, double timestamp){
+            std::set<std::array<int, 3>> reduced_dim_poses;
+            for (auto const& pose : poses) {
+                auto const cell_pose = rostAdapter->toCellId({timestamp, pose[0], pose[1], pose[2]}, rostAdapter->get_cell_size());
+                reduced_dim_poses.insert({cell_pose[1], cell_pose[2], cell_pose[3]});
+            }
+            return reduced_dim_poses;
+        };
+
+        auto const cells_toCellSet = [](auto const& poses){
+            std::set<std::array<int, 3>> reduced_dim_poses;
+            for (auto const& pose : poses) {
+                reduced_dim_poses.insert({pose[1], pose[2], pose[3]});
+            }
+            return reduced_dim_poses;
+        };
 
         // TODO: remove duplication between if branches below
         if (use_3d) {
+            pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
+            pcl::PCLPointCloud2 pcl_pc2;
+            pcl_conversions::toPCL(*lastPc, pcl_pc2);
+            pcl::fromPCLPointCloud2(pcl_pc2, *pc);
+            pc->header.stamp += offset_time;
+            wordDepthAdapter->updatePointCloud(pc);
+            imageDepthAdapter->updatePointCloud(pc);
+            ROS_DEBUG("%ld ms parsing depth cloud", record_lap(clock)); // ~3ms optimized
             auto observation = newRgb >> visualWordAdapter >> *wordDepthAdapter >> wordTransformAdapter;
+#ifndef NDEBUG
+            auto old_observation_poses = cells_toCellSet(rostAdapter->get_rost().cell_pose);
+            auto new_observation_poses = word_poses_toCellSet(observation->observation_poses, observation->timestamp);
+            std::vector<std::array<int, 3>> new_poses;
+            std::set_difference(new_observation_poses.begin(), new_observation_poses.end(), old_observation_poses.begin(), old_observation_poses.end(), std::back_inserter(new_poses));
+            ROS_DEBUG("Adding %d observations across %d new cell poses (%d unique)", observation->observations.size(), new_observation_poses.size(), new_poses.size());
+#endif
             if (externalRostAdapter) {
                 observation >> *rostAdapter;
                 observation >> *externalRostAdapter;
@@ -83,14 +124,10 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
             ROS_DEBUG("%ld ms adding to topic model", record_lap(clock)); // ~40-80ms optimized
-            if (use_segmentation) segmentation = newSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) segmentation = newSegmentation >> *imageDepthAdapter >> imageTransformAdapter >> *segmentationAdapter;
             ROS_DEBUG("%ld ms parsing segmentation", record_lap(clock)); // ~30-40ms optimized
-            std::vector<std::array<int, 3>> reduced_dim_poses;
-            reduced_dim_poses.reserve(rostAdapter->get_rost().cell_pose.size());
-            for (auto const& pose : rostAdapter->get_rost().cell_pose) {
-                reduced_dim_poses.push_back({pose[1], pose[2], pose[3]});
-            }
-            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), reduced_dim_poses)) {
+            auto final_observation_poses = cells_toCellSet(rostAdapter->get_rost().cell_pose);
+            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), final_observation_poses)) {
                 throw std::runtime_error("Latest observation includes unrecongized poses!");
             }
             ROS_DEBUG("%ld ms validating poses", record_lap(clock));
@@ -103,7 +140,7 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
 //            ROS_INFO("%ld ms adding to 2d topic model", record_lap(clock));
-            if (use_segmentation) segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
 //            ROS_INFO("%ld ms parsing 2d segmentation", record_lap(clock));
         }
         processed_rgb = true;
@@ -113,6 +150,11 @@ class RobotSim {
     bool imageCallback(sensor_msgs::Image::ConstPtr image) {
 //        ROS_INFO("%ld ms before entering imageCallback", record_lap(clock));
         lastRgb = std::move(image);
+        if (offset_time == 0) {
+            using namespace std::chrono;
+            auto const curr_time = duration_cast<duration<double, std::ratio<1>>>(system_clock::now().time_since_epoch());
+            offset_time = curr_time.count() - lastRgb->header.stamp.toSec();
+        }
         processed_rgb = false;
         return tryProcess();
     }
@@ -120,6 +162,11 @@ class RobotSim {
     bool segmentationCallback(sensor_msgs::Image::ConstPtr image) {
 //        ROS_INFO("%ld ms before entering segmentationCallback", record_lap(clock));
         lastSegmentation = std::move(image);
+        if (offset_time == 0) {
+            using namespace std::chrono;
+            auto const curr_time = duration_cast<duration<double, std::ratio<1>>>(system_clock::now().time_since_epoch());
+            offset_time = curr_time.count() - lastSegmentation->header.stamp.toSec();
+        }
         return tryProcess();
     }
 
@@ -127,6 +174,11 @@ class RobotSim {
 //        ROS_INFO("%ld ms before entering depthCallback", record_lap(clock));
         depth_timestamp = msg->header.stamp.toSec();
         lastPc = std::move(msg);
+        if (offset_time == 0) {
+            using namespace std::chrono;
+            auto const curr_time = duration_cast<duration<double, std::ratio<1>>>(system_clock::now().time_since_epoch());
+            offset_time = curr_time.count() - lastPc->header.stamp.toSec();
+        }
         return tryProcess();
     };
 
@@ -135,10 +187,15 @@ class RobotSim {
         for (auto const &transform : tfMsg->transforms) {
             tf::StampedTransform tfTransform;
             tf::transformStampedMsgToTF(transform, tfTransform);
-            tfTransform.stamp_ = ros::Time::now();
-            if (lastRgb && (tfTransform.frame_id_ == lastRgb->header.frame_id || tfTransform.child_frame_id_ == lastRgb->header.frame_id)) transform_found = true;
+            if (offset_time == 0) {
+                using namespace std::chrono;
+                auto const curr_time = duration_cast<duration<double, std::ratio<1>>>(system_clock::now().time_since_epoch());
+                offset_time = curr_time.count() - tfTransform.stamp_.toSec();
+            }
+            tfTransform.stamp_.fromSec(tfTransform.stamp_.toSec() + offset_time);
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
+            if (lastRgb && (tfTransform.frame_id_ == lastRgb->header.frame_id || tfTransform.child_frame_id_ == lastRgb->header.frame_id)) transform_found = true;
         }
 //        ROS_INFO("%ld ms processing transforms", record_lap(clock));
         return tryProcess();
@@ -150,19 +207,19 @@ class RobotSim {
              ParamServer const &parameters,
              bool const use_3d,
              std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             std::shared_ptr<ROSTAdapter<4, double, double>> external_rost_adapter = nullptr)
+             bool read_only_segmentation = false)
             : name(std::move(name)),
               bagIter(nullptr),
               visualWordAdapter(&parameters),
               rostAdapter(std::make_shared<ROSTAdapter<4, double, double>>(&parameters)),
-              externalRostAdapter(std::move(external_rost_adapter)),
               segmentationAdapter((shared_seg_adapter)
                                   ? std::move(shared_seg_adapter)
                                   : std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&parameters,
                                                                                                                             true)),
               wordTransformAdapter(&parameters),
               imageTransformAdapter(&parameters),
-              use_3d(use_3d) {}
+              use_3d(use_3d),
+              read_only_segmentation(read_only_segmentation) {}
 
     void open(std::string const& bagFilename,
               std::string const &image_topic,
@@ -175,6 +232,7 @@ class RobotSim {
         word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
         image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
         use_segmentation = !segmentation_topic.empty();
+        offset_time = 0;
 
         bagIter = std::make_unique<BagIterator>(bagFilename);
         bagIter->add_callback(image_topic, [this](rosbag::MessageInstance const &msg) { return this->imageCallback(msg.instantiate<sensor_msgs::Image>()); });

@@ -26,6 +26,7 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
     }
     static_assert(std::tuple_size_v<typename decltype(topic_seg.observation_poses)::value_type> == pose_dimen);
     assert(topic_seg.observation_poses.size() == topic_seg.observations.size());
+    size_t failed = 0;
     for (auto obs = 0ul; obs < topic_seg.observation_poses.size(); ++obs) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
         constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
@@ -50,11 +51,14 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
                 cooccurences[observed][actual] += 1;
             }
             total_weight += 1;
-        } else if (warn_missing) {
-            std::cerr << "Failed to find gt gt_seg for pose " << pose
-                      << " with gt_seg cell_size = " << gt_seg.cell_size
-                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+        } else {
+            failed += 1;
         }
+    }
+    if (warn_missing && failed > 0) {
+        std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
+                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
+                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {cooccurences, total_weight};
 }

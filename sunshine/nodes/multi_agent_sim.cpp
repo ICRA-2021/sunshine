@@ -77,7 +77,8 @@ class MultiAgentSimulation {
                     merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
                 }
                 if (!includes(*gtPoses, merged_poses)) {
-                    throw std::logic_error("Ground truth is missing poses!");
+                    ROS_ERROR_ONCE("Ground truth is missing merged poses!");
+//                    throw std::logic_error("Ground truth is missing poses!");
                 }
 
                 align(*merged_segmentations, *gtMLMap);
@@ -155,23 +156,25 @@ class MultiAgentSimulation {
         }
         aggregateRobot.pause();
         aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
+        std::set<std::array<int, 3>> aggregate_poses;
+        for (auto const& pose : aggregateMap->observation_poses) {
+            uint32_t const offset = pose.size() == 4;
+            aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+        }
+
         if (!segmentation_topic.empty()) {
             gtMap = aggregateRobot.getGTMap();
             gtPoses = std::make_unique<std::set<std::array<int, 3>>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
-            std::set<std::array<int, 3>> aggregate_poses;
-            for (auto const& pose : aggregateMap->observation_poses) {
-                uint32_t const offset = pose.size() == 4;
-                aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
-            }
             if (!includes(*gtPoses, aggregate_poses)) {
-                throw std::logic_error("Ground truth is missing poses!");
+                ROS_ERROR_ONCE("Ground truth is missing aggregate poses!");
+//                throw std::logic_error("Ground truth is missing poses!");
             }
         }
 
         //    std::vector<ros::Publisher> map_pubs;
         std::vector<std::unique_ptr<RobotSim>> robots;
         for (auto i = 0; i < bagfiles.size(); ++i) {
-            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), paramPassthrough, !depth_topic.empty(), segmentationAdapter));
+            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), paramPassthrough, !depth_topic.empty(), segmentationAdapter, true));
             robots.back()->open(bagfiles[i], image_topic, depth_topic, segmentation_topic, i * 2000);
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
@@ -202,6 +205,36 @@ class MultiAgentSimulation {
                 robotModels.back().emplace_back(robot->getTopicModel(*token));
                 robotMaps.back().emplace_back(robot->getDistMap(*token));
             }
+
+            #ifndef NDEBUG
+            for (auto const& map : robotMaps.back()) {
+                std::set<std::array<int, 3>> map_poses;
+                for (auto const& pose : map->observation_poses) {
+                    uint32_t const offset = pose.size() == 4;
+                    map_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+                }
+                if (!includes(aggregate_poses, map_poses)) {
+                    std::vector<std::array<int, 3>> diff_poses;
+                    std::set_difference(map_poses.begin(), map_poses.end(), aggregate_poses.begin(), aggregate_poses.end(), std::back_inserter(diff_poses));
+                    ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
+//                throw std::logic_error("Ground truth is missing poses!");
+                }
+            }
+            auto const merged_map = merge(robotMaps.back());
+            std::set<std::array<int, 3>> merged_poses;
+            for (auto const& pose : merged_map->observation_poses) {
+                uint32_t const offset = pose.size() == 4;
+                merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+            }
+            if (!includes(*gtPoses, merged_poses)) {
+                ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
+//                throw std::logic_error("Ground truth is missing poses!");
+            }
+            if (!includes(aggregate_poses, merged_poses)) {
+                ROS_ERROR("Aggregate poses are missing merged poses at obs %lu!", n_obs);
+//                throw std::logic_error("Ground truth is missing poses!");
+            }
+            #endif
 
             ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
             start = std::chrono::steady_clock::now();

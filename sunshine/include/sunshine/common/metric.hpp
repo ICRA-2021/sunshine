@@ -58,6 +58,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
                                       gt_seg.observation_poses[i][2 + offset]};
         gt_labels.insert({pose, label});
     }
+    size_t failed = 0;
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
         constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
@@ -73,11 +74,14 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
             gt_weights[gt_label] += 1;
             topic_weights[topic_label] += 1;
             total_weight += 1;
-        } else if (warn_missing) {
-            std::cerr << "Failed to find gt gt_seg for pose " << pose
-                      << " with gt_seg cell_size = " << gt_seg.cell_size
-                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+        } else {
+            failed += 1;
         }
+    }
+    if (warn_missing && failed > 0) {
+        std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
+                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
+                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {matches, gt_weights, topic_weights, total_weight};
 }
@@ -101,6 +105,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
                                       gt_seg.observation_poses[i][2 + offset]};
         gt_labels.insert({pose, label});
     }
+    size_t failed = 0;
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
         constexpr size_t offset = (pose_dimen == 4) ? 1 : 0;
@@ -119,11 +124,14 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
             gt_weights[gt_label] += 1;
             topic_weights[topic_label] += 1;
             total_weight += 1;
-        } else if (warn_missing) {
-            std::cerr << "Failed to find gt gt_seg for pose " << pose
-                      << " with gt_seg cell_size = " << gt_seg.cell_size
-                      << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+        } else {
+            failed += 1;
         }
+    }
+    if (warn_missing && failed > 0) {
+        std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
+                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
+                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {matches, gt_weights, topic_weights, total_weight};
 }
