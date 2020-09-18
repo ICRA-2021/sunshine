@@ -374,7 +374,6 @@ int main(int argc, char **argv) {
 
         for (auto i = 1; i <= n_trials && ros::ok(); ++i) {
             auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i) + "-of-" + std::to_string(n_trials) + ".bin.zz";
-            CompressedFileWriter writer(data_filename);
             ROS_INFO("Starting simulation %d", i);
             MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
             try {
@@ -383,6 +382,7 @@ int main(int argc, char **argv) {
                 ROS_ERROR("Simulation %d failed.", i);
                 continue;
             }
+            CompressedFileWriter writer(data_filename);
             writer << sim;
             data_files.push_back(data_filename);
         }
