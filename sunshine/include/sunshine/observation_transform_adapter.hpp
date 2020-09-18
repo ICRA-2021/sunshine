@@ -29,8 +29,11 @@ class ObservationTransformAdapter : public Adapter<ObservationTransformAdapter<T
         return transform;
     }
 
-    std::unique_ptr<Type> operator()(std::unique_ptr<Type>&& in) const {
-        tf::StampedTransform const transform = getLatestTransform(in->frame, ros::Time(in->timestamp));
+    std::unique_ptr<Type> operator()(std::unique_ptr<Type>&& in, tf::StampedTransform transform = tf::StampedTransform()) const {
+        if (transform.frame_id_.empty()) {
+            auto const obsTime = ros::Time(in->timestamp);
+            transform = getLatestTransform(in->frame, obsTime);
+        }
 //        tf::Stamped<tf::Point> outputPoint;
         for (auto i = 0; i < in->observation_poses.size(); ++i) {
             // Using ros::Time(0) gets the latest transform

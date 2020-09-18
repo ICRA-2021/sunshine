@@ -201,8 +201,8 @@ class MultiAgentSimulation {
             }
             n_obs += active;
 
-            auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            std::cout << "Refine time: " << refine_time << std::endl;
+            auto const read_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+            std::cout << "Read time: " << read_time << std::endl;
 
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
@@ -215,6 +215,9 @@ class MultiAgentSimulation {
                 robotModels.back().emplace_back(robot->getTopicModel(*token));
                 robotMaps.back().emplace_back(robot->getDistMap(*token));
             }
+
+            auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+            std::cout << "Refine time: " << refine_time << std::endl;
 
             #ifndef NDEBUG
             for (auto const& map : robotMaps.back()) {
