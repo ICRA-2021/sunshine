@@ -57,6 +57,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
     std::function<void(ROSTAdapter *)> newObservationCallback;
+    bool const broadcastMode;
     std::list<std::unique_ptr<std::thread>> observationThreads;
 
     static std::map<cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservation const &wordObs,
@@ -114,8 +115,9 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     template<typename ParamServer>
     explicit ROSTAdapter(ParamServer *nh,
                          decltype(newObservationCallback) callback = nullptr,
-                         const std::vector<std::vector<int>> &init_model = {})
-            : newObservationCallback(std::move(callback)), stopWork(false) {
+                         const std::vector<std::vector<int>> &init_model = {},
+                         bool const broadcastMode = true)
+            : newObservationCallback(std::move(callback)), stopWork(false), broadcastMode(broadcastMode) {
         K = nh->template param<int>("K", 10); // number of topics
         V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
@@ -301,19 +303,23 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
         std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
-        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
-                std::move(promisedTopics)}]() mutable {
-            using namespace std::chrono;
-            wait_for_processing(false);
-            auto topics = getTopicDistsForPoses(cell_poses);
-            double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
-            promisedTopics.set_value(std::make_unique<Segmentation>("map",
-                                                                    timestamp,
-                                                                    id,
-                                                                    cell_size,
-                                                                    std::move(topics),
-                                                                    std::move(cell_poses)));
-        }));
+        if (broadcastMode) {
+            observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+                    std::move(promisedTopics)}]() mutable {
+                using namespace std::chrono;
+                wait_for_processing(false);
+                auto topics = getTopicDistsForPoses(cell_poses);
+                double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+                promisedTopics.set_value(std::make_unique<Segmentation>("map",
+                                                                        timestamp,
+                                                                        id,
+                                                                        cell_size,
+                                                                        std::move(topics),
+                                                                        std::move(cell_poses)));
+            }));
+        } else {
+            promisedTopics.set_value(nullptr);
+        }
         return futureTopics;
     }
 

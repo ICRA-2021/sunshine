@@ -64,7 +64,7 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
 }
 
 template<uint32_t PoseDim = 4, typename Container>
-std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge(Container const &segmentations,
+std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge_segmentations(Container const &segmentations,
                                                                std::vector<std::vector<int>> const &lifting = {}) {
     auto merged = std::make_unique<Segmentation<int, PoseDim, int, double>>(segmentations[0]->frame,
                                                                             segmentations[0]->timestamp,
