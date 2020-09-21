@@ -42,8 +42,15 @@ class MultiAgentSimulation {
     [[deprecated]] json results = json::object();
 
   protected:
-    [[nodiscard]] static json match(Segmentation<int, 4, int, double> const* aggregateMLMap, decltype(robotModels) const& topic_models, decltype(robotMaps) const& topic_maps, std::string const& match_method, size_t n_robots, Segmentation<int, 3, int, double> const* gtMLMap = nullptr) {
+    [[nodiscard]] static std::pair<json, std::unique_ptr<Segmentation<int, 4, int, double>>> match(
+                                    Segmentation<int, 4, int, double> const* aggregateMLMap,
+                                    decltype(robotModels) const& topic_models,
+                                    decltype(robotMaps) const& topic_maps,
+                                    std::string const& match_method,
+                                    size_t const& n_robots,
+                                    Segmentation<int, 3, int, double> const* gtMLMap = nullptr) {
         json match_results = json::array();
+        std::unique_ptr<Segmentation<int, 4, int, double>> finalMap;
         for (auto i = 0ul; i < topic_maps.size(); ++i) {
             json match_result;
             match_result["Number of Observations"] = (i + 1);
@@ -110,8 +117,9 @@ class MultiAgentSimulation {
                 match_result["Individual GT-AMI"] = individ_ami;
             }
             match_results.push_back(match_result);
+            finalMap = std::move(merged_segmentations);
         }
-        return match_results;
+        return std::make_pair(match_results, std::move(finalMap));
     }
 
   public:
@@ -255,15 +263,21 @@ class MultiAgentSimulation {
         return true;
     }
 
-    json process(std::vector<std::string> const& match_methods, size_t n_robots = 0) {
+    json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "") {
         if (n_robots == 0) n_robots = bagfiles.size();
         else if (n_robots < 0 || n_robots > bagfiles.size()) throw std::invalid_argument("Invalid number of robots!");
         if (!aggregateMap) throw std::logic_error("No simulation data to process");
 //        if (!aggregateMLMap) aggregateMLMap = merge_segmentations<4>(make_vector(aggregateMap.get()));
         if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
 
+        WordColorMap<int> colorMap;
         auto const refMap = (aggregateSubmaps.empty()) ? merge_segmentations<4>(make_vector(aggregateMap.get()))
                 : merge_segmentations<4>(make_vector(aggregateSubmaps[n_robots - 1].get()));
+        double const pixel_scale = *std::min_element(refMap->cell_size.begin(), refMap->cell_size.end());
+        if (!map_prefix.empty()) {
+            auto mapImg = createTopicImg(toRosMsg(*refMap), colorMap, pixel_scale, true, 0, 0, map_box);
+            saveTopicImg(mapImg, map_prefix + "-aggregate.png", map_prefix + "-aggregate-colors.csv", &colorMap);
+        }
 
         json exp_results = json::object();
         exp_results["Bagfiles"] = json(std::vector<std::string>(bagfiles.begin(), bagfiles.begin() + n_robots));
@@ -277,11 +291,20 @@ class MultiAgentSimulation {
             exp_results["Single Robot GT-MI"] = std::get<0>(sr_gt_metrics);
             exp_results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
             exp_results["Single Robot GT-AMI"] = std::get<2>(sr_gt_metrics);
+            if (!map_prefix.empty()) {
+                auto mapImg = createTopicImg(toRosMsg(*gtMLMap), colorMap, pixel_scale, true, 0, 0, map_box);
+                saveTopicImg(mapImg, map_prefix + "-gt.png", map_prefix + "-gt-colors.csv", &colorMap);
+            }
         }
 
         assert(robotMaps.size() == robotModels.size());
         for (auto const& method : match_methods) {
-            exp_results["Match Results"][method] = match(refMap.get(), robotModels, robotMaps, method, n_robots, gtMLMap.get());
+            auto [stats, map] = match(refMap.get(), robotModels, robotMaps, method, n_robots, gtMLMap.get());
+            exp_results["Match Results"][method] = stats;
+            if (!map_prefix.empty()) {
+                auto mapImg = createTopicImg(toRosMsg(*map), colorMap, pixel_scale, true, 0, 0, map_box);
+                saveTopicImg(mapImg, map_prefix + "-" + method + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
+            }
         }
         return exp_results;
     }
@@ -399,15 +422,25 @@ int main(int argc, char **argv) {
     json results = json::array();
     std::mutex resultsMutex;
     std::vector<std::thread> workers;
+
+    auto map_prefix = nh.param<std::string>("map_prefix", "");
+    map_prefix += (map_prefix.empty() || map_prefix.back() == '/') ? "" : "/";
+    map_prefix += (map_prefix.empty()) ? "" : file_prefix;
+    auto const map_box = nh.param<std::string>("box", "");
+    size_t run = 1;
     for (auto const& file : data_files) {
-        workers.emplace_back([&resultsMutex, &results, file, match_methods](){
+        workers.emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods](){
             ROS_INFO("Reading file %s", file.c_str());
             CompressedFileReader reader(file);
             MultiAgentSimulation sim;
             reader >> sim;
             for (auto i = 2; i <= sim.getNumRobots(); ++i) {
                 ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
-                auto const results_i = sim.process(match_methods, i);
+                std::string prefix = map_prefix;
+                if (!prefix.empty()) {
+                    prefix += "exp" + std::to_string(run) + "-" + std::to_string(i) + "robots";
+                }
+                auto const results_i = sim.process(match_methods, i, prefix, map_box);
                 std::lock_guard<std::mutex> guard(resultsMutex);
                 results.push_back(results_i);
                 ROS_INFO("Finished file %s with %d robots", file.c_str(), i);
@@ -417,6 +450,7 @@ int main(int argc, char **argv) {
                 }
             }
         });
+        run += 1;
     }
     for (auto& worker : workers) {
         worker.join();

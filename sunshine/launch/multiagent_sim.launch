@@ -1,5 +1,5 @@
 <launch>
-  <arg name="n_trials" default="3" />
+  <arg name="n_trials" default="1" />
   <arg name="bagfiles" default="/data/stewart/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_3_of_5.bag
 /data/stewart/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_5_of_5.bag" />
 
@@ -8,6 +8,7 @@
   <arg name="segmentation_topic" default="/camera/seg/image_color" /> <!--Rectified color image-->
   <arg name="file_prefix" default="" />
   <arg name="output_dir" default="" />
+  <arg name="map_prefix" default="$(arg output_dir)" />
   <arg name="match_methods" default="id,hungarian-l1,clear-l1" />
 
   <!-- Vision arguments -->
@@ -98,6 +99,7 @@
     <param name="use_tf" value="$(arg use_tf)" />
     <param name="publish_2d_words" value="true" />
     <param name="output_prefix" value="$(arg output_dir)" />
+    <param name="map_prefix" value="$(arg map_prefix)" />
     <param name="file_prefix" value="$(arg file_prefix)" />
     <param name="box" value="-50x-50x100x100" />
     <param name="match_methods" value="$(arg match_methods)" />
