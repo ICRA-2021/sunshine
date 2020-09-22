@@ -74,6 +74,7 @@ class MultiAgentSimulation {
             std::vector<Segmentation<std::vector<int>, 4, int, double> const*> maps;
             for (auto j = 0ul; j < n_robots; ++j) maps.emplace_back(topic_maps[i][j].get());
             auto merged_segmentations = merge_segmentations(maps, correspondences.lifting);
+            match_result["Number of Cells"] = merged_segmentations->observation_poses.size();
             {
                 auto const sr_ref_metrics = compute_metrics(*aggregateMLMap, *merged_segmentations, false);
                 match_result["SR-MI"]     = std::get<0>(sr_ref_metrics);
@@ -285,8 +286,10 @@ class MultiAgentSimulation {
         exp_results["Depth Topic"] = depth_topic;
         exp_results["Segmentation Topic"] = segmentation_topic;
         exp_results["Number of Robots"] = n_robots;
+        exp_results["SR Number of Cells"] = refMap->observation_poses.size();
         exp_results["Parameters"] = json(params);
         if (gtMLMap) {
+            exp_results["GT Number of Cells"] = gtMLMap->observation_poses.size();
             auto const sr_gt_metrics = compute_metrics(*gtMLMap, *refMap);
             exp_results["Single Robot GT-MI"] = std::get<0>(sr_gt_metrics);
             exp_results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
