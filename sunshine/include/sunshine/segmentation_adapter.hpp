@@ -74,8 +74,7 @@ class SemanticSegmentationAdapter
 //        auto const size = counts.size();
         if (obs->observations.empty()) return std::move(segmentation);
         for (auto i = 0; i < obs->observations.size(); ++i) {
-            std::array<CellPoseType, POSEDIM> const pose =
-                ROSTAdapter<POSEDIM, CellPoseType, PoseType>::toCellId(obs->observation_poses[i], this->cell_size);
+            auto const pose = toCellId<POSEDIM, CellPoseType>(obs->observation_poses[i], this->cell_size);
             size_t const id = unique_obs.get_id(obs->observations[i]);
             if (auto iter = counts.find(pose); iter != counts.end()) {
                 if (auto countIter = iter->second.find(id); countIter != iter->second.end()) {

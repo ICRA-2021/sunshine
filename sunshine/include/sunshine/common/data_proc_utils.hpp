@@ -9,6 +9,7 @@
 #include "word_coloring.hpp"
 #include <fstream>
 #include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <ros/console.h>
 #include <sunshine_msgs/TopicMap.h>
@@ -94,11 +95,12 @@ class CompressedFileReader {
 
 cv::Mat createTopicImg(const sunshine_msgs::TopicMap &msg,
                        sunshine::WordColorMap<decltype(sunshine_msgs::TopicMap::cell_topics)::value_type> &wordColorMap,
-                       double pixel_scale,
-                       bool useColor,
+                       double const pixel_scale,
+                       bool const useColor,
                        double minWidth = 0,
                        double minHeight = 0,
                        const std::string &fixedBox = "",
+                       uint32_t const upsample = 1,
                        bool debug = false) {
     using namespace sunshine_msgs;
     using namespace cv;
@@ -131,16 +133,16 @@ cv::Mat createTopicImg(const sunshine_msgs::TopicMap &msg,
 
     ROS_INFO("Saving map over region (%f, %f) to (%f, %f) (size spec %s)", minX, minY, maxX, maxY, fixedBox.c_str());
 
-    int const numRows = static_cast<int>((maxY - minY) / pixel_scale + 1);
-    int const numCols = static_cast<int>((maxX - minX) / pixel_scale + 1);
+    uint32_t const numRows = std::ceil((maxY - minY) / pixel_scale);
+    uint32_t const numCols = std::ceil((maxX - minX) / pixel_scale);
 
     Mat topicMapImg(numRows, numCols, (useColor) ? sunshine::cvType<Vec4b>::value : sunshine::cvType<double>::value, Scalar(0));
     std::set<std::pair<int, int>> points;
     poseIter = reinterpret_cast<Pose const *>(msg.cell_poses.data());
     size_t outliers = 0, overlaps = 0;
     for (size_t i = 0; i < N; i++, poseIter++) {
-        Point const point(static_cast<int>(std::round((poseIter->x - minX) / pixel_scale)),
-                          static_cast<int>(std::round((maxY - poseIter->y) / pixel_scale)));
+        Point const point(static_cast<int>((poseIter->x - minX) / pixel_scale),
+                          static_cast<int>((maxY - poseIter->y) / pixel_scale));
         if (point.x < 0 || point.y < 0 || point.x >= numRows || point.y >= numCols) {
             outliers++;
             continue;
@@ -163,6 +165,11 @@ cv::Mat createTopicImg(const sunshine_msgs::TopicMap &msg,
         ROS_WARN("More cells than space in grid - assuming there are overlapping cells.");
     } else {
         ROS_INFO("Gaps: %lu", static_cast<unsigned long>(numRows) * static_cast<unsigned long>(numCols) - N);
+    }
+    if (upsample > 1) {
+        Mat scaledImage;
+        cv::resize(topicMapImg, scaledImage, Size(0, 0), upsample, upsample, cv::INTER_NEAREST);
+        return scaledImage;
     }
     return topicMapImg;
 }

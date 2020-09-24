@@ -80,7 +80,7 @@ class RobotSim {
         auto const word_poses_toCellSet = [this](auto const& poses, double timestamp){
             std::set<std::array<int, 3>> reduced_dim_poses;
             for (auto const& pose : poses) {
-                auto const cell_pose = rostAdapter->toCellId({timestamp, pose[0], pose[1], pose[2]}, rostAdapter->get_cell_size());
+                auto const cell_pose = rostAdapter->toCellId({timestamp, pose[0], pose[1], pose[2]});
                 reduced_dim_poses.insert({cell_pose[1], cell_pose[2], cell_pose[3]});
             }
             return reduced_dim_poses;

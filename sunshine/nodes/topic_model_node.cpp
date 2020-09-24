@@ -341,7 +341,7 @@ TopicMapPtr topic_model_node::generate_topic_map(int const obs_time) const {
         for (; i < BATCH_END; ++i) {
             auto const &cell_pose    = poses[i];
             auto const &cell         = rost.get_cell(cell_pose);
-            auto const word_pose     = ROSTAdapter<POSEDIM>::toWordPose(cell_pose, rostAdapter.get_cell_size());
+            auto const word_pose     = rostAdapter.toWordPose(cell_pose);
             auto const ml_cell_topic = std::max_element(cell->nZ.cbegin(), cell->nZ.cend());
             if (ml_cell_topic == cell->nZ.cend()) {
                 ROS_ERROR("Cell has no topics! Map will contain invalid topic labels.");
@@ -417,7 +417,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
         duration_lock      = record_lap(time_checkpoint);
         for (auto const &cell_pose : broadcast_poses) {
             auto const &cell     = rost.get_cell(cell_pose);
-            auto const word_pose = ROSTAdapter<POSEDIM>::toWordPose(cell_pose, cell_size);
+            auto const word_pose = rostAdapter.toWordPose(cell_pose);
 
             vector<int> topics;             // topic labels for each word in the cell
             double cell_log_likelihood = 0; // cell's sum_w log(p(w | model) = log p(cell | model)

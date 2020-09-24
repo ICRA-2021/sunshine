@@ -224,7 +224,7 @@ To safeNumericCast(uintmax_t val) {
     if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
     return static_cast<To>(val);
 }
 
@@ -233,7 +233,7 @@ To safeNumericCast(intmax_t val) {
     if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
     return static_cast<To>(val);
 }
 
@@ -242,9 +242,47 @@ To safeNumericCast(double val) {
     if (val >= (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
     if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::min()) throw std::logic_error(std::to_string(val) + " underflows target type");
+    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
     if constexpr (std::is_integral_v<To>) return static_cast<To>(std::round(val));
     else return static_cast<To>(val);
+}
+
+template <size_t POSEDIM, typename CellDimType, typename WordDimType>
+static inline std::array<CellDimType, POSEDIM>  toCellId(std::array<WordDimType, POSEDIM> const &wordPose, std::array<WordDimType, POSEDIM> const& cellSize) {
+    static_assert(std::numeric_limits<CellDimType>::max() <= std::numeric_limits<WordDimType>::max(),
+                  "Word dim type must be larger than cell dim type!");
+    static_assert(std::is_signed_v<CellDimType> == std::is_signed_v<WordDimType>, "CellDimType and WordDimType must both be signed/unsigned!");
+    if constexpr (POSEDIM == 4) {
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
+                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]),
+                safeNumericCast<CellDimType>(wordPose[2] / cellSize[2]),
+                safeNumericCast<CellDimType>(wordPose[3] / cellSize[3])};
+    } else if constexpr (POSEDIM == 3) {
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
+                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]),
+                safeNumericCast<CellDimType>(wordPose[2] / cellSize[2])};
+    } else if constexpr (POSEDIM == 2) {
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
+                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1])};
+    } else {
+        static_assert(always_false<POSEDIM>);
+    }
+}
+
+template <size_t POSEDIM, typename CellDimType, typename WordDimType>
+static inline std::array<WordDimType, POSEDIM> toWordPose(std::array<CellDimType, POSEDIM> const &cell, std::array<WordDimType, POSEDIM> const& cell_size) {
+    static_assert(std::is_signed_v<CellDimType> == std::is_signed_v<WordDimType>, "CellDimType and WordDimType must both be signed/unsigned!");
+    if constexpr(POSEDIM == 4) {
+        return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
+                safeNumericCast<WordDimType>(cell[2] * cell_size[2]), safeNumericCast<WordDimType>(cell[3] * cell_size[3])};
+    } else if constexpr(POSEDIM == 3) {
+        return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
+                safeNumericCast<WordDimType>(cell[2] * cell_size[2])};
+    } else if constexpr(POSEDIM == 2) {
+        return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1])};
+    } else {
+        static_assert(always_false<POSEDIM>);
+    }
 }
 
 template<typename T, size_t N>

@@ -75,7 +75,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             } else {
                 static_assert(always_false<POSEDIM>);
             }
-            cell_pose_t const cell_stamped_point = toCellId(wordPose, cell_size);
+            cell_pose_t const cell_stamped_point = sunshine::toCellId<POSEDIM, CellDimType>(wordPose, cell_size);
             words_by_cell_pose[cell_stamped_point].emplace_back(wordObs.observations[i]);
         }
         return words_by_cell_pose;
@@ -432,38 +432,12 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return rost->get_ml_topics_and_ppx_for_pose(pose);
     }
 
-    static inline cell_pose_t toCellId(word_pose_t const &word, std::array<WordDimType, POSEDIM> const& cell_size) {
-        static_assert(std::numeric_limits<CellDimType>::max() <= std::numeric_limits<WordDimType>::max(),
-                      "Word dim type must be larger than cell dim type!");
-        if constexpr (POSEDIM == 4) {
-            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
-                    safeNumericCast<CellDimType>(word[1] / cell_size[1]),
-                    safeNumericCast<CellDimType>(word[2] / cell_size[2]),
-                    safeNumericCast<CellDimType>(word[3] / cell_size[3])};
-        } else if constexpr (POSEDIM == 3) {
-            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
-                    safeNumericCast<CellDimType>(word[1] / cell_size[1]),
-                    safeNumericCast<CellDimType>(word[2] / cell_size[2])};
-        } else if constexpr (POSEDIM == 2) {
-            return {safeNumericCast<CellDimType>(word[0] / cell_size[0]),
-                    safeNumericCast<CellDimType>(word[1] / cell_size[1])};
-        } else {
-            static_assert(always_false<POSEDIM>);
-        }
+    inline cell_pose_t toCellId(word_pose_t const &word_pose) const {
+        return sunshine::toCellId<POSEDIM, CellDimType, WordDimType>(word_pose, cell_size);
     }
 
-    static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<WordDimType, POSEDIM> const& cell_size) {
-        if constexpr(POSEDIM == 4) {
-            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
-                    safeNumericCast<WordDimType>(cell[2] * cell_size[2]), safeNumericCast<WordDimType>(cell[3] * cell_size[3])};
-        } else if constexpr(POSEDIM == 3) {
-            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
-                    safeNumericCast<WordDimType>(cell[2] * cell_size[2])};
-        } else if constexpr(POSEDIM == 2) {
-            return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1])};
-        } else {
-            static_assert(always_false<POSEDIM>);
-        }
+    inline word_pose_t toWordPose(cell_pose_t const &cell_pose) const {
+        return sunshine::toWordPose<POSEDIM, CellDimType, WordDimType>(cell_pose, cell_size);
     }
 };
 }

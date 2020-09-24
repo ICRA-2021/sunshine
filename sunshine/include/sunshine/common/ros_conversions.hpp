@@ -158,8 +158,17 @@ sunshine_msgs::TopicMap toRosMsg(Segmentation<LabelType, PoseDim, int, double> c
     constexpr uint32_t offset = (PoseDim == 4);
     map.cell_width = {segmentation.cell_size[offset], segmentation.cell_size[offset + 1], segmentation.cell_size[offset + 2]};
     map.cell_poses.reserve(segmentation.observation_poses.size() * 3);
-    std::for_each(segmentation.observation_poses.begin(), segmentation.observation_poses.end(), [&map, offset](std::array<int, PoseDim> const& pose){
-        map.cell_poses.insert(map.cell_poses.end(), pose.begin() + offset, pose.end());
+    auto const cell_size = segmentation.cell_size;
+    std::for_each(segmentation.observation_poses.begin(), segmentation.observation_poses.end(), [&map, offset, &cell_size](std::array<int, PoseDim> const& pose){
+        std::array<double, 3> world_pose = {};
+        if constexpr (PoseDim == 3) {
+            world_pose = toWordPose<3, int, double>(pose, cell_size);
+        } else if constexpr(PoseDim == 4) {
+            world_pose = toWordPose<3, int, double>({pose[1], pose[2], pose[3]}, {cell_size[1], cell_size[2], cell_size[3]});
+        } else {
+            static_assert(always_false<PoseDim>);
+        }
+        map.cell_poses.insert(map.cell_poses.end(), world_pose.begin(), world_pose.end());
     });
     if constexpr (std::is_same_v<LabelType, int>) {
         map.cell_topics = segmentation.observations;
