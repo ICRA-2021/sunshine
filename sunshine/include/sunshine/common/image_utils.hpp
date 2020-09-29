@@ -1,5 +1,5 @@
-#ifndef IMAGE_UTILS_HPP
-#define IMAGE_UTILS_HPP
+#ifndef SUNSHINE_PROJECT_IMAGE_UTILS_HPP
+#define SUNSHINE_PROJECT_IMAGE_UTILS_HPP
 
 #include "sunshine/common/utils.hpp"
 #include "sunshine/common/ros_utils.hpp"

@@ -44,20 +44,13 @@ auto get_num_topics(SegmentationType const &seg) {
     }
 }
 
-template<uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
-SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_pose_dimen, int, double> const &gt_seg,
+template<uint32_t pose_dimen = 4, typename GTLabelMap>
+SegmentationMatch compute_matches(GTLabelMap const &gt_labels,
+                                  size_t const gt_num_topics,
                                   sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg, bool const warn_missing = true) {
-    std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
-    std::vector<uint32_t> gt_weights(gt_seg.observations[0].size(), 0), topic_weights(topic_seg.observations[0].size(), 0);
-    std::vector<std::vector<uint32_t>> matches(topic_seg.observations[0].size(), std::vector<uint32_t>(gt_seg.observations[0].size(), 0));
+    std::vector<uint32_t> gt_weights(gt_num_topics, 0), topic_weights(topic_seg.observations[0].size(), 0);
+    std::vector<std::vector<uint32_t>> matches(topic_seg.observations[0].size(), std::vector<uint32_t>(gt_num_topics, 0));
     double total_weight = 0;
-    for (auto i = 0; i < gt_seg.observations.size(); ++i) {
-        auto const label = argmax<>(gt_seg.observations[i]);
-        constexpr size_t offset = (gt_pose_dimen == 4) ? 1 : 0;
-        std::array<int, 3> const pose{gt_seg.observation_poses[i][offset], gt_seg.observation_poses[i][1 + offset],
-                                      gt_seg.observation_poses[i][2 + offset]};
-        gt_labels.insert({pose, label});
-    }
     size_t failed = 0;
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
@@ -65,11 +58,11 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
         std::array<int, 3> const pose{topic_seg.observation_poses[i][offset], topic_seg.observation_poses[i][1 + offset],
                                       topic_seg.observation_poses[i][2 + offset]};
         auto const topic_label = argmax<>(topic_seg.observations[i]);
-        topic_labels.insert({pose, topic_label});
 
         auto iter = gt_labels.find(pose);
         if (iter != gt_labels.end()) {
             auto const &gt_label = iter->second;
+            if (gt_label >= gt_num_topics) throw std::invalid_argument("Unexpected gt label -- too high!");
             matches[topic_label][gt_label] += 1;
             gt_weights[gt_label] += 1;
             topic_weights[topic_label] += 1;
@@ -80,31 +73,20 @@ SegmentationMatch compute_matches(sunshine::Segmentation<std::vector<int>, gt_po
     }
     if (warn_missing && failed > 0) {
         std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
-                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
-                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+                  << " with topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {matches, gt_weights, topic_weights, total_weight};
 }
 
-template<typename ObsA, typename ObsB, uint32_t pose_dimen = 4, uint32_t gt_pose_dimen = 3>
-SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, int, double> const &gt_seg,
-                                  sunshine::Segmentation<ObsB, pose_dimen, int, double> const &topic_seg, bool const warn_missing = true) {
-    std::map<std::array<int, 3>, uint32_t> gt_labels, topic_labels;
-    auto const gt_num_topics = get_num_topics(gt_seg);
+template<typename LabelType, uint32_t pose_dimen = 4, typename GTLabelMap>
+SegmentationMatch compute_matches(GTLabelMap const &gt_labels,
+                                  size_t const gt_num_topics,
+                                  sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg,
+                                  bool const warn_missing = true) {
     auto const num_topics = get_num_topics(topic_seg);
     std::vector<uint32_t> gt_weights( gt_num_topics, 0), topic_weights(num_topics, 0);
     std::vector<std::vector<uint32_t>> matches(num_topics, std::vector<uint32_t>(gt_num_topics, 0));
     double total_weight = 0;
-    for (auto i = 0; i < gt_seg.observations.size(); ++i) {
-        uint32_t label;
-        if constexpr (std::is_same_v<ObsA, int>) label = gt_seg.observations[i];
-        else if constexpr (std::is_same_v<ObsA, std::vector<int>>) label = argmax(gt_seg.observations[i]);
-        else static_assert(always_false<ObsA>);
-        constexpr size_t offset = (gt_pose_dimen == 4) ? 1 : 0;
-        std::array<int, 3> const pose{gt_seg.observation_poses[i][offset], gt_seg.observation_poses[i][1 + offset],
-                                      gt_seg.observation_poses[i][2 + offset]};
-        gt_labels.insert({pose, label});
-    }
     size_t failed = 0;
     for (auto i = 0; i < topic_seg.observations.size(); ++i) {
         static_assert(pose_dimen == 3 || pose_dimen == 4);
@@ -112,10 +94,9 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
         std::array<int, 3> const pose{topic_seg.observation_poses[i][offset], topic_seg.observation_poses[i][1 + offset],
                                       topic_seg.observation_poses[i][2 + offset]};
         uint32_t topic_label;
-        if constexpr (std::is_integral_v<ObsB>) topic_label = topic_seg.observations[i];
-        else if constexpr (std::is_same_v<ObsB, std::vector<int>>) topic_label = argmax(topic_seg.observations[i]);
-        else static_assert(always_false<ObsB>);
-        topic_labels.insert({pose, topic_label});
+        if constexpr (std::is_integral_v<LabelType>) topic_label = topic_seg.observations[i];
+        else if constexpr (std::is_same_v<LabelType, std::vector<int>>) topic_label = argmax(topic_seg.observations[i]);
+        else static_assert(always_false<LabelType>);
 
         auto iter = gt_labels.find(pose);
         if (iter != gt_labels.end()) {
@@ -130,8 +111,7 @@ SegmentationMatch compute_matches(sunshine::Segmentation<ObsA, gt_pose_dimen, in
     }
     if (warn_missing && failed > 0) {
         std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
-                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
-                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+                  << " with topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {matches, gt_weights, topic_weights, total_weight};
 }
@@ -203,7 +183,7 @@ double compute_nmi(SegmentationMatch const &contingency_table, double const mi, 
 template<size_t pose_dimen = 4>
 double nmi(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
            sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
-    auto const contingency_table = compute_matches<pose_dimen>(gt_seg, topic_seg);
+    auto const contingency_table = compute_matches<pose_dimen>(gt_seg.toLookupMap(), get_num_topics(gt_seg), topic_seg);
     auto const &matches = std::get<0>(contingency_table);
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);
@@ -281,7 +261,7 @@ double compute_ami(SegmentationMatch const &contingency_table,
 template<size_t pose_dimen = 4>
 double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
            sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
-    auto const contingency_table = compute_matches<pose_dimen>(gt_seg, topic_seg);
+    auto const contingency_table = compute_matches<pose_dimen>(gt_seg.toLookupMap(), get_num_topics(gt_seg), topic_seg);
     auto const &matches = std::get<0>(contingency_table);
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);
@@ -294,10 +274,11 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
     return ami;
 }
 
-template<uint32_t gt_pose_dim = 3, typename ObsA, typename ObsB>
-auto compute_metrics(sunshine::Segmentation<ObsA, gt_pose_dim, int, double> const &gt_seg,
-                     sunshine::Segmentation<ObsB, 4, int, double> const &topic_seg, bool const warn_missing = true) {
-    auto const contingency_table = compute_matches<ObsA, ObsB, 4, gt_pose_dim>(gt_seg, topic_seg, warn_missing);
+template<typename GTLabelMap, typename LabelType>
+auto compute_metrics(GTLabelMap const &gt_labels,
+                     size_t const num_gt_topics,
+                     sunshine::Segmentation<LabelType, 4, int, double> const &topic_seg, bool const warn_missing = true) {
+    auto const contingency_table = compute_matches<LabelType, 4>(gt_labels, num_gt_topics, topic_seg, warn_missing);
     auto const &matches = std::get<0>(contingency_table);
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);

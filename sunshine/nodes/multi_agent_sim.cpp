@@ -49,6 +49,12 @@ class MultiAgentSimulation {
                                     std::string const& match_method,
                                     size_t const& n_robots,
                                     Segmentation<int, 3, int, double> const* gtMLMap = nullptr) {
+        auto const aggregateLabels = aggregateMLMap->toLookupMap();
+        auto const numAggregateTopics = get_num_topics(*aggregateMLMap);
+        decltype(gtMLMap->toLookupMap()) gtLabels;
+        if (gtMLMap) gtLabels = gtMLMap->toLookupMap();
+        auto const numGTTopics = (gtMLMap) ? get_num_topics(*gtMLMap) : 0;
+
         json match_results = json::array();
         std::unique_ptr<Segmentation<int, 4, int, double>> finalMap;
         for (auto i = 0ul; i < topic_maps.size(); ++i) {
@@ -76,7 +82,7 @@ class MultiAgentSimulation {
             auto merged_segmentations = merge_segmentations(maps, correspondences.lifting);
             match_result["Number of Cells"] = merged_segmentations->observation_poses.size();
             {
-                auto const sr_ref_metrics = compute_metrics(*aggregateMLMap, *merged_segmentations, false);
+                auto const sr_ref_metrics = compute_metrics(aggregateLabels, numAggregateTopics, *merged_segmentations, false);
                 match_result["SR-MI"]     = std::get<0>(sr_ref_metrics);
                 match_result["SR-NMI"]    = std::get<1>(sr_ref_metrics);
                 match_result["SR-AMI"]    = std::get<2>(sr_ref_metrics);
@@ -97,9 +103,9 @@ class MultiAgentSimulation {
                 }
                 #endif
 
-                align(*merged_segmentations, *gtMLMap);
+                align(*merged_segmentations, gtLabels, numGTTopics);
                 {
-                    auto const gt_ref_metrics = compute_metrics(*gtMLMap, *merged_segmentations);
+                    auto const gt_ref_metrics = compute_metrics(gtLabels, numGTTopics, *merged_segmentations);
                     match_result["GT-MI"]     = std::get<0>(gt_ref_metrics);
                     match_result["GT-NMI"]    = std::get<1>(gt_ref_metrics);
                     match_result["GT-AMI"]    = std::get<2>(gt_ref_metrics);
@@ -108,7 +114,7 @@ class MultiAgentSimulation {
 
                 std::vector<double> individ_mi, individ_nmi, individ_ami;
                 for (auto const &segmentation : maps) {
-                    auto const individ_metric = compute_metrics(*gtMLMap, *segmentation);
+                    auto const individ_metric = compute_metrics(gtLabels, numGTTopics, *segmentation);
                     individ_mi.push_back(std::get<0>(individ_metric));
                     individ_nmi.push_back(std::get<1>(individ_metric));
                     individ_ami.push_back(std::get<2>(individ_metric));
@@ -188,6 +194,7 @@ class MultiAgentSimulation {
                 ROS_ERROR_ONCE("Ground truth is missing aggregate poses!");
 //                throw std::logic_error("Ground truth is missing poses!");
             }
+            gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
         }
 
         //    std::vector<ros::Publisher> map_pubs;
@@ -264,12 +271,10 @@ class MultiAgentSimulation {
         return true;
     }
 
-    json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "") {
+    json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "", bool parallel=false) const {
         if (n_robots == 0) n_robots = bagfiles.size();
         else if (n_robots < 0 || n_robots > bagfiles.size()) throw std::invalid_argument("Invalid number of robots!");
         if (!aggregateMap) throw std::logic_error("No simulation data to process");
-//        if (!aggregateMLMap) aggregateMLMap = merge_segmentations<4>(make_vector(aggregateMap.get()));
-        if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
 
         WordColorMap<int> colorMap;
         auto const refMap = (aggregateSubmaps.empty()) ? merge_segmentations<4>(make_vector(aggregateMap.get()))
@@ -290,7 +295,11 @@ class MultiAgentSimulation {
         exp_results["Parameters"] = json(params);
         if (gtMLMap) {
             exp_results["GT Number of Cells"] = gtMLMap->observation_poses.size();
-            auto const sr_gt_metrics = compute_metrics(*gtMLMap, *refMap);
+
+            auto const gtLabels = gtMLMap->toLookupMap();
+            auto const numGTTopics = get_num_topics(*gtMLMap);
+
+            auto const sr_gt_metrics = compute_metrics(gtLabels, numGTTopics, *refMap);
             exp_results["Single Robot GT-MI"] = std::get<0>(sr_gt_metrics);
             exp_results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
             exp_results["Single Robot GT-AMI"] = std::get<2>(sr_gt_metrics);
@@ -301,14 +310,22 @@ class MultiAgentSimulation {
         }
 
         assert(robotMaps.size() == robotModels.size());
+        std::vector<std::thread> workers;
+        std::mutex result_lock;
         for (auto const& method : match_methods) {
-            auto [stats, map] = match(refMap.get(), robotModels, robotMaps, method, n_robots, gtMLMap.get());
-            exp_results["Match Results"][method] = stats;
-            if (!map_prefix.empty()) {
-                auto mapImg = createTopicImg(toRosMsg(*map), colorMap, pixel_scale, true, 0, 0, map_box);
-                saveTopicImg(mapImg, map_prefix + "-" + method + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
-            }
+            workers.emplace_back([this, &refMap, method, n_robots, &exp_results, &result_lock, &colorMap, pixel_scale, map_box, map_prefix](){
+                ROS_INFO("Matching %ld robots with %s", n_robots, method.c_str());
+                auto [stats, map] = match(refMap.get(), robotModels, robotMaps, method, n_robots, gtMLMap.get());
+                std::lock_guard<std::mutex> guard(result_lock);
+                exp_results["Match Results"][method] = stats;
+                if (!map_prefix.empty()) {
+                    auto mapImg = createTopicImg(toRosMsg(*map), colorMap, pixel_scale, true, 0, 0, map_box);
+                    saveTopicImg(mapImg, map_prefix + "-" + method + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
+                }
+            });
+            if (!parallel) workers.back().join();
         }
+        if (parallel) for (auto& worker : workers) worker.join();
         return exp_results;
     }
 
@@ -336,6 +353,7 @@ class MultiAgentSimulation {
         } else if (version >= 1) {
             ar & aggregateSubmaps;
         }
+        if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
     }
 
     [[nodiscard]] size_t approxBytesSize() const {
@@ -367,7 +385,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "multi_agent_sim");
     ros::NodeHandle nh("~");
 
-    auto output_prefix = nh.param<std::string>("output_prefix", "");
+    auto output_prefix = nh.param<std::string>("output_prefix", "/home/stewart/workspace/");
     auto file_prefix = nh.param<std::string>("file_prefix", "");
     output_prefix += (output_prefix.empty() || output_prefix.back() == '/') ? "" : "/";
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
@@ -426,38 +444,45 @@ int main(int argc, char **argv) {
     std::mutex resultsMutex;
     std::vector<std::thread> workers;
 
-    auto map_prefix = nh.param<std::string>("map_prefix", "");
+    auto map_prefix = nh.param<std::string>("map_prefix", "/home/stewart/workspace/");
     map_prefix += (map_prefix.empty() || map_prefix.back() == '/') ? "" : "/";
     map_prefix += (map_prefix.empty()) ? "" : file_prefix;
-    auto const map_box = nh.param<std::string>("box", "");
+    auto const map_box = nh.param<std::string>("box", "-50x-50x100x100");
+    auto const parallel_sim = nh.param<bool>("parallel_sim", false);
+    auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", true);
+    auto const parallel_match = nh.param<bool>("parallel_match", true);
     size_t run = 1;
     for (auto const& file : data_files) {
-        workers.emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods](){
+        workers.emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods, parallel_match, parallel_nrobots](){
             ROS_INFO("Reading file %s", file.c_str());
             CompressedFileReader reader(file);
             MultiAgentSimulation sim;
             reader >> sim;
+            std::vector<std::thread> subworkers;
             for (auto i = 2; i <= sim.getNumRobots(); ++i) {
-                ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
-                std::string prefix = map_prefix;
-                if (!prefix.empty()) {
-                    prefix += "exp" + std::to_string(run) + "-" + std::to_string(i) + "robots";
-                }
-                auto const results_i = sim.process(match_methods, i, prefix, map_box);
-                std::lock_guard<std::mutex> guard(resultsMutex);
-                results.push_back(results_i);
-                ROS_INFO("Finished file %s with %d robots", file.c_str(), i);
-                if (!ros::ok()) {
-                    ROS_WARN("Stopping file %s...", file.c_str());
-                    break;
-                }
+                subworkers.emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match](){
+                    ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
+                    std::string prefix = map_prefix;
+                    if (!prefix.empty()) {
+                        prefix += "exp" + std::to_string(run) + "-" + std::to_string(i) + "robots";
+                    }
+                    auto const results_i = sim.process(match_methods, i, prefix, map_box, parallel_match);
+                    if (!ros::ok()) {
+                        ROS_WARN("Stopping file %s...", file.c_str());
+                        return;
+                    }
+                    std::lock_guard<std::mutex> guard(resultsMutex);
+                    results.push_back(results_i);
+                    ROS_INFO("Finished file %s with %d robots", file.c_str(), i);
+                });
+                if (!parallel_nrobots) subworkers.back().join();
             }
+            if (parallel_nrobots) for (auto& worker : subworkers) worker.join();
         });
+        if (!parallel_sim) workers.back().join();
         run += 1;
     }
-    for (auto& worker : workers) {
-        worker.join();
-    }
+    if (parallel_sim) for (auto& worker : workers) worker.join();
     if (!ros::ok()) ROS_WARN("ROS is shutting down -- saving partial results");
 
     std::ofstream resultsWriter(results_filename);

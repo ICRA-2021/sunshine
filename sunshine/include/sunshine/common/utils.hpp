@@ -1,5 +1,5 @@
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef SUNSHINE_PROJECT_UTILS_HPP
+#define SUNSHINE_PROJECT_UTILS_HPP
 
 #include "colors.hpp"
 #include <exception>
@@ -188,11 +188,11 @@ inline C normalize(T const& array) {
 }
 
 template<typename T, typename Ret = typename T::value_type>
-inline Ret dotp(T const& left, T const& right) {
+static inline Ret dotp(T const& left, T const& right) {
     return std::inner_product(left.begin(), left.end(), right.begin(), Ret(0));
 }
 
-std::vector<std::string> split(const std::string &txt, char ch = ' ')
+static inline std::vector<std::string> split(const std::string &txt, char ch = ' ')
 {
     size_t pos = txt.find( ch );
     size_t initialPos = 0;
@@ -210,7 +210,7 @@ std::vector<std::string> split(const std::string &txt, char ch = ' ')
     return strs;
 }
 
-[[nodiscard]] std::string replace_all(std::string str, const std::string& old_str, const std::string& new_str) {
+[[nodiscard]] static inline std::string replace_all(std::string str, const std::string& old_str, const std::string& new_str) {
     size_t pos = 0;
     while ((pos = str.find(old_str, pos)) != std::string::npos) {
         str.replace(pos, old_str.length(), new_str);
@@ -334,4 +334,4 @@ bool includes(std::map<T, V> const& parent, std::vector<T> const& child) {
 
 }
 
-#endif // UTILS_HPP
+#endif // SUNSHINE_PROJECT_UTILS_HPP

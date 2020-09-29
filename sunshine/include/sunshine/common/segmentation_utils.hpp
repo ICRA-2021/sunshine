@@ -11,19 +11,15 @@
 
 namespace sunshine {
 
-template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double>
-std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(sunshine::Segmentation<LabelType, 3, int, double> const &gt_seg,
+template<typename LabelType, uint32_t pose_dimen = 4, typename CountType = double, typename GTLabelMap>
+std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(GTLabelMap const &gt_labels,
+                                                                               size_t const num_gt_labels,
                                                                                sunshine::Segmentation<LabelType, pose_dimen, int, double> const &topic_seg,
                                                                                bool const warn_missing = true) {
     auto const N = get_num_topics(topic_seg);
-    auto const M = get_num_topics(gt_seg);
+    auto const M = num_gt_labels;
     CountType total_weight = 0;
     std::vector<std::vector<CountType>> cooccurences(N, std::vector<CountType>(M, 0));
-    std::map<std::array<int, 3>, LabelType> gt_labels;
-    assert(gt_seg.observation_poses.size() == gt_seg.observations.size());
-    for (auto obs = 0; obs < gt_seg.observations.size(); ++obs) {
-        gt_labels.insert({gt_seg.observation_poses[obs], gt_seg.observations[obs]});
-    }
     static_assert(std::tuple_size_v<typename decltype(topic_seg.observation_poses)::value_type> == pose_dimen);
     assert(topic_seg.observation_poses.size() == topic_seg.observations.size());
     size_t failed = 0;
@@ -57,8 +53,7 @@ std::pair<std::vector<std::vector<CountType>>, CountType> compute_cooccurences(s
     }
     if (warn_missing && failed > 0) {
         std::cerr << "Failed to find gt gt_seg for " << failed << " of " << topic_seg.observations.size()
-                  << " poses with gt_seg cell_size = " << gt_seg.cell_size
-                  << " and topic_seg cell_size = " << topic_seg.cell_size << std::endl;
+                  << " with topic_seg cell_size = " << topic_seg.cell_size << std::endl;
     }
     return {cooccurences, total_weight};
 }
@@ -110,9 +105,9 @@ std::unique_ptr<Segmentation<int, PoseDim, int, double>> merge_segmentations(Con
     return merged;
 }
 
-template<typename LabelType, uint32_t LeftPoseDim = 3, uint32_t RightPoseDim = 3>
-void align(Segmentation<LabelType, LeftPoseDim, int, double> &segmentation, Segmentation<LabelType, RightPoseDim, int, double> const &reference) {
-    auto const cooccurrence_data = compute_cooccurences(reference, segmentation);
+template<typename LabelType, uint32_t LeftPoseDim = 3, typename GTLabelMap>
+void align(Segmentation<LabelType, LeftPoseDim, int, double> &segmentation, GTLabelMap const &reference, size_t const num_gt_labels) {
+    auto const cooccurrence_data = compute_cooccurences(reference, num_gt_labels, segmentation);
     auto const &counts = cooccurrence_data.first;
     std::vector<std::vector<double>> costs(counts[0].size(), std::vector<double>(counts.size(), 0.0));
     for (auto i = 0ul; i < counts.size(); ++i) {

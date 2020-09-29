@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <boost/serialization/array.hpp>
+#include "utils.hpp"
 
 namespace sunshine {
 
@@ -149,6 +150,29 @@ struct Segmentation : public SemanticObservation<label_type, pose_dim, cell_pose
         auto const poseSize = sizeof(this->observation_poses) + sizeof(typename decltype(this->observation_poses)::value_type) * this->observation_poses.capacity();
         auto const dataSize = sizeof(this->observations) + sizeof(typename decltype(this->observations)::value_type) * this->observations.capacity();
         return headerSize + poseSize + dataSize;
+    }
+
+    auto toLookupMap() const {
+        constexpr size_t offset = (pose_dim == 4) ? 1 : 0;
+        if constexpr (is_vector<LabelType>::value) {
+            std::unordered_map<std::array<cell_pose_type, 3>, typename LabelType::value_type, hasharray < cell_pose_type, 3>> labels;
+            for (auto i = 0; i < this->observations.size(); ++i) {
+                typename LabelType::value_type const label = argmax<>(this->observations[i]);
+                std::array<int, 3> const pose{this->observation_poses[i][offset], this->observation_poses[i][1 + offset],
+                                              this->observation_poses[i][2 + offset]};
+                labels.insert({pose, label});
+            }
+            return labels;
+        } else {
+            std::unordered_map<std::array<cell_pose_type, 3>, LabelType, hasharray < cell_pose_type, 3>> labels;
+            for (auto i = 0; i < this->observations.size(); ++i) {
+                LabelType const label = this->observations[i];
+                std::array<int, 3> const pose{this->observation_poses[i][offset], this->observation_poses[i][1 + offset],
+                                              this->observation_poses[i][2 + offset]};
+                labels.insert({pose, label});
+            }
+            return labels;
+        }
     }
 };
 

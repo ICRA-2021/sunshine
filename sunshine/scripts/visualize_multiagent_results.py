@@ -4,8 +4,9 @@ from collections import OrderedDict
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
 # with open('/home/stewart/workspace/results.json') as test_file:
-with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
     data = json.load(test_file)
 
 
