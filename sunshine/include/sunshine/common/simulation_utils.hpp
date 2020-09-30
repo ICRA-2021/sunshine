@@ -319,7 +319,13 @@ double benchmark(std::string const &bagfile,
     sensor_msgs::PointCloud2::ConstPtr lastDepth;
     auto const processPair = [&]() {
         if (!lastRgb || !lastSeg || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
-        if (wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id).stamp_ < lastRgb->header.stamp) return false;
+        tf::StampedTransform transform;
+        try {
+            transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
+        } catch (tf::ExtrapolationException const& ex) {
+            ROS_INFO("Waiting for appropriate transformation.");
+            return false;
+        }
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PCLPointCloud2 pcl_pc2;
@@ -329,7 +335,6 @@ double benchmark(std::string const &bagfile,
         imageDepthAdapter.updatePointCloud(pc);
 
         assert(lastRgb->header.frame_id == lastSeg->header.frame_id);
-        auto const transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
         auto rgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
         auto segmentation = std::make_unique<ImageObservation>(fromRosMsg(lastSeg));
 
