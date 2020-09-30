@@ -126,7 +126,7 @@ class RobotSim {
             auto new_observation_poses = word_poses_toCellSet(observation->observation_poses, observation->timestamp);
             std::vector<std::array<int, 3>> new_poses;
             std::set_difference(new_observation_poses.begin(), new_observation_poses.end(), old_observation_poses.begin(), old_observation_poses.end(), std::back_inserter(new_poses));
-            ROS_DEBUG("Adding %d observations across %d new cell poses (%d unique)", observation->observations.size(), new_observation_poses.size(), new_poses.size());
+            ROS_DEBUG("Adding %ld observations across %d new cell poses (%d unique)", observation->observations.size(), new_observation_poses.size(), new_poses.size());
 #endif
             if (externalRostAdapter) {
                 observation >> *rostAdapter;
@@ -315,11 +315,26 @@ double benchmark(std::string const &bagfile,
     uint32_t count = 0;
     double av_metric = 0;
 
-    std::unique_ptr<ImageObservation> rgb, segmentation;
-    double depth_timestamp = -1;
+    sensor_msgs::Image::ConstPtr lastRgb, lastSeg;
+    sensor_msgs::PointCloud2::ConstPtr lastDepth;
     auto const processPair = [&]() {
-        auto topicsFuture = rgb >> visualWordAdapter >> wordDepthAdapter >> wordTransformAdapter >> rostAdapter;
-        auto gtSeg = segmentation >> imageDepthAdapter >> imageTransformAdapter >> segmentationAdapter;
+        if (!lastRgb || !lastSeg || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
+        if (wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id).stamp_ < lastRgb->header.stamp) return false;
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
+        pcl::PCLPointCloud2 pcl_pc2;
+        pcl_conversions::toPCL(*lastDepth, pcl_pc2);
+        pcl::fromPCLPointCloud2(pcl_pc2, *pc);
+        wordDepthAdapter.updatePointCloud(pc);
+        imageDepthAdapter.updatePointCloud(pc);
+
+        assert(lastRgb->header.frame_id == lastSeg->header.frame_id);
+        auto const transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
+        auto rgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
+        auto segmentation = std::make_unique<ImageObservation>(fromRosMsg(lastSeg));
+
+        auto topicsFuture = wordTransformAdapter(rgb >> visualWordAdapter >> wordDepthAdapter, transform) >> rostAdapter;
+        auto gtSeg = imageTransformAdapter(segmentation >> imageDepthAdapter, transform) >> segmentationAdapter;
         auto topicsSeg = topicsFuture.get();
 
         if (count >= warmup) {
@@ -331,34 +346,18 @@ double benchmark(std::string const &bagfile,
     };
 
     auto const imageCallback = [&](sensor_msgs::Image::ConstPtr image) {
-        rgb = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            return processPair();
-        }
-        return false;
+        lastRgb = std::move(image);
+        return processPair();
     };
 
     auto const segmentationCallback = [&](sensor_msgs::Image::ConstPtr image) {
-        segmentation = std::make_unique<ImageObservation>(fromRosMsg(image));
-        if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            return processPair();
-        }
-        return false;
+        lastSeg = std::move(image);
+        return processPair();
     };
 
-    auto const depthCallback = [&](sensor_msgs::PointCloud2::ConstPtr const &msg) {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
-        pcl::PCLPointCloud2 pcl_pc2;
-        pcl_conversions::toPCL(*msg, pcl_pc2);
-        pcl::fromPCLPointCloud2(pcl_pc2, *pc);
-
-        wordDepthAdapter.updatePointCloud(pc);
-        imageDepthAdapter.updatePointCloud(pc);
-        depth_timestamp = msg->header.stamp.toSec();
-        if (rgb && segmentation && rgb->timestamp == segmentation->timestamp && rgb->timestamp == depth_timestamp) {
-            return processPair();
-        }
-        return false;
+    auto const depthCallback = [&](sensor_msgs::PointCloud2::ConstPtr msg) {
+        lastDepth = std::move(msg);
+        return processPair();
     };
 
     auto const transformCallback = [&](tf2_msgs::TFMessage::ConstPtr const &tfMsg) {
@@ -368,7 +367,7 @@ double benchmark(std::string const &bagfile,
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
         }
-        return false;
+        return processPair();
     };
 
     ROS_WARN("Extracting images from %s", bagfile.c_str());
