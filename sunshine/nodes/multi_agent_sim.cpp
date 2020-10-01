@@ -463,7 +463,7 @@ int main(int argc, char **argv) {
                     continue;
                 }
                 CompressedFileWriter writer (data_filename);
-                writer << sims[n_done];
+                writer << *(sims[n_done]);
                 data_files.push_back (data_filename);
                 sims[n_done].reset (); // free up some memory
                 ROS_INFO("Finished simulation %ld", n_done + 1);
@@ -494,9 +494,17 @@ int main(int argc, char **argv) {
     for (auto const& file : data_files) {
         workers.emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods, parallel_match, parallel_nrobots](){
             ROS_INFO("Reading file %s", file.c_str());
-            CompressedFileReader reader(file);
             MultiAgentSimulation sim;
-            reader >> sim;
+            try
+            {
+                CompressedFileReader reader(file);
+                reader >> sim;
+            } catch (boost::archive::archive_exception const& e) {
+                CompressedFileReader reader(file);
+                std::unique_ptr<MultiAgentSimulation> simPtr;
+                reader >> simPtr;
+                sim = std::move(*simPtr);
+            }
             std::vector<std::thread> subworkers;
             for (auto i = 1; i <= sim.getNumRobots(); ++i) {
                 subworkers.emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match](){
