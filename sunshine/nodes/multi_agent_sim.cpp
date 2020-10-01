@@ -9,6 +9,7 @@
 #include "sunshine/common/metric.hpp"
 #include "sunshine/common/parameters.hpp"
 #include "sunshine/common/data_proc_utils.hpp"
+#include "sunshine/common/thread_pool.hpp"
 #include "sunshine/common/utils.hpp"
 #include "sunshine/observation_transform_adapter.hpp"
 #include "sunshine/segmentation_adapter.hpp"
@@ -39,6 +40,7 @@ class MultiAgentSimulation {
     std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
 //    std::unique_ptr<Segmentation<int, 4, int, double>> aggregateMLMap;
     std::unique_ptr<std::set<decltype(decltype(gtMap)::element_type::observation_poses)::value_type>> gtPoses;
+    std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> sharedSegmentationAdapter;
     [[deprecated]] json results = json::object();
 
   protected:
@@ -136,11 +138,13 @@ class MultiAgentSimulation {
     class ParamPassthrough {
         MultiAgentSimulation* parent;
         ParamServer const* nh;
+        mutable std::mutex lock;
 
       public:
         ParamPassthrough(MultiAgentSimulation* parent, ParamServer const* nh) : parent(parent), nh(nh) {}
         template <typename T>
         T param(std::string param_name, T default_value) const {
+            std::lock_guard<std::mutex> guard(lock);
             T const val = nh->template param<T>(param_name, default_value);
             auto iter = parent->params.find(param_name);
             if constexpr(std::is_same_v<std::string, T>) {
@@ -164,12 +168,13 @@ class MultiAgentSimulation {
                                   , depth_topic(std::move(depth_topic))
                                   , segmentation_topic(std::move(segmentation_topic)) {}
 
-    template<typename ParamServer>
-    bool record(ParamServer const& nh) {
+    template <typename ParamServer>
+    bool populate_aggregate(ParamServer const& nh) {
+        if (aggregateMap) throw std::logic_error("Already populated aggregate");
         ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
         std::cout << "Running single-agent simulation...." << std::endl;
-        auto segmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
-        RobotSim aggregateRobot("Aggregate", paramPassthrough, !depth_topic.empty(), segmentationAdapter);
+        sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
+        RobotSim aggregateRobot("Aggregate", paramPassthrough, !depth_topic.empty(), sharedSegmentationAdapter);
         for (auto const& bag : bagfiles) {
             aggregateRobot.open(bag, image_topic, depth_topic, segmentation_topic);
             while (aggregateRobot.next()) {
@@ -181,26 +186,34 @@ class MultiAgentSimulation {
         }
         aggregateRobot.pause();
         aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
+
+        if (!segmentation_topic.empty()) {
+            gtMap = aggregateRobot.getGTMap();
+            gtPoses = std::make_unique<std::set<std::array<int, 3>>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
+            gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
+        }
+        return true;
+    }
+
+    template<typename ParamServer>
+    bool record(ParamServer const& nh) {
+        ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
+        if (!aggregateMap) populate_aggregate(nh); // needed to setup the sharedSegmentationAdapter
+        assert(aggregateMap && sharedSegmentationAdapter);
+
         std::set<std::array<int, 3>> aggregate_poses;
         for (auto const& pose : aggregateMap->observation_poses) {
             uint32_t const offset = pose.size() == 4;
             aggregate_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
         }
-
-        if (!segmentation_topic.empty()) {
-            gtMap = aggregateRobot.getGTMap();
-            gtPoses = std::make_unique<std::set<std::array<int, 3>>>(gtMap->observation_poses.cbegin(), gtMap->observation_poses.cend());
-            if (!includes(*gtPoses, aggregate_poses)) {
-                ROS_ERROR_ONCE("Ground truth is missing aggregate poses!");
-//                throw std::logic_error("Ground truth is missing poses!");
-            }
-            gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
+        if (gtPoses && !includes(*gtPoses, aggregate_poses)) {
+            ROS_ERROR_ONCE("Ground truth is missing aggregate poses!");
         }
 
         //    std::vector<ros::Publisher> map_pubs;
         std::vector<std::unique_ptr<RobotSim>> robots;
         for (auto i = 0; i < bagfiles.size(); ++i) {
-            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), paramPassthrough, !depth_topic.empty(), segmentationAdapter, true));
+            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), paramPassthrough, !depth_topic.empty(), sharedSegmentationAdapter, true));
             robots.back()->open(bagfiles[i], image_topic, depth_topic, segmentation_topic, i * 2000);
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
@@ -274,7 +287,7 @@ class MultiAgentSimulation {
     json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "", bool parallel=false) const {
         if (n_robots == 0) n_robots = bagfiles.size();
         else if (n_robots < 0 || n_robots > bagfiles.size()) throw std::invalid_argument("Invalid number of robots!");
-        if (!aggregateMap) throw std::logic_error("No simulation data to process");
+        if (robotMaps.empty()) throw std::logic_error("No simulation data to process");
 
         WordColorMap<int> colorMap;
         auto const refMap = (aggregateSubmaps.empty()) ? merge_segmentations<4>(make_vector(aggregateMap.get()))
@@ -416,19 +429,28 @@ int main(int argc, char **argv) {
         bagfiles.reserve(argc - offset);
         for (auto i = offset; i < argc; ++i) bagfiles.emplace_back(argv[i]);
 
-        for (auto i = 1; i <= n_trials && ros::ok(); ++i) {
-            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i) + "-of-" + std::to_string(n_trials) + ".bin.zz";
-            ROS_INFO("Starting simulation %d", i);
-            MultiAgentSimulation sim(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name);
+        std::vector<std::unique_ptr<MultiAgentSimulation>> sims;
+        sims.reserve(n_trials);
+        thread_pool pool(std::max(1u, std::thread::hardware_concurrency() / (1 + nh.param<int>("num_threads", 2))));
+        for (size_t i = 0; i < n_trials; ++i) {
+            sims.push_back(std::make_unique<MultiAgentSimulation>(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name));
+            pool.enqueue([ptr = sims.back().get(), &nh]{ptr->populate_aggregate(nh);});
+        }
+        pool.join();
+
+        for (auto i = 0; i < n_trials && ros::ok(); ++i) {
+            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i + 1) + "-of-" + std::to_string(n_trials) + ".bin.zz";
+            ROS_INFO("Starting simulation %d", i + 1);
             try {
-                if (!sim.record(nh)) throw std::runtime_error("Simulation aborted");
+                if (!sims[i]->record(nh)) throw std::runtime_error("Simulation aborted");
             } catch (std::exception const& ex) {
-                ROS_ERROR("Simulation %d failed.", i);
+                ROS_ERROR("Simulation %d failed.", i + 1);
                 continue;
             }
             CompressedFileWriter writer(data_filename);
-            writer << sim;
+            writer << sims[i];
             data_files.push_back(data_filename);
+            sims[i].reset(); // free up some memory
         }
     } else if (mode == "replay") {
         for (auto i = 2; i < argc; ++i) {
@@ -459,7 +481,7 @@ int main(int argc, char **argv) {
             MultiAgentSimulation sim;
             reader >> sim;
             std::vector<std::thread> subworkers;
-            for (auto i = 2; i <= sim.getNumRobots(); ++i) {
+            for (auto i = 1; i <= sim.getNumRobots(); ++i) {
                 subworkers.emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match](){
                     ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
                     std::string prefix = map_prefix;

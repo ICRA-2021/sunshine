@@ -4,7 +4,7 @@
   <arg name="output_dir" default="" />
   <arg name="map_prefix" default="$(arg output_dir)" />
   <arg name="match_methods" default="id,hungarian-l1,clear-l1" />
-  <arg name="box" default="-50x-50x100x100" />
+  <arg name="box" default="-150x-150x250x250" />
 
   <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim_launch_replay" args="replay $(arg datafiles)">
     <param name="output_prefix" value="$(arg output_dir)" />

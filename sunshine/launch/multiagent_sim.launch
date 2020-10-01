@@ -1,7 +1,22 @@
 <launch>
-  <arg name="n_trials" default="1" />
-  <arg name="bagfiles" default="/data/stewart/airsim-bags/reef-explore_3_part_1_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_2_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_3_of_5.bag
-/data/stewart/airsim-bags/reef-explore_3_part_4_of_5.bag  /data/stewart/airsim-bags/reef-explore_3_part_5_of_5.bag" />
+  <arg name="n_trials" default="10" />
+<!--   <arg name="bagfiles" default="/data/stewart/airsim-bags/lawnmower-alt4m-1.bag -->
+<!--   /data/stewart/airsim-bags/lawnmower-alt4m-2.bag  -->
+<!--   /data/stewart/airsim-bags/lawnmower-alt4m-3.bag  -->
+<!--   /data/stewart/airsim-bags/lawnmower-alt4m-4.bag" /> -->
+  <arg name="bagfiles" default="
+  /data/stewart/airsim-bags/lawnmower-alt4m-1_part_1_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-1_part_2_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-1_part_3_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-2_part_1_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-2_part_2_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-2_part_3_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-3_part_1_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-3_part_2_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-3_part_3_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-4_part_1_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-4_part_2_of_3.bag
+  /data/stewart/airsim-bags/lawnmower-alt4m-4_part_3_of_3.bag" />
 
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
@@ -34,7 +49,7 @@
   <arg name="gamma" default="0.0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
-  <arg name="num_threads" default="2" />
+  <arg name="num_threads" default="1" />
   <arg name="cell_space" default="0.8" />
   <arg name="cell_time" default="3600" />
   <arg name="cell_size" default="" />
@@ -42,7 +57,7 @@
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
-  <arg name="min_obs_refine_time" default="600" />
+  <arg name="min_obs_refine_time" default="1000" />
 
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
@@ -101,7 +116,7 @@
     <param name="output_prefix" value="$(arg output_dir)" />
     <param name="map_prefix" value="$(arg map_prefix)" />
     <param name="file_prefix" value="$(arg file_prefix)" />
-    <param name="box" value="-50x-50x100x100" />
+    <param name="box" value="-150x-150x250x250" />
     <param name="match_methods" value="$(arg match_methods)" />
   </node>
 
