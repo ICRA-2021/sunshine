@@ -11,7 +11,7 @@
 namespace sunshine {
     class thread_pool {
         std::list<std::pair<std::thread, std::unique_ptr<bool>>> threads;
-        size_t const size;
+        size_t const _size;
         std::atomic<size_t> active;
         std::mutex lock;
         std::condition_variable cv;
@@ -19,8 +19,12 @@ namespace sunshine {
 
       public:
         explicit thread_pool(size_t const size = std::thread::hardware_concurrency())
-            : size(size), active(0) {
+            : _size(size), active(0) {
             if (size == 0) throw std::invalid_argument("Must have at least one thread");
+        }
+
+        size_t size() const {
+            return _size;
         }
 
         void cleanup() {
@@ -50,7 +54,7 @@ namespace sunshine {
                     do
                     {
                         size_t n_active = active;
-                        while (n_active < size)
+                        while (n_active < _size)
                         {
                             ready = true;
                             if (active.compare_exchange_weak (n_active, n_active + 1)) break;

@@ -432,25 +432,42 @@ int main(int argc, char **argv) {
         std::vector<std::unique_ptr<MultiAgentSimulation>> sims;
         sims.reserve(n_trials);
         thread_pool pool(std::max(1u, std::thread::hardware_concurrency() / (1 + nh.param<int>("num_threads", 2))));
-        for (size_t i = 0; i < n_trials; ++i) {
-            sims.push_back(std::make_unique<MultiAgentSimulation>(bagfiles, image_topic_name, depth_topic_name, segmentation_topic_name));
-            pool.enqueue([ptr = sims.back().get(), &nh]{ptr->populate_aggregate(nh);});
-        }
-        pool.join();
-
-        for (auto i = 0; i < n_trials && ros::ok(); ++i) {
-            auto const data_filename = output_prefix + file_prefix + "raw-" + std::to_string(i + 1) + "-of-" + std::to_string(n_trials) + ".bin.zz";
-            ROS_INFO("Starting simulation %d", i + 1);
-            try {
-                if (!sims[i]->record(nh)) throw std::runtime_error("Simulation aborted");
-            } catch (std::exception const& ex) {
-                ROS_ERROR("Simulation %d failed.", i + 1);
-                continue;
+        auto const batch_size = pool.size();
+        assert(batch_size > 0);
+        size_t n_ready = 0;
+        size_t n_done = 0;
+        while (n_done < n_trials)
+        {
+            for (size_t i = 0; i < batch_size && n_ready < n_trials; ++i, ++n_ready)
+            {
+                sims.push_back (std::make_unique<MultiAgentSimulation> (bagfiles,
+                                                                        image_topic_name,
+                                                                        depth_topic_name,
+                                                                        segmentation_topic_name));
+                pool.enqueue ([ptr = sims.back ().get (), &nh] { ptr->populate_aggregate (nh); });
             }
-            CompressedFileWriter writer(data_filename);
-            writer << sims[i];
-            data_files.push_back(data_filename);
-            sims[i].reset(); // free up some memory
+            pool.join ();
+
+            for (; n_done < n_ready && ros::ok (); ++n_done)
+            {
+                auto const data_filename =
+                    output_prefix + file_prefix + "raw-" + std::to_string (n_done + 1) + "-of-" + std::to_string (n_trials) + ".bin.zz";
+                ROS_INFO("Starting simulation %ld", n_done + 1);
+                try
+                {
+                    if (!sims[n_done]->record (nh)) throw std::runtime_error ("Simulation aborted");
+                }
+                catch (std::exception const &ex)
+                {
+                    ROS_ERROR("Simulation %ld failed.", n_done + 1);
+                    continue;
+                }
+                CompressedFileWriter writer (data_filename);
+                writer << sims[n_done];
+                data_files.push_back (data_filename);
+                sims[n_done].reset (); // free up some memory
+                ROS_INFO("Finished simulation %ld", n_done + 1);
+            }
         }
     } else if (mode == "replay") {
         for (auto i = 2; i < argc; ++i) {
