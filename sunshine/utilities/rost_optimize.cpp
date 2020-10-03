@@ -86,7 +86,7 @@ struct Eval {
       double const gamma = boost::math::quantile(gamma_dist, x(2));
 //      double const cell_space = .5 * std::pow(3., x(3));
       bool const use_clahe = (x(3) >= 0.5);
-//      bool const use_texton = (x(5) >= 0.75);
+      bool const use_texton = false;
       bool const use_orb = (x(4) >= 0.25);
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
@@ -101,7 +101,7 @@ struct Eval {
                                         {"min_obs_refine_time", 300},
                                         {"num_threads", 7}}};
       std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
-      std::cerr << ", CLAHE: " << use_clahe;
+      std::cerr << ", CLAHE: " << use_clahe << ", texton: " << use_texton << ", ORB: " << use_orb;
       std::cerr << std::endl;
       double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4>, 25);
       std::cerr << "Score: " << result << std::endl;

@@ -162,6 +162,7 @@ struct match_results {
   int num_unique = -1;
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
+  std::vector<std::vector<float>> distances = {};
 };
 
 std::vector<std::vector<int>> identity_lifting(std::vector<int> const& Ks) {
@@ -579,6 +580,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                                                0,
                                                [](int count, Phi const &next) { return count + next.K; });
     Eigen::MatrixXf P = Eigen::MatrixXf::Constant(totalNumTopics, totalNumTopics, 0);
+    results.distances = std::vector<std::vector<float>>(totalNumTopics, std::vector<float>(totalNumTopics, 0));
 
     size_t i = 0, j_offset = 0;
     for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
@@ -599,7 +601,11 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     assert(left[fi].size() == right[fj].size());
                     assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
                     assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
-                    matrix(fi, fj) = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    double const sim = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    matrix(fi, fj) = sim;
+                    assert(i + fi < totalNumTopics && j + fj < totalNumTopics);
+                    results.distances[i + fi][j + fj] = sim;
+                    results.distances[j + fj][i + fi] = sim;
                     double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
                         throw std::logic_error("Invalid entries in similarity matrix!");

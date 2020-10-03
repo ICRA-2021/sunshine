@@ -219,33 +219,78 @@ static inline std::vector<std::string> split(const std::string &txt, char ch = '
     return str;
 }
 
-template<typename To>
-To safeNumericCast(uintmax_t val) {
-    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
-    return static_cast<To>(val);
+template <typename T>
+struct EXACT_REPR {
+    static_assert(std::is_integral_v<T>);
+    constexpr static T max = std::numeric_limits<T>::max();
+    constexpr static T min = std::numeric_limits<T>::lowest();
+};
+
+template<>
+struct EXACT_REPR<double>{
+    constexpr static int64_t max = 1ull << 53u;
+    constexpr static int64_t min = -(static_cast<uint64_t>(1) << 53u);
+};
+
+template<>
+struct EXACT_REPR<float>{
+    constexpr static int32_t max = 1u << 24u;
+    constexpr static int32_t min = -(1u << 24u);
+};
+
+template<typename To, typename From>
+To inline safeRound(From val) {
+    if constexpr (std::is_same_v<From, To>) return val;
+    static_assert(std::is_integral_v<From> || std::is_floating_point_v<From>);
+    static_assert(std::is_integral_v<To> || std::is_floating_point_v<To>);
+    if constexpr (EXACT_REPR<To>::max < EXACT_REPR<From>::max) {
+        if (EXACT_REPR<To>::max < val) throw std::invalid_argument("Value is too small to represent in target type");
+    }
+    if constexpr(EXACT_REPR<To>::min > EXACT_REPR<From>::min) {
+        if (EXACT_REPR<To>::min > val) throw std::invalid_argument("Value is too negative to represent in target type");
+    }
+    if constexpr (std::is_floating_point_v<From> && !std::is_floating_point_v<To>) {
+        return static_cast<To>(std::round(val));
+    } else {
+        assert(static_cast<To>(val) == val);
+        return static_cast<To>(val);
+    }
 }
 
-template<typename To>
-To safeNumericCast(intmax_t val) {
-    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
-    return static_cast<To>(val);
+template<typename To, typename From>
+To inline safeNumericCast(From val) {
+    if constexpr (std::is_floating_point_v<From> && !std::is_floating_point_v<To>) {
+        if (static_cast<To>(val) != val) throw std::invalid_argument("Cannot cast non-integral value to target type!");
+    }
+    return safeRound<To>(val);
 }
 
-template<typename To>
-To safeNumericCast(double val) {
-    if (val >= (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
-    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
-    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
-    if constexpr (std::is_integral_v<To>) return static_cast<To>(std::round(val));
-    else return static_cast<To>(val);
-}
+//template<typename To>
+//To inline safeNumericCast(uintmax_t val) {
+//    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+//    return static_cast<To>(val);
+//}
+//
+//template<typename To>
+//To inline safeNumericCast(intmax_t val) {
+//    if constexpr (std::is_same_v<To, double>) if (val > (1ull << 53u) || -val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if constexpr (std::is_same_v<To, float>) if (val > (1ull << 24u) || -val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+//    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
+//    return static_cast<To>(val);
+//}
+//
+//template<typename To>
+//To inline safeNumericCast(double val) {
+//    if constexpr (std::is_same_v<To, float>) if (val > (1ull << 24u) || -val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
+//    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
+//    if (val >= (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
+//    if constexpr (std::is_integral_v<To>) return static_cast<To>(std::round(val));
+//    else return static_cast<To>(val);
+//}
 
 template <size_t POSEDIM, typename CellDimType, typename WordDimType>
 static inline std::array<CellDimType, POSEDIM>  toCellId(std::array<WordDimType, POSEDIM> const &wordPose, std::array<WordDimType, POSEDIM> const& cellSize) {
