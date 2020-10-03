@@ -1,4 +1,3 @@
-#include <opencv2/core/types_c.h>
 #include "../include/sunshine/visual_word_adapter.hpp"
 
 using namespace sunshine;
