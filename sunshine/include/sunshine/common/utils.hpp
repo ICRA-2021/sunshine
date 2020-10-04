@@ -220,6 +220,11 @@ static inline std::vector<std::string> split(const std::string &txt, char ch = '
 }
 
 template <typename T>
+static constexpr T MAX_T = std::numeric_limits<T>::max();
+template <typename T>
+static constexpr T MIN_T = std::numeric_limits<T>::lowest();
+
+template <typename T>
 struct EXACT_REPR {
     static_assert(std::is_integral_v<T>);
     constexpr static T max = std::numeric_limits<T>::max();
@@ -238,16 +243,24 @@ struct EXACT_REPR<float>{
     constexpr static int32_t min = -(1u << 24u);
 };
 
+/**
+ * Casts from one type to another with appropriate bounds checks -- i.e. will not overflow or underflow target type
+ * @tparam To
+ * @tparam From
+ * @param val
+ * @return
+ */
 template<typename To, typename From>
-To inline safeRound(From val) {
+To inline safeNumericCast(From val) {
     if constexpr (std::is_same_v<From, To>) return val;
     static_assert(std::is_integral_v<From> || std::is_floating_point_v<From>);
     static_assert(std::is_integral_v<To> || std::is_floating_point_v<To>);
-    if constexpr (EXACT_REPR<To>::max < EXACT_REPR<From>::max) {
-        if (EXACT_REPR<To>::max < val) throw std::invalid_argument("Value is too small to represent in target type");
+
+    if constexpr (MAX_T<To> < MAX_T<From>) {
+        if (MAX_T<To> < val) throw std::invalid_argument("Value is too small to represent in target type");
     }
-    if constexpr(EXACT_REPR<To>::min > EXACT_REPR<From>::min) {
-        if (EXACT_REPR<To>::min > val) throw std::invalid_argument("Value is too negative to represent in target type");
+    if constexpr(MIN_T<To> > MIN_T<From>) {
+        if (MIN_T<To> > val) throw std::invalid_argument("Value is too negative to represent in target type");
     }
     if constexpr (std::is_floating_point_v<From> && !std::is_floating_point_v<To>) {
         return static_cast<To>(std::round(val));
@@ -258,15 +271,27 @@ To inline safeRound(From val) {
 }
 
 template<typename To, typename From>
-To inline safeNumericCast(From val) {
+To inline strictNumericCast(From val) {
+    if constexpr (std::is_same_v<From, To>) return val;
+    static_assert(std::is_integral_v<From> || std::is_floating_point_v<From>);
+    static_assert(std::is_integral_v<To> || std::is_floating_point_v<To>);
+
+    static_assert(MIN_T<From> <= EXACT_REPR<From>::min && MAX_T<From> >= EXACT_REPR<From>::max);
+    static_assert(MIN_T<To> <= EXACT_REPR<To>::min && MAX_T<To> >= EXACT_REPR<To>::max);
+    if constexpr (EXACT_REPR<To>::max < EXACT_REPR<From>::max) {
+        if (EXACT_REPR<To>::max < val) throw std::invalid_argument("Value is too small to represent in target type");
+    }
+    if constexpr(EXACT_REPR<To>::min > EXACT_REPR<From>::min) {
+        if (EXACT_REPR<To>::min > val) throw std::invalid_argument("Value is too negative to represent in target type");
+    }
     if constexpr (std::is_floating_point_v<From> && !std::is_floating_point_v<To>) {
         if (static_cast<To>(val) != val) throw std::invalid_argument("Cannot cast non-integral value to target type!");
     }
-    return safeRound<To>(val);
+    return static_cast<To>(val);
 }
 
 //template<typename To>
-//To inline safeNumericCast(uintmax_t val) {
+//To inline strictNumericCast(uintmax_t val) {
 //    if (std::is_same_v<To, double> && val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
 //    if (std::is_same_v<To, float> && val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
 //    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
@@ -274,7 +299,7 @@ To inline safeNumericCast(From val) {
 //}
 //
 //template<typename To>
-//To inline safeNumericCast(intmax_t val) {
+//To inline strictNumericCast(intmax_t val) {
 //    if constexpr (std::is_same_v<To, double>) if (val > (1ull << 53u) || -val > (1ull << 53u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
 //    if constexpr (std::is_same_v<To, float>) if (val > (1ull << 24u) || -val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
 //    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
@@ -283,7 +308,7 @@ To inline safeNumericCast(From val) {
 //}
 //
 //template<typename To>
-//To inline safeNumericCast(double val) {
+//To inline strictNumericCast(double val) {
 //    if constexpr (std::is_same_v<To, float>) if (val > (1ull << 24u) || -val > (1ull << 24u)) throw std::logic_error(std::to_string(val) + " cannot be safely cast");
 //    if (val > std::numeric_limits<To>::max()) throw std::logic_error(std::to_string(val) + " overflows target type");
 //    if (val < std::numeric_limits<To>::lowest()) throw std::logic_error(std::to_string(val) + " underflows target type");
@@ -298,17 +323,11 @@ static inline std::array<CellDimType, POSEDIM>  toCellId(std::array<WordDimType,
                   "Word dim type must be larger than cell dim type!");
     static_assert(std::is_signed_v<CellDimType> == std::is_signed_v<WordDimType>, "CellDimType and WordDimType must both be signed/unsigned!");
     if constexpr (POSEDIM == 4) {
-        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
-                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]),
-                safeNumericCast<CellDimType>(wordPose[2] / cellSize[2]),
-                safeNumericCast<CellDimType>(wordPose[3] / cellSize[3])};
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]), safeNumericCast<CellDimType>(wordPose[2] / cellSize[2]), safeNumericCast<CellDimType>(wordPose[3] / cellSize[3])};
     } else if constexpr (POSEDIM == 3) {
-        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
-                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]),
-                safeNumericCast<CellDimType>(wordPose[2] / cellSize[2])};
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]), safeNumericCast<CellDimType>(wordPose[2] / cellSize[2])};
     } else if constexpr (POSEDIM == 2) {
-        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]),
-                safeNumericCast<CellDimType>(wordPose[1] / cellSize[1])};
+        return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1])};
     } else {
         static_assert(always_false<POSEDIM>);
     }

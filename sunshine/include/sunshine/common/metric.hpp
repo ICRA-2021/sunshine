@@ -228,9 +228,9 @@ double expected_mutual_info(std::vector<uint32_t> const &gt_weights,
     double emi = 0;
     for (auto i = 0; i < topic_weights.size(); ++i) {
         for (auto j = 0; j < gt_weights.size(); ++j) {
-            auto const max_n = safeNumericCast<uint32_t>(std::min(a[i], b[j]));
+            auto const max_n = strictNumericCast<uint32_t>(std::min(a[i], b[j]));
             if (max_n == 0) continue;
-            auto const min_n = safeNumericCast<uint32_t>(std::max(1l, a[i] + b[j] - N));
+            auto const min_n = strictNumericCast<uint32_t>(std::max(1l, a[i] + b[j] - N));
             if (min_n > max_n) {
                 throw std::logic_error("min_n is greater than max_n!");
             }
@@ -239,7 +239,7 @@ double expected_mutual_info(std::vector<uint32_t> const &gt_weights,
                 double const lg_an = log_factorial(a[i] - n_ij);
                 double const lg_bn = log_factorial(b[j] - n_ij);
                 double const lg_Nabn = log_factorial((N - a[i] - b[j]) + n_ij);
-                int64_t const ai_bj = safeNumericCast<int64_t>(a[i]) * b[j];
+                int64_t const ai_bj = strictNumericCast<int64_t>(a[i]) * b[j];
 
                 double const first_term = (n_ij * std::log(N * static_cast<double>(n_ij) / ai_bj)) / N;
                 double const second_term = std::exp(static_cast<double>(lg_a[i] + lg_b[j] + lg_Na[i] + lg_Nb[j]) - (lg_N + lg_n + lg_an + lg_bn + lg_Nabn));
