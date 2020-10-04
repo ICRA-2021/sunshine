@@ -101,8 +101,8 @@ struct Eval {
                                         {"use_orb", use_orb},
                                         {"cell_space", cell_space},
                                         {"cell_time", 3600.0},
-                                        {"min_obs_refine_time", 100},
-                                        {"min_refines_per_obs", (int) 15e6},
+                                        {"min_obs_refine_time", 500},
+                                        {"min_refines_per_obs", 1},
                                         {"num_threads", 1}}}; // IMPORTANT: keep at 1 if using parallel random sampling
       std::stringstream ss;
       ss << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
