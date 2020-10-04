@@ -10,6 +10,8 @@
 #define USE_NLOPT
 
 #include <limbo/bayes_opt/boptimizer.hpp> // you can also include <limbo/limbo.hpp> but it will slow down the compilation
+#include <limbo/init/parallel_sampling.hpp>
+#include <sstream>
 #include "sunshine/depth_adapter.hpp"
 
 using namespace limbo;
@@ -44,8 +46,9 @@ struct Params {
   };
 
   // we use random samples to initialize the algorithm
-  struct init_randomsampling {
+  struct init_parallelsampling {
     BO_PARAM(int, samples, 200);
+    BO_PARAM(int, num_threads, 5);
   };
 
   // we stop after 40 iterations
@@ -60,10 +63,10 @@ struct Params {
 
 struct Eval {
   std::string const bagfile, image_topic_name, depth_topic_name, segmentation_topic_name;
-  double const cell_space = 0.8;
+  double const cell_space = 0.6;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 5);
+  BO_PARAM(size_t, dim_in, 4);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -85,27 +88,31 @@ struct Eval {
       double const beta = boost::math::quantile(beta_dist, x(1));
       double const gamma = boost::math::quantile(gamma_dist, x(2));
 //      double const cell_space = .5 * std::pow(3., x(3));
-      bool const use_clahe = (x(3) >= 0.5);
+      bool const use_clahe = true;
       bool const use_texton = false;
-      bool const use_orb = (x(4) >= 0.25);
+      bool const use_orb = (x(3) >= 0.25);
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
                                         {"gamma", gamma},
                                         {"K", 20},
                                         {"V", 180 /* * use_hue */ + 256 /* * use_color */ /* + 1000 * use_texton */ + 15000 * use_orb},
                                         {"use_clahe", use_clahe},
-                                        {"use_texton", false},
+                                        {"use_texton", use_texton},
                                         {"use_orb", use_orb},
                                         {"cell_space", cell_space},
                                         {"cell_time", 3600.0},
-                                        {"min_obs_refine_time", 300},
-                                        {"num_threads", 7}}};
-      std::cerr << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
-      std::cerr << ", CLAHE: " << use_clahe << ", texton: " << use_texton << ", ORB: " << use_orb;
-      std::cerr << std::endl;
-      double result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4>, 25);
-      std::cerr << "Score: " << result << std::endl;
-      return tools::make_vector(result);
+                                        {"min_obs_refine_time", 100},
+                                        {"min_refines_per_obs", (int) 15e6},
+                                        {"num_threads", 1}}}; // IMPORTANT: keep at 1 if using parallel random sampling
+      std::stringstream ss;
+      ss << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;
+      ss << ", CLAHE: " << use_clahe << ", texton: " << use_texton << ", ORB: " << use_orb << '\n';
+      std::cerr << ss.str() << std::flush;
+      auto const result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4, true>, 25);
+      ss << "Number of refines: " << result.second;
+      ss << ", Score: " << result.first << "\n";
+      std::cerr << ss.str() << std::endl;
+      return tools::make_vector(result.first);
   }
 };
 
@@ -116,7 +123,8 @@ int main(int argc, char **argv) {
     }
 
     // we use the default acquisition function / model / stat / etc.
-    bayes_opt::BOptimizer<Params> boptimizer;
+    using init_t = init::ParallelSampling<Params>; // use parallel random sampling
+    bayes_opt::BOptimizer<Params, initfun<init_t>> boptimizer;
     // run the evaluation
     boptimizer.optimize(Eval(argc, argv));
     // the best sample found

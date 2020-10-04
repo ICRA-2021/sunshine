@@ -328,6 +328,11 @@ if (liblimbo)
 
         target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
         target_link_libraries(utils.rost_optimize ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_vision_adapters ${liblimbo} ${libnlopt} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
+        find_package(OpenMP)
+        if(OpenMP_CXX_FOUND)
+            message(STATUS "Linking OpenMP")
+            target_link_libraries(utils.rost_optimize OpenMP::OpenMP_CXX)
+        endif()
 
         target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
         target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})

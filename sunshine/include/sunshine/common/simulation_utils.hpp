@@ -293,7 +293,7 @@ class RobotSim {
 };
 
 template<typename Metric>
-double benchmark(std::string const &bagfile,
+std::pair<double, size_t> benchmark(std::string const &bagfile,
                  std::string const &image_topic,
                  std::string const &segmentation_topic,
                  std::string const &depth_topic,
@@ -385,7 +385,7 @@ double benchmark(std::string const &bagfile,
     auto const finished = bagIter.play();
     ROS_ERROR_COND(!finished, "Failed to finish playing bagfile!");
     ROS_INFO("Processed %u images from rosbag.", count);
-    return av_metric;
+    return {av_metric, rostAdapter.get_rost().get_word_refine_count()};
 }
 }
 
