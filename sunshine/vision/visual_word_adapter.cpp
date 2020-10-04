@@ -88,7 +88,7 @@ cv::Mat VisualWordAdapter::apply_clahe(cv::Mat img) const {
         {
             cv::Vec3b value = hsv_image.at<cv::Vec3b>(row, col);
             value.val[2] *= maskImg.at<double>(row, col);
-            value.val[1] /= pow(maskImg.at<double>(row, col), 2);
+            value.val[1] = std::min(value.val[1] / pow(maskImg.at<double>(row, col), 2), 255.0);
 //            value.val[1] /= maskImg.at<double>(row, col);
             hsv_image.at<cv::Vec3b>(row, col) =  value;
         }
