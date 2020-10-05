@@ -2,10 +2,13 @@
 // Created by stewart on 3/11/20.
 //
 
+// this define is needed or else the <boost/math/...> import breaks valgrind
+#define BOOST_MATH_NO_LONG_DOUBLE_MATH_FUNCTIONS
+
 #include <iostream>
-#include <boost/math/distributions/lognormal.hpp>
 #include "sunshine/common/simulation_utils.hpp"
 #include "sunshine/common/metric.hpp"
+#include <boost/math/distributions/lognormal.hpp>
 
 #define USE_NLOPT
 
