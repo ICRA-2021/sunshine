@@ -318,11 +318,14 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
     sensor_msgs::Image::ConstPtr lastRgb, lastSeg;
     sensor_msgs::PointCloud2::ConstPtr lastDepth;
     auto const processPair = [&]() {
-        if (!lastRgb || !lastSeg || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
+        if (!lastRgb || !lastSeg || !lastDepth || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
         tf::StampedTransform transform;
         try {
             transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
         } catch (tf::ExtrapolationException const& ex) {
+            ROS_INFO("Waiting for appropriate transformation.");
+            return false;
+        } catch (tf::LookupException const& ex) {
             ROS_INFO("Waiting for appropriate transformation.");
             return false;
         }
