@@ -34,7 +34,7 @@
   <arg name="rate" default="3" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
-  <arg name="clahe" default="false" />
+  <arg name="clahe" default="true" />
   <arg name="texton" default="false" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
@@ -46,7 +46,7 @@
   <arg name="V" default="15436" />
   <arg name="alpha" default="0.3" />
   <arg name="beta" default="0.04" />
-  <arg name="gamma" default="0.0" />
+  <arg name="gamma" default="1.39e-6" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="1" />
@@ -57,7 +57,7 @@
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
-  <arg name="min_obs_refine_time" default="1000" />
+  <arg name="min_obs_refine_time" default="600" />
 
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />

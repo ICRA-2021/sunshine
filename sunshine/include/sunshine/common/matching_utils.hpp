@@ -571,7 +571,8 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
 
 match_results clear_matching(std::vector<Phi> const &topic_models,
                              SimilarityMetric<int> const &similarity_metric = bhattacharyya_coeff<int>,
-                             bool enforce_distinctness = false) {
+                             bool enforce_distinctness = false,
+                             double binarize_threshold = -1) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
@@ -602,7 +603,8 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
                     assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
                     double const sim = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
-                    matrix(fi, fj) = sim;
+                    if (binarize_threshold > 0) matrix(fi, fj) = sim >= binarize_threshold;
+                    else matrix(fi, fj) = sim;
                     assert(i + fi < totalNumTopics && j + fj < totalNumTopics);
                     results.distances[i + fi][j + fj] = sim;
                     results.distances[j + fj][i + fi] = sim;
@@ -689,6 +691,8 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
     } else if (method == "clear-l1") {
         return clear_matching(topic_models, l1_similarity<int>, false);
+    } else if (method == "clear-l1-0.25") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.25);
     } else if (method == "clear-l2") {
         return clear_matching(topic_models, l2_similarity<int>, false);
     } else if (method == "clear-gk") {

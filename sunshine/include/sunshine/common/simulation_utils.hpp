@@ -306,7 +306,7 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
 
     auto visualWordAdapter = VisualWordAdapter(&parameters);
 //    auto labelSegmentationAdapter = SemanticSegmentationAdapter<int, std::vector<int>>(&parameters);
-    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters);
+    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters, nullptr, {}, false);
     auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters);
     auto wordDepthAdapter = WordDepthAdapter();
     auto imageDepthAdapter = ImageDepthAdapter();
@@ -341,6 +341,7 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
         auto rgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
         auto segmentation = std::make_unique<ImageObservation>(fromRosMsg(lastSeg));
 
+        rostAdapter.wait_for_processing(false);
         auto topicsFuture = wordTransformAdapter(rgb >> visualWordAdapter >> wordDepthAdapter, transform) >> rostAdapter;
         auto gtSeg = imageTransformAdapter(segmentation >> imageDepthAdapter, transform) >> segmentationAdapter;
         auto topicsSeg = topicsFuture.get();

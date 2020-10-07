@@ -260,7 +260,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             ROS_DEBUG("#words_refined since last add: %ld", refine_count - last_refine_count);
             auto timeSinceFirstAdd = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - timeFirstAdd).count();
 //            ROS_INFO("Running Refine Rate: %f", static_cast<double>(refine_count - last_refine_count) / chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - lastWordsAdded).count());
-            ROS_DEBUG("Avg. Refine Rate: %f", static_cast<double>(refine_count) / timeSinceFirstAdd);
+            ROS_DEBUG("(%s) Avg. Refine Rate: %f", (rost->get_num_words() >= 15000) ? "ORB" : "NO ORB", static_cast<double>(refine_count) / timeSinceFirstAdd);
             current_cell_poses.clear();
         } else {
             timeFirstAdd = std::chrono::steady_clock::now();
@@ -382,7 +382,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     Phi get_topic_model(activity_manager::ReadToken const &read_token) const {
-        Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights());
+        Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights(), rost->get_refine_count(), rost->get_word_refine_count());
         phi.validate(false);
         return phi;
     }

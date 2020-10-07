@@ -69,7 +69,7 @@ struct Eval {
   double const cell_space = 0.6;
 
   // number of input dimension (x.size())
-  BO_PARAM(size_t, dim_in, 4);
+  BO_PARAM(size_t, dim_in, 3);
   // number of dimensions of the result (res.size())
   BO_PARAM(size_t, dim_out, 1);
 
@@ -93,19 +93,19 @@ struct Eval {
 //      double const cell_space = .5 * std::pow(3., x(3));
       bool const use_clahe = true;
       bool const use_texton = false;
-      bool const use_orb = (x(3) >= 0.25);
+      bool const use_orb = true;
       sunshine::Parameters params{{{"alpha", alpha},
                                         {"beta", beta},
                                         {"gamma", gamma},
-                                        {"K", 20},
+                                        {"K", 30},
                                         {"V", 180 /* * use_hue */ + 256 /* * use_color */ /* + 1000 * use_texton */ + 15000 * use_orb},
                                         {"use_clahe", use_clahe},
                                         {"use_texton", use_texton},
                                         {"use_orb", use_orb},
                                         {"cell_space", cell_space},
                                         {"cell_time", 3600.0},
-                                        {"min_obs_refine_time", 500},
-                                        {"min_refines_per_obs", 1},
+                                        {"min_obs_refine_time", 600},
+                                        {"min_refines_per_obs", 0},
                                         {"num_threads", 1}}}; // IMPORTANT: keep at 1 if using parallel random sampling
       std::stringstream ss;
       ss << "Alpha: " << alpha << ", Beta: " << beta << ", Gamma: " << gamma << ", Cell Space: " << cell_space;

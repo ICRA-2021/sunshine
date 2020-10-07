@@ -20,6 +20,7 @@
 #include <sunshine/common/ros_conversions.hpp>
 #include <utility>
 #include <iostream>
+#include <random>
 
 using namespace sunshine;
 using json = nlohmann::ordered_json;
@@ -411,7 +412,7 @@ int main(int argc, char **argv) {
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
     auto const results_filename = output_prefix + file_prefix + "results.json";
 
-    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1"};
+    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1", "clear-l1-0.25"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
     if (!methods_str.empty()) {
         match_methods = sunshine::split(methods_str, ',');
@@ -443,10 +444,12 @@ int main(int argc, char **argv) {
         assert(batch_size > 0);
         size_t n_ready = 0;
         size_t n_done = 0;
+        auto rng = std::default_random_engine(std::chrono::system_clock::now().time_since_epoch().count());
         while (n_done < n_trials && ros::ok())
         {
             for (size_t i = 0; i < batch_size && n_ready < n_trials; ++i, ++n_ready)
             {
+                std::shuffle(bagfiles.begin(), bagfiles.end(), rng);
                 sims.push_back (std::make_unique<MultiAgentSimulation> (bagfiles,
                                                                         image_topic_name,
                                                                         depth_topic_name,
