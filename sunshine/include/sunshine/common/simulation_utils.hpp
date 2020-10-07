@@ -46,7 +46,7 @@ class RobotSim {
     sensor_msgs::Image::ConstPtr lastRgb, lastSegmentation;
     sensor_msgs::PointCloud2::ConstPtr lastPc;
     std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
-    double depth_timestamp = -1;
+    ros::Time depth_timestamp = ros::Time(0.0);
 //    bool transform_found = false;
     bool processed_rgb = false;
     bool const use_3d;
@@ -62,8 +62,8 @@ class RobotSim {
 
     bool tryProcess() {
         if (!lastRgb || processed_rgb) return false;
-        if (use_3d && (latestTransformTime < lastRgb->header.stamp || lastRgb->header.stamp.toSec() != depth_timestamp)) return false;
-        if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp.toSec() != lastSegmentation->header.stamp.toSec())) return false;
+        if (use_3d && (latestTransformTime < lastRgb->header.stamp || lastRgb->header.stamp != depth_timestamp)) return false;
+        if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp != lastSegmentation->header.stamp)) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
         #ifndef NDEBUG
         ROS_INFO("PROCESSING NEW OBSERVATION");
@@ -173,7 +173,7 @@ class RobotSim {
 
     bool depthCallback(sensor_msgs::PointCloud2::ConstPtr msg) {
 //        ROS_INFO("%ld ms before entering depthCallback", record_lap(clock));
-        depth_timestamp = msg->header.stamp.toSec();
+        depth_timestamp = msg->header.stamp;
         lastPc = std::move(msg);
         return tryProcess();
     };
@@ -320,8 +320,7 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
     sensor_msgs::PointCloud2::ConstPtr lastDepth;
     ros::Time lastMsgTime(0);
     auto const processPair = [&]() {
-        if (!lastRgb || !lastSeg || !lastDepth || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
-        if (lastMsgTime == lastRgb->header.stamp) return false;
+        if (!lastRgb || lastMsgTime == lastRgb->header.stamp || !lastSeg || !lastDepth || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
         tf::StampedTransform transform;
         try {
             transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
