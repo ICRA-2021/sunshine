@@ -318,8 +318,10 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
 
     sensor_msgs::Image::ConstPtr lastRgb, lastSeg;
     sensor_msgs::PointCloud2::ConstPtr lastDepth;
+    ros::Time lastMsgTime(0);
     auto const processPair = [&]() {
         if (!lastRgb || !lastSeg || !lastDepth || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
+        if (lastMsgTime == lastRgb->header.stamp) return false;
         tf::StampedTransform transform;
         try {
             transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
@@ -330,6 +332,8 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
             ROS_INFO("Waiting for appropriate transformation.");
             return false;
         }
+        ROS_INFO("Processing t=%f", lastRgb->header.stamp.toSec());
+        lastMsgTime = lastRgb->header.stamp;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PCLPointCloud2 pcl_pc2;
