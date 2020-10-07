@@ -15695,7 +15695,10 @@ class serializer
 
                 if (pretty_print)
                 {
-                    o->write_characters("[\n", 2);
+                    auto const element_type = val.m_value.array->cbegin()->m_type;
+                    bool object_element = element_type == value_t::array || element_type == value_t::object;
+                    if (object_element) o->write_characters("[\n", 2);
+                    else o->write_characters("[ ", 2);
 
                     // variable to hold indentation for recursive calls
                     const auto new_indent = current_indent + indent_step;
@@ -15708,18 +15711,22 @@ class serializer
                     for (auto i = val.m_value.array->cbegin();
                             i != val.m_value.array->cend() - 1; ++i)
                     {
-                        o->write_characters(indent_string.c_str(), new_indent);
-                        dump(*i, true, ensure_ascii, indent_step, new_indent);
-                        o->write_characters(",\n", 2);
+                        object_element = i->m_type == value_t::array || i->m_type == value_t::object;
+                        if (object_element) o->write_characters(indent_string.c_str(), new_indent);
+                        dump(*i, object_element, ensure_ascii, indent_step, new_indent);
+                        if (object_element) o->write_characters(",\n", 2);
+                        else o->write_characters(", ", 2);
                     }
 
                     // last element
                     JSON_ASSERT(!val.m_value.array->empty());
-                    o->write_characters(indent_string.c_str(), new_indent);
-                    dump(val.m_value.array->back(), true, ensure_ascii, indent_step, new_indent);
+                    if (object_element) o->write_characters(indent_string.c_str(), new_indent);
+                    dump(val.m_value.array->back(), object_element, ensure_ascii, indent_step, new_indent);
 
-                    o->write_character('\n');
-                    o->write_characters(indent_string.c_str(), current_indent);
+                    if (object_element) {
+                        o->write_character('\n');
+                        o->write_characters(indent_string.c_str(), current_indent);
+                    } else o->write_character(' ');
                     o->write_character(']');
                 }
                 else

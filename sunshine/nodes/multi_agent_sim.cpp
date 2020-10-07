@@ -70,6 +70,13 @@ class MultiAgentSimulation {
 
             if (n_robots <= 0 || n_robots > topic_models[i].size()) throw std::invalid_argument("Invalid number of robots");
             decltype(robotModels)::value_type const models = (n_robots == topic_models[i].size()) ? topic_models[i] : decltype(robotModels)::value_type{topic_models[i].begin(), topic_models[i].begin() + n_robots};
+            std::vector<size_t> wordsRefined, cellsRefined;
+            for (auto const& model : models) {
+                wordsRefined.push_back(model.word_refines);
+                cellsRefined.push_back(model.cell_refines);
+            }
+            match_result["Word Refines"] = wordsRefined;
+            match_result["Cell Refines"] = cellsRefined;
             correspondences = match_topics(match_method, models);
             match_result["Unique Topics"] = correspondences.num_unique;
             if (include_ssd) match_result["SSD"] = correspondences.ssd;
