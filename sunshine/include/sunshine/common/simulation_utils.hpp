@@ -300,14 +300,15 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
                  sunshine::Parameters const &parameters,
                  Metric const &metric,
                  uint32_t const warmup = 0,
-                 uint32_t const max_iter = std::numeric_limits<uint32_t>::max()) {
+                 uint32_t const max_iter = std::numeric_limits<uint32_t>::max(),
+                 bool const average = false) {
     // TODO Use RobotSim
     using namespace sunshine;
 
     auto visualWordAdapter = VisualWordAdapter(&parameters);
 //    auto labelSegmentationAdapter = SemanticSegmentationAdapter<int, std::vector<int>>(&parameters);
-    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters, nullptr, {}, false);
-    auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters);
+    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters, nullptr, {}, average);
+    auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters, !average);
     auto wordDepthAdapter = WordDepthAdapter();
     auto imageDepthAdapter = ImageDepthAdapter();
     auto wordTransformAdapter = ObservationTransformAdapter<WordDepthAdapter::Output>(&parameters);
@@ -344,9 +345,10 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
         rostAdapter.wait_for_processing(false);
         auto topicsFuture = wordTransformAdapter(rgb >> visualWordAdapter >> wordDepthAdapter, transform) >> rostAdapter;
         auto gtSeg = imageTransformAdapter(segmentation >> imageDepthAdapter, transform) >> segmentationAdapter;
-        auto topicsSeg = topicsFuture.get();
 
-        if (count >= warmup) {
+        if (average && count >= warmup) {
+            rostAdapter.wait_for_processing(false);
+            auto topicsSeg = topicsFuture.get();
             double const result = metric(*gtSeg, *topicsSeg);
             av_metric = (av_metric * (count - warmup) + result) / (count - warmup + 1);
         }
@@ -389,6 +391,13 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
     auto const finished = bagIter.play();
     ROS_ERROR_COND(!finished, "Failed to finish playing bagfile!");
     ROS_INFO("Processed %u images from rosbag.", count);
+
+    if (!average) {
+        auto readToken = rostAdapter.get_rost().get_read_token();
+        auto topicsSeg = rostAdapter.get_dist_map(*readToken);
+        auto gtSeg = segmentationAdapter(nullptr);
+        av_metric = metric(*gtSeg, *topicsSeg);
+    }
     return {av_metric, rostAdapter.get_rost().get_word_refine_count()};
 }
 }

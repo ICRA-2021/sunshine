@@ -72,18 +72,19 @@ class SemanticSegmentationAdapter
             std::make_unique<Output>(obs->frame, obs->timestamp, obs->id, this->cell_size, std::vector<LabelType>(),
                                      std::vector<std::array<CellPoseType, PoseDim>>());
 //        auto const size = counts.size();
-        if (obs->observations.empty()) return std::move(segmentation);
-        for (auto i = 0; i < obs->observations.size(); ++i) {
-            auto const pose = toCellId<POSEDIM, CellPoseType>(obs->observation_poses[i], this->cell_size);
-            size_t const id = unique_obs.get_id(obs->observations[i]);
-            if (auto iter = counts.find(pose); iter != counts.end()) {
-                if (auto countIter = iter->second.find(id); countIter != iter->second.end()) {
-                    countIter->second++;
+        if (obs != nullptr) {
+            for (auto i = 0; i < obs->observations.size(); ++i) {
+                auto const pose = toCellId<POSEDIM, CellPoseType>(obs->observation_poses[i], this->cell_size);
+                size_t const id = unique_obs.get_id(obs->observations[i]);
+                if (auto iter = counts.find(pose); iter != counts.end()) {
+                    if (auto countIter = iter->second.find(id); countIter != iter->second.end()) {
+                        countIter->second++;
+                    } else {
+                        iter->second.emplace(id, 1);
+                    }
                 } else {
-                    iter->second.emplace(id, 1);
+                    counts.emplace(pose, std::map<size_t, size_t>{{id, 1}});
                 }
-            } else {
-                counts.emplace(pose, std::map<size_t, size_t>{{id, 1}});
             }
         }
         if constexpr (std::is_integral_v<LabelType>) {
@@ -103,7 +104,7 @@ class SemanticSegmentationAdapter
         }
 //        auto const new_size = counts.size();
 //        std::cout << "Old: " << size << ", New: " << new_size << std::endl;
-        return segmentation;
+        return std::move(segmentation);
     }
 
     auto operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> input) {
