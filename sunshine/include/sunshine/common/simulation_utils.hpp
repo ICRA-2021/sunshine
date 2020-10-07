@@ -331,7 +331,7 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
             ROS_INFO("Waiting for appropriate transformation.");
             return false;
         }
-        ROS_INFO("Processing t=%f", lastRgb->header.stamp.toSec());
+        ROS_DEBUG("Processing t=%f", lastRgb->header.stamp.toSec());
         lastMsgTime = lastRgb->header.stamp;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
