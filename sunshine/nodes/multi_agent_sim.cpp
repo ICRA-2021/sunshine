@@ -1,6 +1,3 @@
-#include <pcl/point_cloud.h>
-#include <pcl_conversions/pcl_conversions.h>
-
 #include "sunshine/2d_adapter.hpp"
 #include "sunshine/external/json.hpp"
 #include "sunshine/common/simulation_utils.hpp"
@@ -24,6 +21,7 @@
 
 using namespace sunshine;
 using json = nlohmann::ordered_json;
+
 
 class MultiAgentSimulation {
     std::vector<std::string> bagfiles;
@@ -210,7 +208,7 @@ class MultiAgentSimulation {
     }
 
     template<typename ParamServer>
-    bool record(ParamServer const& nh) {
+    bool record(ParamServer const& nh, size_t const subsample = 1) {
         ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
         if (!aggregateMap) populate_aggregate(nh); // needed to setup the sharedSegmentationAdapter
         assert(aggregateMap && sharedSegmentationAdapter);
@@ -234,6 +232,7 @@ class MultiAgentSimulation {
 
         bool active = true;
         size_t n_obs = 0;
+        size_t iter = 0;
         auto start = std::chrono::steady_clock::now();
         while (active) {
             active = false;
@@ -254,9 +253,11 @@ class MultiAgentSimulation {
             for (auto const& robot : robots) {
                 if (!ros::ok()) return false;
                 robot->waitForProcessing();
-                auto token = robot->getReadToken();
-                robotModels.back().emplace_back(robot->getTopicModel(*token));
-                robotMaps.back().emplace_back(robot->getDistMap(*token));
+                if (iter % subsample == 0) {
+                    auto token = robot->getReadToken();
+                    robotModels.back().emplace_back(robot->getTopicModel(*token));
+                    robotMaps.back().emplace_back(robot->getDistMap(*token));
+                }
             }
 
             auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
@@ -294,6 +295,7 @@ class MultiAgentSimulation {
 
             ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
             start = std::chrono::steady_clock::now();
+            iter += 1;
         }
         return true;
     }
@@ -357,6 +359,8 @@ class MultiAgentSimulation {
         return exp_results;
     }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     template<class Archive>
     void serialize(Archive & ar, const unsigned int version)
     {
@@ -383,6 +387,7 @@ class MultiAgentSimulation {
         }
         if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
     }
+#pragma clang diagnostic pop
 
     [[nodiscard]] size_t approxBytesSize() const {
         auto gtMapSize = gtMap->bytesSize();
@@ -402,7 +407,7 @@ class MultiAgentSimulation {
         return bagfiles.size();
     }
 };
-BOOST_CLASS_VERSION(MultiAgentSimulation, MultiAgentSimulation::VERSION);
+BOOST_CLASS_VERSION(MultiAgentSimulation, MultiAgentSimulation::VERSION)
 
 int main(int argc, char **argv) {
     if (argc < 3) {
@@ -472,7 +477,8 @@ int main(int argc, char **argv) {
                 ROS_INFO("Starting simulation %ld", n_done + 1);
                 try
                 {
-                    if (!sims[n_done]->record (nh)) throw std::runtime_error ("Simulation aborted");
+                    auto const cell_space = nh.param<double>("cell_space", 0.8);
+                    if (!sims[n_done]->record(nh, (cell_space < 0.8) ? 2 : 1)) throw std::runtime_error ("Simulation aborted");
                 }
                 catch (std::exception const &ex)
                 {

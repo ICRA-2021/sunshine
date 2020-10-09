@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
-# with open('/home/stewart/workspace/results.json') as test_file:
+with open('/home/stewart/workspace/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 # with open('/data/stewart/multiagent-sim-results/1601906632/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601942571/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601968132/results.json') as test_file:
-with open('/data/stewart/multiagent-sim-results/1601968132/clear-0.25/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601968132/clear-0.25/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602044237/results.json') as test_file:
         data = json.load(test_file)
 
 
