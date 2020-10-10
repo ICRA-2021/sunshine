@@ -30,6 +30,7 @@ class MultiAgentSimulation {
     std::string segmentation_topic;
     std::map<std::string, std::string> params;
     decltype(std::declval<RobotSim>().getGTMap()) gtMap;
+    std::vector<std::result_of_t<decltype(&RobotSim::getTopicModel)(RobotSim, activity_manager::ReadToken const&)>> aggregateModels;
     std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>> aggregateSubmaps;
     std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)> aggregateMap;
     std::vector<std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>>> robotMaps;
@@ -144,7 +145,7 @@ class MultiAgentSimulation {
     }
 
   public:
-    static size_t constexpr VERSION = 1;
+    static size_t constexpr VERSION = 2;
 
     template <class ParamServer>
     class ParamPassthrough {
@@ -194,7 +195,9 @@ class MultiAgentSimulation {
                 aggregateRobot.waitForProcessing();
             }
             aggregateRobot.waitForProcessing();
-            aggregateSubmaps.push_back(aggregateRobot.getDistMap(*aggregateRobot.getReadToken()));
+            auto token = aggregateRobot.getReadToken();
+            aggregateSubmaps.push_back(aggregateRobot.getDistMap(*token));
+            aggregateModels.push_back(aggregateRobot.getTopicModel(*token));
         }
         aggregateRobot.pause();
         aggregateMap = aggregateRobot.getDistMap(*aggregateRobot.getReadToken());
@@ -307,7 +310,7 @@ class MultiAgentSimulation {
 
         WordColorMap<int> colorMap;
         auto const refMap = (aggregateSubmaps.empty()) ? merge_segmentations<4>(make_vector(aggregateMap.get()))
-                : merge_segmentations<4>(make_vector(aggregateSubmaps[n_robots - 1].get()));
+                : merge_segmentations<4>(make_vector(aggregateSubmaps.back().get()));
         double const pixel_scale = *std::min_element(refMap->cell_size.begin(), refMap->cell_size.end());
         if (!map_prefix.empty()) {
             auto mapImg = createTopicImg(toRosMsg(*refMap), colorMap, pixel_scale, true, 0, 0, map_box);
@@ -335,6 +338,19 @@ class MultiAgentSimulation {
             if (!map_prefix.empty()) {
                 auto mapImg = createTopicImg(toRosMsg(*gtMLMap), colorMap, pixel_scale, true, 0, 0, map_box);
                 saveTopicImg(mapImg, map_prefix + "-gt.png", map_prefix + "-gt-colors.csv", &colorMap);
+            }
+
+            if (!aggregateModels.empty()) {
+                auto sr_correspondences = match_topics("clear-l1", make_vector(aggregateModels.back()));
+                auto sr_postprocessed = merge_segmentations(make_vector(aggregateSubmaps.back().get()), sr_correspondences.lifting);
+                auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
+                exp_results["Single Robot Post GT-MI"] = std::get<0>(srpp_gt_metrics);
+                exp_results["Single Robot Post GT-NMI"] = std::get<1>(srpp_gt_metrics);
+                exp_results["Single Robot Post GT-AMI"] = std::get<2>(srpp_gt_metrics);
+                if (!map_prefix.empty()) {
+                    auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
+                    saveTopicImg(mapImg, map_prefix + "-srpp.png", map_prefix + "-srpp-colors.csv", &colorMap);
+                }
             }
         }
 
@@ -382,9 +398,9 @@ class MultiAgentSimulation {
                 resultsStr = results.dump();
                 ar & resultsStr;
             }
-        } else if (version >= 1) {
-            ar & aggregateSubmaps;
         }
+        if (version >= 1) ar & aggregateSubmaps;
+        if (version >= 2) ar & aggregateModels;
         if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
     }
 #pragma clang diagnostic pop
