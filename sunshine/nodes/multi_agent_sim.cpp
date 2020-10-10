@@ -247,7 +247,7 @@ class MultiAgentSimulation {
             n_obs += active;
 
             auto const read_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            std::cout << "Read time: " << read_time << std::endl;
+            ROS_DEBUG("Read time: %d", read_time);
 
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
@@ -264,7 +264,7 @@ class MultiAgentSimulation {
             }
 
             auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            std::cout << "Refine time: " << refine_time << std::endl;
+            ROS_DEBUG("Refine time: %d", refine_time;
 
             #ifndef NDEBUG
             for (auto const& map : robotMaps.back()) {
@@ -296,7 +296,7 @@ class MultiAgentSimulation {
             }
             #endif
 
-            ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
+            ROS_INFO("Iter %d approximate simulation size: %f MB", iter, approxBytesSize() / (1024.0 * 1024.0));
             start = std::chrono::steady_clock::now();
             iter += 1;
         }

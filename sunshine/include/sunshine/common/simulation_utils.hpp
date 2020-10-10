@@ -271,7 +271,7 @@ class RobotSim {
         auto const start = std::chrono::steady_clock::now();
         auto const ret = !bagIter->play(false);
         auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-        ROS_WARN_COND(duration.count() > 300, "%s spent %ld ms playing bag", name.c_str(), duration.count());
+        ROS_WARN_COND(duration.count() > 400, "%s spent %ld ms playing bag", name.c_str(), duration.count());
         return ret;
     }
 
