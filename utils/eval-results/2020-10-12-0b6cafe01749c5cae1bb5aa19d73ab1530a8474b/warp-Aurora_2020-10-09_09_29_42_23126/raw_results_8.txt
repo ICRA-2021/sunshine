@@ -1,0 +1,1350 @@
+Alpha: 0.0310363, Beta: 0.0476896, Gamma: 0.00016145, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Alpha: 0.00242038, Beta: 0.196693, Gamma: 9.89987e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORBInitializing Feature BOW with detectors:
+Using ORB descriptor
+Alpha: 1.88041, Beta: 0.0181268, Gamma: 7.66231e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+ORB
+Using ORB descriptor
+Alpha: 0.00905703, Beta: 0.174009, Gamma: 2.39455e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Alpha: 0.814793, Beta: 0.00804181, Gamma: 7.10836e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORBInitializing Feature BOW with detectors:ORB
+Using ORB descriptor
+
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[33m[ WARN] [1602250182.500576425]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[33m[ WARN] [1602250182.506783483]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[33m[ WARN] [1602250182.509100960]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602250182.571429019]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[33m[ WARN] [1602250182.571460580]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602250182.649389633]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250182.649407415]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250182.649413345]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250182.649418832]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250182.649423804]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250182.688997395]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250182.689009172]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250182.689014783]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250182.689020108]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250182.689025136]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250182.723285309]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250182.723296583]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250182.723302027]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250182.723307378]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250182.723312625]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250182.737155003]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250182.737169961]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250182.737176989]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250182.737183647]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250182.737189756]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250182.737850681]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250182.737858162]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250182.737863311]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250182.737868575]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250182.737873338]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250751.425235481]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602250751.550832066]: Processed 853 images from rosbag.[0m
+Alpha: 0.00905703, Beta: 0.174009, Gamma: 2.39455e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 8318758767, Score: 0.544077
+
+Alpha: 0.00900299, Beta: 0.0696103, Gamma: 0.00646325, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602250751.673227369]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602250751.839865909]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.0310363, Beta: 0.0476896, Gamma: 0.00016145, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 5656668924, Score: 0.366736
+
+Alpha: 0.00178958, Beta: 0.0190015, Gamma: 9.60284e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602250751.860524383]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602250751.959205100]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250751.959217288]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250751.959223226]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250751.959228675]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250751.959233534]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+[0m[ INFO] [1602250751.978703006]: Processed 853 images from rosbag.[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602250752.040673749]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 1.88041, Beta: 0.0181268, Gamma: 7.66231e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4944274749, Score: 0.246072
+
+Alpha: 0.0501495, Beta: 0.102504, Gamma: 2.34934e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602250752.182517483]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602250752.158022381]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250752.158034393]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250752.158039783]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250752.158045190]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250752.158050419]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.00242038, Beta: 0.196693, Gamma: 9.89987e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 11929000463, Score: 0.49676
+
+Alpha: 0.205866, Beta: 0.0451909, Gamma: 8.0446e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.814793, Beta: 0.00804181, Gamma: 7.10836e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3659910576, Score: 0.248225
+
+Alpha: 0.899496, Beta: 0.175629, Gamma: 0.000510245, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602250752.290398513]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250752.290409774]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250752.290415451]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250752.290421160]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250752.290426328]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602250752.396611114]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602250752.443312110]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602250752.485031970]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250752.485041113]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250752.485046466]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250752.485051876]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250752.485057023]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602250752.560400409]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602250752.560411828]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602250752.560417421]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602250752.560422744]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602250752.560427593]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602251320.500944958]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602251320.624525626]: Processed 853 images from rosbag.[0m
+Alpha: 0.00900299, Beta: 0.0696103, Gamma: 0.00646325, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3928583808, Score: 0.384331
+
+Alpha: 0.796414, Beta: 2.91922, Gamma: 1.31192e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602251320.763434487]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251320.921303775]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.00178958, Beta: 0.0190015, Gamma: 9.60284e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6287667720, Score: 0.367473
+
+Alpha: 3.95926, Beta: 0.0905965, Gamma: 0.00531378, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602251320.941703116]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251321.038634828]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251321.038647725]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251321.038653830]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251321.038659413]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251321.038664692]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.0501495, Beta: 0.102504, Gamma: 2.34934e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 8733049522, Score: 0.424575
+
+Alpha: 0.099107, Beta: 0.0466188, Gamma: 0.000117722, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251321.077901834]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602251321.100931733]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Alpha: 0.205866, Beta: 0.0451909, Gamma: 8.0446e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 9003539156, Score: 0.5413
+
+Alpha: 0.673876, Beta: 0.00552899, Gamma: 0.00082539, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602251321.214321751]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251321.211665573]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251321.211678622]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251321.211684275]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251321.211689928]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251321.211695010]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251321.363190261]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251321.333287853]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251321.333299770]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251321.333305101]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251321.333310170]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251321.333315044]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.899496, Beta: 0.175629, Gamma: 0.000510245, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3537567314, Score: 0.40851
+
+Alpha: 0.787634, Beta: 0.00489275, Gamma: 0.000324523, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251321.507574119]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251321.479709112]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251321.479720810]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251321.479726221]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251321.479731526]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251321.479736423]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602251321.586901018]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251321.586910036]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251321.586913285]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251321.586916506]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251321.586919237]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602251889.545550770]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602251889.703348650]: Processed 853 images from rosbag.[0m
+Alpha: 0.796414, Beta: 2.91922, Gamma: 1.31192e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 12768144626, Score: 0.395018
+
+Alpha: 2.98155, Beta: 0.00284899, Gamma: 0.105382, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251889.824795756]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251889.927054740]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251889.952970166]: Processed 853 images from rosbag.[0m
+Alpha: 3.95926, Beta: 0.0905965, Gamma: 0.00531378, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3105533122, Score: 0.23215
+[0m[ INFO] [1602251890.038451617]: Skipped message from topic /camera/path[0m
+
+[0m[ INFO] [1602251890.038462393]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251890.038467276]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251890.038472104]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251890.038476665]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.0359951, Beta: 0.0745352, Gamma: 0.000204391, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251890.082449920]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251890.216242522]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.673876, Beta: 0.00552899, Gamma: 0.00082539, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3048083833, Score: 0.241958
+
+Alpha: 0.242941, Beta: 0.850694, Gamma: 3.24256e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.099107, Beta: 0.0466188, Gamma: 0.000117722, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 5173399782, Score: 0.377281
+
+Alpha: 0.0463049, Beta: 0.00801837, Gamma: 0.00150581, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602251890.342306016]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251890.335219749]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251890.335232131]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251890.335237708]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251890.335243061]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251890.335247977]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Alpha: 0.787634, Beta: 0.00489275, Gamma: 0.000324523, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3677273045, Score: 0.242434
+
+Alpha: 0.21076, Beta: 6.77965, Gamma: 2.8596e-08, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602251890.430408017]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251890.463366773]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251890.463376362]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251890.463381885]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251890.463387242]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251890.463392317]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602251890.537595020]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251890.537603276]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251890.537606713]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251890.537609771]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251890.537612647]: Skipped message from topic /camera/depth/image_rect[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602251890.573664792]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602251890.689246370]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602251890.689257476]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602251890.689262761]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602251890.689268086]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602251890.689273077]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602252458.592735840]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602252458.859225204]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602252459.027785672]: Processed 853 images from rosbag.[0m
+Alpha: 2.98155, Beta: 0.00284899, Gamma: 0.105382, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3198267274, Score: 0.224616
+
+Alpha: 0.0241965, Beta: 3.00293, Gamma: 6.4876e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602252459.122635595]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Alpha: 0.0359951, Beta: 0.0745352, Gamma: 0.000204391, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 5103253026, Score: 0.361094
+
+Alpha: 0.00621694, Beta: 0.696552, Gamma: 0.00026544, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602252459.241946138]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602252459.318985984]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602252459.359306656]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602252459.359318410]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602252459.359324015]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602252459.359329431]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602252459.359334141]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602252459.414082425]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602252459.452538156]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602252459.452550650]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602252459.452556419]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602252459.452561817]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602252459.452567028]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.242941, Beta: 0.850694, Gamma: 3.24256e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6787793277, Score: 0.553859
+
+Alpha: 0.0632593, Beta: 0.00473844, Gamma: 0.000266138, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.0463049, Beta: 0.00801837, Gamma: 0.00150581, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3446325002, Score: 0.310982
+
+Alpha: 0.0108656, Beta: 0.0658415, Gamma: 0.00221049, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602252459.636215693]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[33m[ WARN] [1602252459.646091270]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.21076, Beta: 6.77965, Gamma: 2.8596e-08, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 12169706339, Score: 0.157266
+
+Alpha: 0.635647, Beta: 0.00138456, Gamma: 0.00488434, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602252459.757055881]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602252459.757067395]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602252459.757073016]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602252459.757078413]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602252459.757083506]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602252459.766934249]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602252459.766946151]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602252459.766951854]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602252459.766957144]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602252459.766962264]: Skipped message from topic /camera/depth/image_rect[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602252459.816485268]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602252459.932695196]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602252459.932707114]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602252459.932712697]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602252459.932718163]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602252459.932723170]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602253028.055791489]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602253028.194370559]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602253028.307691906]: Processed 853 images from rosbag.[0m
+Alpha: 0.0241965, Beta: 3.00293, Gamma: 6.4876e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6877198449, Score: 0.588528
+
+Alpha: 0.380712, Beta: 0.0478071, Gamma: 0.000189582, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602253028.446581127]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Alpha: 0.0108656, Beta: 0.0658415, Gamma: 0.00221049, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3843800878, Score: 0.367554
+
+Alpha: 0.00659475, Beta: 0.0154512, Gamma: 0.00554272, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602253028.524943835]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602253028.568480512]: Processed 853 images from rosbag.[0m
+Alpha: 0.00621694, Beta: 0.696552, Gamma: 0.00026544, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 5739177384, Score: 0.546826
+
+Alpha: 0.128778, Beta: 0.118974, Gamma: 1.24953e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602253028.649317891]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253028.644891427]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253028.644904261]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253028.644909587]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253028.644915078]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253028.644920067]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602253028.741530846]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.635647, Beta: 0.00138456, Gamma: 0.00488434, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3443056096, Score: 0.227418
+
+Alpha: 0.575348, Beta: 0.0258548, Gamma: 0.000162365, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602253028.772553720]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253028.772564996]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253028.772570564]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253028.772576094]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253028.772581180]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602253028.859943692]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253028.859956976]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253028.859962677]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253028.859968128]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253028.859973264]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.0632593, Beta: 0.00473844, Gamma: 0.000266138, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3935192883, Score: 0.26478
+
+Alpha: 0.00649135, Beta: 0.00122824, Gamma: 0.105095, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602253028.900592692]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602253029.020977258]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253029.025513078]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253029.025521715]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253029.025527607]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253029.025533112]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253029.025538580]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602253029.131332388]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253029.131340938]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253029.131344235]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253029.131347787]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253029.131350633]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602253597.138171123]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602253597.251652663]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602253597.410612420]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602253597.542219919]: Processed 853 images from rosbag.[0m
+Alpha: 0.380712, Beta: 0.0478071, Gamma: 0.000189582, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4403049065, Score: 0.299852
+
+Alpha: 0.00201744, Beta: 1.32479, Gamma: 8.8209e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.00659475, Beta: 0.0154512, Gamma: 0.00554272, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3220677956, Score: 0.3557
+
+Alpha: 0.402517, Beta: 0.00114564, Gamma: 9.591e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Alpha: 0.128778, Beta: 0.118974, Gamma: 1.24953e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 11821726542, Score: 0.40016
+
+Using ORB descriptor
+Alpha: 2.91891, Beta: 0.0795642, Gamma: 1.24411e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602253597.677692587]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253597.676803556]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602253597.747020192]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Alpha: 0.575348, Beta: 0.0258548, Gamma: 0.000162365, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3724097902, Score: 0.252092
+
+Alpha: 0.279284, Beta: 0.408667, Gamma: 3.50239e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602253597.798810521]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253597.802094538]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253597.802103670]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253597.802109502]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253597.802115191]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253597.802120171]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602253597.873674150]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253597.873685760]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253597.873691449]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253597.873696842]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253597.873701995]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602253597.931874693]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253597.931887245]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253597.931893033]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253597.931898315]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253597.931903247]: Skipped message from topic /camera/depth/image_rect[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602253597.981755294]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253598.097866905]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253598.097878779]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253598.097884441]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253598.097889946]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253598.097894810]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.00649135, Beta: 0.00122824, Gamma: 0.105095, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3421420758, Score: 0.248368
+
+Alpha: 4.428, Beta: 0.0521514, Gamma: 1.37232e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602253598.370520658]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602253598.486457686]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602253598.486468732]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602253598.486474276]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602253598.486479702]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602253598.486484627]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254166.671844744]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602254166.945560719]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602254167.095007986]: Processed 853 images from rosbag.[0m
+Alpha: 0.00201744, Beta: 1.32479, Gamma: 8.8209e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6059996435, Score: 0.567113
+
+Alpha: 0.0719118, Beta: 0.215865, Gamma: 0.0143025, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602254167.177598351]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 0.402517, Beta: 0.00114564, Gamma: 9.591e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 12397377091, Score: 0.396872
+
+Alpha: 0.0154331, Beta: 0.10918, Gamma: 1.4595, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602254167.237922520]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602254167.338229035]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602254167.360603924]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254167.360615819]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254167.360621551]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254167.360627294]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254167.360632455]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.279284, Beta: 0.408667, Gamma: 3.50239e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 7544893715, Score: 0.427592
+
+Alpha: 0.0471626, Beta: 0.664158, Gamma: 6.42947e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 2.91891, Beta: 0.0795642, Gamma: 1.24411e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4641868954, Score: 0.246792
+
+Alpha: 1.03917, Beta: 0.00480387, Gamma: 0.000181811, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[0m[ INFO] [1602254167.460442583]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254167.460454893]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254167.460460685]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254167.460466272]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254167.460471350]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[0m[ INFO] [1602254167.494253824]: Processed 853 images from rosbag.[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602254167.542199918]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602254167.583744022]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602254167.661937453]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254167.661950462]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254167.661955920]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254167.661961449]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254167.661966263]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254167.691337654]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254167.691346459]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254167.691349944]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254167.691353185]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254167.691355917]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 4.428, Beta: 0.0521514, Gamma: 1.37232e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4144599105, Score: 0.238092
+
+Alpha: 0.0200439, Beta: 0.0277557, Gamma: 1.37679e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602254167.892080548]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602254168.010179152]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254168.010189944]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254168.010195501]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254168.010200941]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254168.010205956]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254736.033700942]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602254736.322413208]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602254736.448708514]: Processed 853 images from rosbag.[0m
+Alpha: 0.0719118, Beta: 0.215865, Gamma: 0.0143025, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3970609228, Score: 0.410231
+
+Alpha: 3.21432, Beta: 0.561709, Gamma: 0.146263, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602254736.578575027]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.0471626, Beta: 0.664158, Gamma: 6.42947e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 9196312627, Score: 0.545617
+
+Alpha: 0.00247013, Beta: 33.639, Gamma: 0.000578284, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Alpha: 1.03917, Beta: 0.00480387, Gamma: 0.000181811, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3389245158, Score: 0.239614
+
+Alpha: 0.705224, Beta: 0.020964, Gamma: 0.000577621, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[33m[ WARN] [1602254736.695844888]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602254736.796314483]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[33m[ WARN] [1602254736.818093847]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602254736.816606504]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254736.816618798]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254736.816624596]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254736.816630336]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254736.816635281]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254736.888051973]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602254736.946247384]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254736.946260053]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254736.946265377]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254736.946270548]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254736.946275078]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254736.946392240]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254736.946401806]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254736.946407543]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254736.946413057]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254736.946417968]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.0200439, Beta: 0.0277557, Gamma: 1.37679e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 11510512411, Score: 0.361905
+
+Alpha: 0.0138485, Beta: 0.125485, Gamma: 9.30708e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 0.0154331, Beta: 0.10918, Gamma: 1.4595, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4137422659, Score: 0.350224
+
+Alpha: 0.0224902, Beta: 0.0566539, Gamma: 0.0228038, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602254737.202089907]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602254737.274534800]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602254737.321694390]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254737.321704165]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254737.321709941]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254737.321715376]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254737.321720502]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602254737.391387132]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602254737.391399452]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602254737.391405165]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602254737.391410519]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602254737.391415442]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602255305.133215694]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602255305.308625775]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602255305.435441227]: Processed 853 images from rosbag.[0m
+Alpha: 3.21432, Beta: 0.561709, Gamma: 0.146263, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3526868074, Score: 0.296779
+
+Alpha: 0.00566769, Beta: 0.0712209, Gamma: 0.0441076, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 0.00247013, Beta: 33.639, Gamma: 0.000578284, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4364450005, Score: 0.171358
+
+Alpha: 0.0541886, Beta: 0.487331, Gamma: 0.000311054, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[0m[ INFO] [1602255305.554842959]: Processed 853 images from rosbag.[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602255305.614025660]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602255305.657891221]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602255305.721257029]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602255305.741983683]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255305.741996766]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255305.742002504]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255305.742008103]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255305.742013129]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602255305.783523672]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255305.783535597]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255305.783540843]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255305.783545845]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255305.783550699]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.705224, Beta: 0.020964, Gamma: 0.000577621, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3625414215, Score: 0.253744
+
+Alpha: 0.48548, Beta: 0.00285805, Gamma: 2.08077e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 0.0138485, Beta: 0.125485, Gamma: 9.30708e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6809757819, Score: 0.437823
+
+Alpha: 0.140305, Beta: 0.485938, Gamma: 0.00785629, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602255305.973171532]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Alpha: 0.0224902, Beta: 0.0566539, Gamma: 0.0228038, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3849480242, Score: 0.368909
+
+Alpha: 0.00562721, Beta: 0.0229286, Gamma: 0.000312838, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602255306.035188085]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602255306.100334278]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255306.100348756]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255306.100355963]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255306.100362966]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255306.100368780]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602255306.177374175]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602255306.159182829]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255306.159195057]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255306.159200507]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255306.159205536]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255306.159210287]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602255306.292899597]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255306.292911329]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255306.292917459]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255306.292922533]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255306.292927455]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602255874.165946347]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602255874.310112139]: Processed 853 images from rosbag.[0m
+Alpha: 0.00566769, Beta: 0.0712209, Gamma: 0.0441076, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3362954862, Score: 0.368413
+
+Alpha: 0.108429, Beta: 0.0179805, Gamma: 0.101818, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602255874.449087963]: Processed 853 images from rosbag.[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[0m[ INFO] [1602255874.563441900]: Processed 853 images from rosbag.[0m
+Alpha: 0.0541886, Beta: 0.487331, Gamma: 0.000311054, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4360704651, Score: 0.528557
+
+Alpha: 0.00183366, Beta: 1.6725, Gamma: 5.81382e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[33m[ WARN] [1602255874.600317600]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.48548, Beta: 0.00285805, Gamma: 2.08077e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 6182582117, Score: 0.250443
+
+Alpha: 0.0133958, Beta: 1.60617, Gamma: 9.08976e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+[0m[ INFO] [1602255874.719913412]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602255874.721483527]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255874.721494453]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255874.721500231]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255874.721505680]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255874.721510883]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602255874.779263216]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602255874.830613430]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602255874.898437219]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255874.898450485]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255874.898456219]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255874.898461576]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255874.898466516]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.00562721, Beta: 0.0229286, Gamma: 0.000312838, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4918958034, Score: 0.343708
+
+Alpha: 0.233366, Beta: 0.018096, Gamma: 0.00166571, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Alpha: 0.140305, Beta: 0.485938, Gamma: 0.00785629, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 4309542911, Score: 0.433834
+
+Alpha: 0.00882134, Beta: 3.88275, Gamma: 5.19604e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+[0m[ INFO] [1602255874.954326047]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255874.954337484]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255874.954343438]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255874.954355804]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255874.954361307]: Skipped message from topic /camera/depth/image_rect[0m
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602255875.052065992]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602255875.091132991]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602255875.172602906]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255875.172613670]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255875.172619375]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255875.172624868]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255875.172629860]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602255875.211681599]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602255875.211693044]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602255875.211698802]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602255875.211704186]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602255875.211709401]: Skipped message from topic /camera/depth/image_rect[0m
+[0m[ INFO] [1602256443.563374511]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602256443.697848450]: Processed 853 images from rosbag.[0m
+[0m[ INFO] [1602256443.853394313]: Processed 853 images from rosbag.[0m
+Alpha: 0.00183366, Beta: 1.6725, Gamma: 5.81382e-05, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 7188049463, Score: 0.587334
+
+Alpha: 0.00931793, Beta: 0.0165033, Gamma: 0.000299504, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602256443.939932678]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602256444.073450583]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Alpha: 0.108429, Beta: 0.0179805, Gamma: 0.101818, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3260809053, Score: 0.2885
+
+Alpha: 0.224286, Beta: 0.241284, Gamma: 0.015664, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602256444.111586859]: Processed 853 images from rosbag.[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[0m[ INFO] [1602256444.185387111]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602256444.185395984]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602256444.185399441]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602256444.185402584]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602256444.185405552]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.0133958, Beta: 1.60617, Gamma: 9.08976e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 9570025453, Score: 0.586102
+
+Alpha: 0.118308, Beta: 0.0567869, Gamma: 0.00182644, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+Read vocabulary: 5000 32
+[33m[ WARN] [1602256444.247573047]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602256444.338793083]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+[0m[ INFO] [1602256444.338988090]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602256444.338996290]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602256444.339001410]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602256444.339006241]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602256444.339010621]: Skipped message from topic /camera/depth/image_rect[0m
+Alpha: 0.00882134, Beta: 3.88275, Gamma: 5.19604e-06, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 10794283929, Score: 0.561944
+
+Alpha: 0.0028173, Beta: 0.0881327, Gamma: 0.00128035, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Alpha: 0.233366, Beta: 0.018096, Gamma: 0.00166571, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Number of refines: 3352771866, Score: 0.300278
+
+Alpha: 7.79203, Beta: 0.0144574, Gamma: 8.87918e-07, Cell Space: 0.8, CLAHE: 1, texton: 0, ORB: 1
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[0m[ INFO] [1602256444.459251258]: Skipped message from topic /camera/path[0m
+[0m[ INFO] [1602256444.459262526]: Skipped message from topic /camera/pose[0m
+[0m[ INFO] [1602256444.459268112]: Skipped message from topic /camera/camera_info[0m
+[0m[ INFO] [1602256444.459273406]: Skipped message from topic /camera/rgb/image_color[0m
+[0m[ INFO] [1602256444.459278449]: Skipped message from topic /camera/depth/image_rect[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+[33m[ WARN] [1602256444.487175372]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
+Initializing Feature BOW with detectors:ORB
+Using ORB descriptor
+Read vocabulary: 5000 32
+Initialized LabFeatureBOW with vocabulary of size:15000
+Initializing Hue Words
+Initializing Intensity Words
+[33m[ WARN] [1602256444.602167795]: Extracting images from /data/stewart/airsim-bags/lawnmower-alt4m-2.bag[0m
