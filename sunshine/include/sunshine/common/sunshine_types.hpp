@@ -84,10 +84,6 @@ struct Phi {
       return flag;
   }
 
-  Phi(Phi const &other) = default;
-
-  Phi(Phi &&other) noexcept = default;
-
   template<typename Archive>
   void save(Archive &ar, const unsigned int version) const {
 //      if (!out.good()) throw std::invalid_argument("Output stream in invalid state");

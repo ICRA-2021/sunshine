@@ -66,9 +66,9 @@ class RobotSim {
         if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp != lastSegmentation->header.stamp)) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
         #ifndef NDEBUG
-        ROS_INFO("PROCESSING NEW OBSERVATION");
-        ROS_INFO("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
-        if (use_segmentation) ROS_INFO("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
+        ROS_DEBUG("PROCESSING NEW OBSERVATION");
+        ROS_DEBUG("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
+        if (use_segmentation) ROS_DEBUG("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
         #endif
         ROS_DEBUG("%ld ms since last observation", record_lap(clock));
         auto newRgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
@@ -100,8 +100,8 @@ class RobotSim {
             try {
                 transform = wordTransformAdapter.getLatestTransform(fixFrame(lastRgb->header.frame_id), lastRgb->header.stamp);
                 #ifndef NDEBUG
-                ROS_INFO("Depth: #%d, %f s, %s", lastPc->header.seq, lastPc->header.stamp.toSec(), lastPc->header.frame_id.c_str());
-                ROS_INFO("Transform: %f s, %s, child: %s", transform.stamp_.toSec(), transform.frame_id_.c_str(), transform.child_frame_id_.c_str());
+                ROS_DEBUG("Depth: #%d, %f s, %s", lastPc->header.seq, lastPc->header.stamp.toSec(), lastPc->header.frame_id.c_str());
+                ROS_DEBUG("Transform: %f s, %s, child: %s", transform.stamp_.toSec(), transform.frame_id_.c_str(), transform.child_frame_id_.c_str());
                 #endif
             } catch (tf::ExtrapolationException const& ex) {
                 ROS_WARN("Extrapolation exceptions shouldn't happen since we have latestTransformTime...");

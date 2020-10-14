@@ -192,11 +192,16 @@ class MultiAgentSimulation {
         std::cout << "Running single-agent simulation...." << std::endl;
         sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         RobotSim singleRobot("Single Robot", paramPassthrough, !depth_topic.empty(), sharedSegmentationAdapter);
+        size_t refine_count = 0;
         for (size_t i = 0; i < bagfiles.size(); ++i) {
             singleRobot.open(bagfiles[i], image_topic, depth_topic, segmentation_topic);
+            size_t msg = 0;
             while (singleRobot.next()) {
                 if (!ros::ok()) return false;
                 singleRobot.waitForProcessing();
+                ROS_INFO_THROTTLE(10, "Bag %ld msg %ld: refined %ld cells", i+1, msg, singleRobot.getRost()->get_rost().get_refine_count() - refine_count);
+                refine_count = singleRobot.getRost()->get_rost().get_refine_count();
+                msg++;
             }
             singleRobot.waitForProcessing();
             auto token = singleRobot.getReadToken();
@@ -239,56 +244,86 @@ class MultiAgentSimulation {
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
 
-        bool active = true;
-        size_t n_obs = 0;
-        size_t iter = 0;
-        auto start = std::chrono::steady_clock::now();
-        while (active) {
-            active = false;
-            for (auto &robot : robots) {
-                if (!ros::ok()) return false;
-                auto const robot_active = robot->next();
-                active = active || robot_active;
-            }
-            n_obs += active;
+        decltype(robotModels) robotModels_{robots.size()};
+        decltype(robotMaps) robotMaps_{robots.size()};
 
-            auto const read_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            ROS_DEBUG("Read time: %ld", read_time);
+        thread_pool pool(robots.size());
+        for (auto i = 0ul; i < robots.size(); ++i) {
+            pool.enqueue([&robots, &robotModels_, &robotMaps_, i, subsample]{
+                auto start = std::chrono::steady_clock::now();
+                size_t n_obs = 0;
 
+                while (true) {
+                    bool const robot_active = robots[i]->next();
+
+                    auto const read_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start).count();
+                    ROS_DEBUG("Robot %ld iter %ld read time: %ld", i, n_obs, read_time);
+                    if (!ros::ok() || !robot_active) return;
+                    n_obs++;
+
+                    robots[i]->waitForProcessing();
+                    if (n_obs % subsample == 0) {
+                        auto token = robots[i]->getReadToken();
+                        robotModels_[i].emplace_back(robots[i]->getTopicModel(*token));
+                        robotMaps_[i].emplace_back(robots[i]->getDistMap(*token));
+                    }
+
+                    auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - start).count();
+                    ROS_INFO_THROTTLE(10, "Robot %ld iter %ld last refine time: %ld", i, n_obs, refine_time);
+
+                    start = std::chrono::steady_clock::now();
+                }
+            });
+        }
+        pool.join();
+        if (!ros::ok()) return false;
+
+        for (size_t n_obs = 1; true; ++n_obs) {
+            bool added = false;
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
             robotModels.emplace_back();
             robotModels.back().reserve(robots.size());
-            for (auto const& robot : robots) {
-                if (!ros::ok()) return false;
-                robot->waitForProcessing();
-                if (iter % subsample == 0) {
-                    auto token = robot->getReadToken();
-                    robotModels.back().emplace_back(robot->getTopicModel(*token));
-                    robotMaps.back().emplace_back(robot->getDistMap(*token));
+            if (n_obs % subsample != 0) continue;
+            for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
+                if (robotMaps_[robot_idx].size() > n_obs) {
+                    added = true;
+                    robotMaps.back().emplace_back(std::move(robotMaps_[robot_idx][n_obs]));
+                    robotModels.back().emplace_back(std::move(robotModels_[robot_idx][n_obs]));
+                } else {
+                    if (n_obs == 0) throw std::logic_error("Some robots had no maps!");
+                    robotMaps.back().push_back(std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*robotMaps[n_obs - 1][robot_idx]));
+                    robotModels.back().emplace_back(robotModels[n_obs - 1][robot_idx]);
                 }
             }
-
-            auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-            ROS_DEBUG("Refine time: %ld", refine_time);
-
-            #ifndef NDEBUG
-            for (auto const& map : robotMaps.back()) {
+            if (!added) {
+                robotMaps.pop_back();
+                robotModels.pop_back();
+                break;
+            }
+#ifndef NDEBUG
+            for (auto const &map : robotMaps.back()) {
                 std::set<std::array<int, 3>> map_poses;
-                for (auto const& pose : map->observation_poses) {
+                for (auto const &pose : map->observation_poses) {
                     uint32_t const offset = pose.size() == 4;
                     map_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
                 }
                 if (!includes(single_robot_poses, map_poses)) {
                     std::vector<std::array<int, 3>> diff_poses;
-                    std::set_difference(map_poses.begin(), map_poses.end(), single_robot_poses.begin(), single_robot_poses.end(), std::back_inserter(diff_poses));
+                    std::set_difference(map_poses.begin(),
+                                        map_poses.end(),
+                                        single_robot_poses.begin(),
+                                        single_robot_poses.end(),
+                                        std::back_inserter(diff_poses));
                     ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
 //                throw std::logic_error("Ground truth is missing poses!");
                 }
             }
             auto const merged_map = merge_segmentations(robotMaps.back());
             std::set<std::array<int, 3>> merged_poses;
-            for (auto const& pose : merged_map->observation_poses) {
+            for (auto const &pose : merged_map->observation_poses) {
                 uint32_t const offset = pose.size() == 4;
                 merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
             }
@@ -300,11 +335,8 @@ class MultiAgentSimulation {
                 ROS_ERROR("Single robot poses are missing merged poses at obs %lu!", n_obs);
 //                throw std::logic_error("Ground truth is missing poses!");
             }
-            #endif
-
-            ROS_INFO("Iter %ld approximate simulation size: %f MB", iter, approxBytesSize() / (1024.0 * 1024.0));
-            start = std::chrono::steady_clock::now();
-            iter += 1;
+#endif
+            ROS_INFO("Iter %ld approximate simulation size: %f MB", n_obs, approxBytesSize() / (1024.0 * 1024.0));
         }
         return true;
     }
@@ -516,7 +548,7 @@ int main(int argc, char **argv) {
                 CompressedFileWriter writer (data_filename);
                 writer << *(sims[n_done]);
                 data_files.push_back (data_filename);
-                sims[n_done].reset (); // free up some memory
+                sims[n_done].reset(); // free up some memory
                 ROS_INFO("Finished simulation %ld", n_done + 1);
             }
         }
