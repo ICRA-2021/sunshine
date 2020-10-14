@@ -36,6 +36,7 @@ class MultiAgentSimulation {
     decltype(std::declval<RobotSim>().getGTMap()) gtMap;
     std::vector<std::result_of_t<decltype(&RobotSim::getTopicModel)(RobotSim, activity_manager::ReadToken const&)>> singleRobotModels;
     std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>> singleRobotSubmaps;
+//    std::vector<std::unique_ptr<Segmentation<std::vector<int>, 3, int, double>>> gtSubmaps;
     std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)> singleRobotMap;
     std::vector<std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>>> robotMaps;
     std::vector<std::vector<Phi>> robotModels;
@@ -191,8 +192,8 @@ class MultiAgentSimulation {
         std::cout << "Running single-agent simulation...." << std::endl;
         sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         RobotSim singleRobot("Single Robot", paramPassthrough, !depth_topic.empty(), sharedSegmentationAdapter);
-        for (auto const& bag : bagfiles) {
-            singleRobot.open(bag, image_topic, depth_topic, segmentation_topic);
+        for (size_t i = 0; i < bagfiles.size(); ++i) {
+            singleRobot.open(bagfiles[i], image_topic, depth_topic, segmentation_topic);
             while (singleRobot.next()) {
                 if (!ros::ok()) return false;
                 singleRobot.waitForProcessing();
@@ -201,6 +202,8 @@ class MultiAgentSimulation {
             auto token = singleRobot.getReadToken();
             singleRobotSubmaps.push_back(singleRobot.getDistMap(*token));
             singleRobotModels.push_back(singleRobot.getTopicModel(*token));
+            ROS_INFO("Saving single robot submap %ld with %ld cell refines (%ld word refines)", i, singleRobotModels.back().cell_refines, singleRobotModels.back().word_refines);
+//            gtSubmaps.push_back(std::make_unique<Segmentation<std::vector<int>, 3, int, double>>(*singleRobot.getGTMap()));
         }
         singleRobot.pause();
         singleRobotMap = singleRobot.getDistMap(*singleRobot.getReadToken());
@@ -312,6 +315,7 @@ class MultiAgentSimulation {
         if (robotMaps.empty()) throw std::logic_error("No simulation data to process");
 
         WordColorMap<int> colorMap;
+        ROS_WARN_COND(singleRobotSubmaps.empty(), "No single robot submaps found, using final map.");
         auto const refMap = (singleRobotSubmaps.empty()) ? merge_segmentations<4>(make_vector(singleRobotMap.get()))
                                                          : merge_segmentations<4>(make_vector(singleRobotSubmaps[n_robots - 1].get()));
         double const pixel_scale = *std::min_element(refMap->cell_size.begin(), refMap->cell_size.end());
@@ -502,8 +506,7 @@ int main(int argc, char **argv) {
                 ROS_INFO("Starting simulation %ld", n_done + 1);
                 try
                 {
-                    auto const cell_space = nh.param<double>("cell_space", 0.8);
-                    if (!sims[n_done]->record(nh, (cell_space < 0.8) ? 2 : 1)) throw std::runtime_error ("Simulation aborted");
+                    if (!sims[n_done]->record(nh, nh.param<int>("subsample_results", 1))) throw std::runtime_error ("Simulation aborted");
                 }
                 catch (std::exception const &ex)
                 {
@@ -537,7 +540,7 @@ int main(int argc, char **argv) {
     auto const map_box = nh.param<std::string>("box", "-150x-150x300x300");
     auto const parallel_match = nh.param<bool>("parallel_match", false);
     size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
-    size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 2);
+    size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 1);
     size_t const max_parallel_sim = std::min(cap_parallel_sim, std::max(1ul, std::thread::hardware_concurrency() / n_parallel_match));
     auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", false);
     std::mutex simMutex;

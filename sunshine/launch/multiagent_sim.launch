@@ -58,6 +58,8 @@
   <arg name="polled_refine" default="false" />
   <arg name="words_topic" default="/rost_vision/words" />
   <arg name="min_obs_refine_time" default="600" />
+  <arg name="min_refines_per_obs" default="0" />
+  <arg name="subsample_results" default="$(eval 1 + int(0.7 / cell_space) + int(K / 21))" />
 
   <arg name="ppx_topic" default="/ppx_cloud" />
   <arg name="map_type" default="TopicMap" />
@@ -95,6 +97,7 @@
     <param name="polled_refine" value="$(arg polled_refine)" />
     <param name="words_topic" value="$(arg words_topic)" />
     <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
+    <param name="min_refines_per_obs" value="$(arg min_refines_per_obs)" />
 
     <param name="feature_descriptor" type="string" value="ORB"/>
     <param name="scale" type="double" value="$(arg scale)"/>
@@ -118,6 +121,7 @@
     <param name="file_prefix" value="$(arg file_prefix)" />
     <param name="box" value="-150x-150x250x250" />
     <param name="match_methods" value="$(arg match_methods)" />
+    <param name="subsample_results" value="$(arg subsample_results)" />
   </node>
 
 <!--   <node pkg="sunshine" type="visualize3d" name="visualize_0" if="$(arg visualize_3d)"> -->

@@ -255,7 +255,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             ROS_DEBUG("Received more word observations - broadcasting observations for time %f", last_time);
             if (newObservationCallback) newObservationCallback(this);
             this->wait_for_processing(true);
-            size_t const refine_count = rost->get_word_refine_count();
+            size_t const refine_count = rost->get_refine_count();
             ROS_DEBUG("time since last add: %ld ms", chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - lastWordsAdded));
             ROS_DEBUG("#words_refined since last add: %ld", refine_count - last_refine_count);
             auto timeSinceFirstAdd = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - timeFirstAdd).count();
@@ -283,7 +283,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             }
         }
         auto const duration_add_observations = record_lap(time_checkpoint);
-        last_refine_count = rost->get_word_refine_count();
+        last_refine_count = rost->get_refine_count();
         lastWordsAdded = chrono::steady_clock::now();
         ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
@@ -394,7 +394,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     void inline wait_for_processing(bool const new_data = false) const {
         using namespace std::chrono;
         int64_t elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
-        uint64_t refinedSinceAdd = rost->get_word_refine_count() - last_refine_count;
+        uint64_t refinedSinceAdd = rost->get_refine_count() - last_refine_count;
         bool const delay = elapsedSinceAdd < min_obs_refine_time || refinedSinceAdd < min_refines_per_obs;
         if (new_data) {
             ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %l ms", min_obs_refine_time, elapsedSinceAdd);
@@ -413,7 +413,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                 std::this_thread::sleep_for(milliseconds(min_obs_refine_time - elapsedSinceAdd));
             }
             do {
-                refinedSinceAdd = rost->get_word_refine_count() - last_refine_count;
+                refinedSinceAdd = rost->get_refine_count() - last_refine_count;
                 if (refinedSinceAdd >= min_refines_per_obs) break;
                 elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
                 auto const ms_per_refine = static_cast<double>(elapsedSinceAdd) / refinedSinceAdd;
