@@ -245,7 +245,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         //update the  list of observed time step ids
         observation_times.push_back(observation_time);
         if (!observation_times.empty() && last_time > observation_time) {
-            ROS_WARN("Observation received that is older than previous observation!");
+            ROS_WARN_THROTTLE(30, "Observation received that is older than previous observation!");
         }
 
         //if we are receiving observations from the next time step, then spit out
