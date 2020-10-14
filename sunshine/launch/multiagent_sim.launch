@@ -24,7 +24,7 @@
   <arg name="file_prefix" default="" />
   <arg name="output_dir" default="" />
   <arg name="map_prefix" default="$(arg output_dir)" />
-  <arg name="match_methods" default="id,hungarian-l1,clear-l1" />
+  <arg name="match_methods" default="id,hungarian-l1,clear-l1,clear-l1-0.5" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
@@ -34,7 +34,7 @@
   <arg name="rate" default="3" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
-  <arg name="clahe" default="true" />
+  <arg name="clahe" default="$(eval image_topic != segmentation_topic)" />
   <arg name="texton" default="false" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />

@@ -693,6 +693,8 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return clear_matching(topic_models, l1_similarity<int>, false);
     } else if (method == "clear-l1-0.25") {
         return clear_matching(topic_models, l1_similarity<int>, false, 0.25);
+    } else if (method == "clear-l1-0.5") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.5);
     } else if (method == "clear-l2") {
         return clear_matching(topic_models, l2_similarity<int>, false);
     } else if (method == "clear-gk") {
