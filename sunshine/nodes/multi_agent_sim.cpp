@@ -327,7 +327,7 @@ class MultiAgentSimulation {
             });
         }
         pool.join();
-        ROS_INFO("All robots finished!")
+        ROS_INFO("All robots finished!");
         if (!ros::ok()) return false;
 
         for (size_t n_obs = 0; true; ++n_obs) {
