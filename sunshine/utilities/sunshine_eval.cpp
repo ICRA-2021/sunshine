@@ -14,6 +14,6 @@ int main(int argc, char **argv) {
     std::string const segmentation_topic_name(argv[4]);
 
     auto result = benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, sunshine::Parameters({}), nmi<4>, 10);
-    std::cout << "Average NMI: " << result.first << std::endl;
+    std::cout << "Average NMI: " << std::get<0>(result) << std::endl;
     return 0;
 }
