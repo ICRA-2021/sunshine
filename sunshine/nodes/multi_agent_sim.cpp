@@ -22,6 +22,8 @@
 using namespace sunshine;
 using json = nlohmann::ordered_json;
 
+#define OCT_15_FIX
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 class MultiAgentSimulation {
@@ -38,8 +40,14 @@ class MultiAgentSimulation {
     std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>> singleRobotSubmaps;
 //    std::vector<std::unique_ptr<Segmentation<std::vector<int>, 3, int, double>>> gtSubmaps;
     std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)> singleRobotMap;
+#ifdef OCT_15_FIX
+  public:
+#endif
     std::vector<std::vector<std::result_of_t<decltype(&RobotSim::getDistMap)(RobotSim, activity_manager::ReadToken const&)>>> robotMaps;
     std::vector<std::vector<Phi>> robotModels;
+#ifdef OCT_15_FIX
+  private:
+#endif
 
     // Derived data -- not serialized (can be recovered exactly from above data)
     std::unique_ptr<Segmentation<int, 3, int, double>> gtMLMap;
@@ -55,7 +63,7 @@ class MultiAgentSimulation {
                                     std::string const& match_method,
                                     size_t const& n_robots,
                                     Segmentation<int, 3, int, double> const* gtMLMap = nullptr,
-                                    size_t subsample = 30,
+                                    size_t subsample = 16,
                                     bool include_individ = false,
                                     bool include_ssd = false) {
         auto const singleRobotLabels = singleRobotMLMap->toLookupMap();
@@ -280,16 +288,17 @@ class MultiAgentSimulation {
 
                     auto const read_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                         std::chrono::steady_clock::now() - start).count();
-                    ROS_DEBUG("Robot %ld iter %ld read time: %ld", i, n_obs, read_time);
-                    if (!ros::ok() || !robot_active) return;
-                    n_obs++;
+                    ROS_DEBUG("Robot %ld iter %ld read time: %ld", i, n_obs + 1, read_time);
 
                     robots[i]->waitForProcessing();
-                    if (n_obs % subsample == 0) {
+                    if (n_obs % subsample == 0 || !robot_active) {
                         auto token = robots[i]->getReadToken();
                         robotModels_[i].emplace_back(robots[i]->getTopicModel(*token));
                         robotMaps_[i].emplace_back(robots[i]->getDistMap(*token));
                         data_size += robotMaps_[i].back()->bytesSize() + robotModels_[i].back().bytesSize();
+                    } else {
+                        robotModels_[i].emplace_back();
+                        robotMaps_[i].emplace_back(nullptr);
                     }
 
                     if (n_obs % 25 == 0) {
@@ -298,13 +307,16 @@ class MultiAgentSimulation {
                         auto const total_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - start).count();
                         auto const refines = static_cast<double>(robots[i]->getRost()->get_rost().get_refine_count());
-                        ROS_INFO("Robot %ld iter %ld running refine rate %.2f cells/ms (avg %f)", i, n_obs,
+                        ROS_INFO("Robot %ld iter %ld running refine rate %.2f cells/ms (avg %f)", i, n_obs + 1,
                                  (refines - last_refine) / last_refine_time,
                                  refines / total_refine_time);
                         last = std::chrono::steady_clock::now();
                         last_refine = refines;
                         ROS_INFO("Robot %ld iter %ld approximate simulation size: %f MB", i, n_obs + 1, data_size / (1024.0 * 1024.0));
                     }
+
+                    if (!ros::ok() || !robot_active) return;
+                    n_obs++;
                 }
             });
         }
@@ -317,7 +329,7 @@ class MultiAgentSimulation {
             robotMaps.back().reserve(robots.size());
             robotModels.emplace_back();
             robotModels.back().reserve(robots.size());
-            if (n_obs % subsample != 0) continue;
+            if (n_obs % subsample != 0 && n_obs + 1 < robotModels_[0].size()) continue;
             for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
                 if (robotMaps_[robot_idx].size() > n_obs) {
                     added = true;
@@ -402,22 +414,39 @@ class MultiAgentSimulation {
             exp_results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
             exp_results["Single Robot GT-AMI"] = std::get<2>(sr_gt_metrics);
             if (!map_prefix.empty()) {
+                align(*refMap, gtLabels, numGTTopics);
                 auto mapImg = createTopicImg(toRosMsg(*gtMLMap), colorMap, pixel_scale, true, 0, 0, map_box);
                 saveTopicImg(mapImg, map_prefix + "-gt.png", map_prefix + "-gt-colors.csv", &colorMap);
             }
 
             if (!singleRobotModels.empty()) {
-                auto sr_correspondences = match_topics("clear-l1-0.5", make_vector(singleRobotModels[n_robots - 1]));
-                auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()), sr_correspondences.lifting);
-                auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
-                exp_results["Single Robot Post GT-MI"] = std::get<0>(srpp_gt_metrics);
-                exp_results["Single Robot Post GT-NMI"] = std::get<1>(srpp_gt_metrics);
-                exp_results["Single Robot Post GT-AMI"] = std::get<2>(srpp_gt_metrics);
-                if (!map_prefix.empty()) {
-                    align(*refMap, gtLabels, numGTTopics);
-                    align(*sr_postprocessed, gtLabels, numGTTopics);
-                    auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
-                    saveTopicImg(mapImg, map_prefix + "-srpp.png", map_prefix + "-srpp-colors.csv", &colorMap);
+                {
+                    auto sr_correspondences = match_topics("clear-l1-0.5", make_vector(singleRobotModels[n_robots - 1]));
+                    auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()),
+                                                                sr_correspondences.lifting);
+                    auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
+                    exp_results["Single Robot Post GT-MI"] = std::get<0>(srpp_gt_metrics);
+                    exp_results["Single Robot Post GT-NMI"] = std::get<1>(srpp_gt_metrics);
+                    exp_results["Single Robot Post GT-AMI"] = std::get<2>(srpp_gt_metrics);
+                    if (!map_prefix.empty()) {
+                        align(*sr_postprocessed, gtLabels, numGTTopics);
+                        auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
+                        saveTopicImg(mapImg, map_prefix + "-srpp.png", map_prefix + "-srpp-colors.csv", &colorMap);
+                    }
+                }
+                {
+                    auto sr_correspondences = match_topics("clear-l1-0.25", make_vector(singleRobotModels[n_robots - 1]));
+                    auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()),
+                                                                sr_correspondences.lifting);
+                    auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
+                    exp_results["Single Robot + CLEAR (0.25) GT-MI"] = std::get<0>(srpp_gt_metrics);
+                    exp_results["Single Robot + CLEAR (0.25) GT-NMI"] = std::get<1>(srpp_gt_metrics);
+                    exp_results["Single Robot + CLEAR (0.25) GT-AMI"] = std::get<2>(srpp_gt_metrics);
+                    if (!map_prefix.empty()) {
+                        align(*sr_postprocessed, gtLabels, numGTTopics);
+                        auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
+                        saveTopicImg(mapImg, map_prefix + "-srpp-0.25.png", map_prefix + "-srpp-0.25-colors.csv", &colorMap);
+                    }
                 }
             }
         }
@@ -605,7 +634,7 @@ int main(int argc, char **argv) {
     size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
     size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 1);
     size_t const max_parallel_sim = std::min(cap_parallel_sim, std::max(1ul, std::thread::hardware_concurrency() / n_parallel_match));
-    auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", false);
+    auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", true);
     std::mutex simMutex;
     size_t n_parallel_sim = 0;
     std::condition_variable sim_cv;
@@ -628,6 +657,32 @@ int main(int argc, char **argv) {
                 reader >> simPtr;
                 sim = std::move(*simPtr);
             }
+
+#ifdef OCT_15_FIX
+            if (sim.robotMaps.back().empty()) {
+//                while (sim.robotMaps.back().empty()) sim.robotMaps.pop_back();
+//                while (sim.robotModels.back().empty()) sim.robotModels.pop_back();
+                auto const start_size = sim.robotMaps.size();
+                sim.robotMaps.resize(sim.robotMaps.size() * 2 - 1);
+                sim.robotModels.resize(sim.robotModels.size() * 2 - 1);
+                auto const size = sim.robotMaps.size();
+                auto orig_i = start_size - 1;
+                for (auto i = size - 1; orig_i > 0; i -= 2) {
+                    assert(orig_i * 2 == i);
+                    ROS_INFO("i %ld, orig %ld", i, orig_i);
+                    sim.robotMaps[i] = std::move(sim.robotMaps[orig_i]);
+                    sim.robotMaps[orig_i].clear();
+                    sim.robotModels[i] = std::move(sim.robotModels[orig_i]);
+                    sim.robotModels[orig_i].clear();
+                    orig_i--;
+                }
+                while (sim.robotMaps.back().empty()) {
+                    sim.robotMaps.pop_back();
+                    sim.robotModels.pop_back();
+                }
+            }
+#endif
+
             std::vector<std::thread> subworkers;
             for (auto i = 1; i <= sim.getNumRobots(); ++i) {
                 subworkers.emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match](){

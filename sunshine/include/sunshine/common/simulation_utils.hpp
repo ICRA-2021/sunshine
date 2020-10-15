@@ -295,7 +295,7 @@ class RobotSim {
 };
 
 template<typename Metric>
-std::pair<double, size_t> benchmark(std::string const &bagfile,
+std::tuple<double, size_t, size_t> benchmark(std::string const &bagfile,
                  std::string const &image_topic,
                  std::string const &segmentation_topic,
                  std::string const &depth_topic,
@@ -403,7 +403,7 @@ std::pair<double, size_t> benchmark(std::string const &bagfile,
         auto gtSeg = segmentationAdapter(nullptr);
         av_metric = metric(*gtSeg, *topicsSeg);
     }
-    return {av_metric, rostAdapter.get_rost().get_word_refine_count()};
+    return {av_metric, rostAdapter.get_rost().get_refine_count(), rostAdapter.get_rost().get_word_refine_count()};
 }
 }
 
