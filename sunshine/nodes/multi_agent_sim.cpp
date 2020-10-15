@@ -193,14 +193,33 @@ class MultiAgentSimulation {
         sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         RobotSim singleRobot("Single Robot", paramPassthrough, !depth_topic.empty(), sharedSegmentationAdapter);
         size_t refine_count = 0;
+        auto const start_time = std::chrono::steady_clock::now();
+        auto last_time = start_time;
+        static char THREAD_COUNTER = 'A';
+        thread_local const char THREAD_ID = THREAD_COUNTER++;
         for (size_t i = 0; i < bagfiles.size(); ++i) {
             singleRobot.open(bagfiles[i], image_topic, depth_topic, segmentation_topic);
             size_t msg = 0;
             while (singleRobot.next()) {
                 if (!ros::ok()) return false;
                 singleRobot.waitForProcessing();
-                ROS_INFO_THROTTLE(10, "Bag %ld msg %ld: refined %ld cells", i+1, msg, singleRobot.getRost()->get_rost().get_refine_count() - refine_count);
-                refine_count = singleRobot.getRost()->get_rost().get_refine_count();
+                if (msg % 50 == 0) {
+                    ROS_INFO("Thread %c bag %ld msg %ld: refined %ld cells since last",
+                             THREAD_ID,
+                             i + 1,
+                             msg,
+                             singleRobot.getRost()->get_rost().get_refine_count() - refine_count);
+                    ROS_INFO("Thread %c: running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells",
+                             THREAD_ID,
+                             static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count() - refine_count)
+                             / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_time).count(),
+                             static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count())
+                             / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(),
+                             singleRobot.getRost()->get_num_active_topics(),
+                             singleRobot.getRost()->get_rost().cells.size());
+                    last_time = std::chrono::steady_clock::now();
+                    refine_count = singleRobot.getRost()->get_rost().get_refine_count();
+                }
                 msg++;
             }
             singleRobot.waitForProcessing();
@@ -250,8 +269,11 @@ class MultiAgentSimulation {
         thread_pool pool(robots.size());
         for (auto i = 0ul; i < robots.size(); ++i) {
             pool.enqueue([&robots, &robotModels_, &robotMaps_, i, subsample]{
-                auto start = std::chrono::steady_clock::now();
+                auto const start = std::chrono::steady_clock::now();
+                auto last = start;
+                size_t last_refine = 0;
                 size_t n_obs = 0;
+                size_t data_size = 0;
 
                 while (true) {
                     bool const robot_active = robots[i]->next();
@@ -267,20 +289,29 @@ class MultiAgentSimulation {
                         auto token = robots[i]->getReadToken();
                         robotModels_[i].emplace_back(robots[i]->getTopicModel(*token));
                         robotMaps_[i].emplace_back(robots[i]->getDistMap(*token));
+                        data_size += robotMaps_[i].back()->bytesSize() + robotModels_[i].back().bytesSize();
                     }
 
-                    auto const refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now() - start).count();
-                    ROS_INFO_THROTTLE(10, "Robot %ld iter %ld last refine time: %ld", i, n_obs, refine_time);
-
-                    start = std::chrono::steady_clock::now();
+                    if (n_obs % 25 == 0) {
+                        auto const last_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - last).count();
+                        auto const total_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - start).count();
+                        auto const refines = static_cast<double>(robots[i]->getRost()->get_rost().get_refine_count());
+                        ROS_INFO("Robot %ld iter %ld running refine rate %f (total %f)", i, n_obs,
+                                 (refines - last_refine) / last_refine_time,
+                                 refines / total_refine_time);
+                        last = std::chrono::steady_clock::now();
+                        last_refine = refines;
+                        ROS_INFO("Iter %ld approximate simulation size: %f MB", n_obs + 1, data_size / (1024.0 * 1024.0));
+                    }
                 }
             });
         }
         pool.join();
         if (!ros::ok()) return false;
 
-        for (size_t n_obs = 1; true; ++n_obs) {
+        for (size_t n_obs = 0; true; ++n_obs) {
             bool added = false;
             robotMaps.emplace_back();
             robotMaps.back().reserve(robots.size());
@@ -294,8 +325,8 @@ class MultiAgentSimulation {
                     robotModels.back().emplace_back(std::move(robotModels_[robot_idx][n_obs]));
                 } else {
                     if (n_obs == 0) throw std::logic_error("Some robots had no maps!");
-                    robotMaps.back().push_back(std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*robotMaps[n_obs - 1][robot_idx]));
-                    robotModels.back().emplace_back(robotModels[n_obs - 1][robot_idx]);
+                    robotMaps.back().push_back(std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*(robotMaps[n_obs - subsample][robot_idx])));
+                    robotModels.back().emplace_back(robotModels[n_obs - subsample][robot_idx]);
                 }
             }
             if (!added) {
@@ -336,8 +367,8 @@ class MultiAgentSimulation {
 //                throw std::logic_error("Ground truth is missing poses!");
             }
 #endif
-            ROS_INFO("Iter %ld approximate simulation size: %f MB", n_obs, approxBytesSize() / (1024.0 * 1024.0));
         }
+        ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
         return true;
     }
 
@@ -542,7 +573,7 @@ int main(int argc, char **argv) {
                 }
                 catch (std::exception const &ex)
                 {
-                    ROS_ERROR("Simulation %ld failed.", n_done + 1);
+                    ROS_ERROR("Simulation %ld failed with error %s.", n_done + 1, ex.what());
                     continue;
                 }
                 CompressedFileWriter writer (data_filename);

@@ -66,7 +66,9 @@ class RobotSim {
         if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp != lastSegmentation->header.stamp)) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
         #ifndef NDEBUG
-        ROS_DEBUG("PROCESSING NEW OBSERVATION");
+        static char ID_LETTER = 'A';
+        thread_local char THREAD_LETTER = ID_LETTER++;
+        ROS_DEBUG("THREAD %c PROCESSING NEW OBSERVATION", THREAD_LETTER);
         ROS_DEBUG("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
         if (use_segmentation) ROS_DEBUG("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
         #endif

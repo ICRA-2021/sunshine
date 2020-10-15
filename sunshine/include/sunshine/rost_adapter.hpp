@@ -118,13 +118,13 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                          const std::vector<std::vector<int>> &init_model = {},
                          bool const broadcastMode = true)
             : newObservationCallback(std::move(callback)), stopWork(false), broadcastMode(broadcastMode) {
-        K = nh->template param<int>("K", 10); // number of topics
+        K = nh->template param<int>("K", 32); // number of topics
         V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
         int const num_levels = nh->template param<int>("num_levels", 3);
-        k_alpha = nh->template param<double>("alpha", 0.073);
-        k_beta = nh->template param<double>("beta", 0.15);
-        k_gamma = nh->template param<double>("gamma", 0);
+        k_alpha = nh->template param<double>("alpha", 0.00803958);
+        k_beta = nh->template param<double>("beta", 0.420008);
+        k_gamma = nh->template param<double>("gamma", 6.27228e-07);
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
@@ -135,8 +135,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
-        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
-        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 0);
+        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 30);
+        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 200000);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
         world_frame = nh->template param<std::string>("world_frame", "map");
 
@@ -274,6 +274,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             duration_write_lock = record_lap(time_checkpoint);
 
             auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
+            auto const old_num_cells = rost->cells.size();
             current_cell_poses.reserve(current_cell_poses.size() + words_by_cell_pose.size());
             for (auto const &entry : words_by_cell_pose) {
                 auto const &cell_pose = entry.first;
@@ -281,6 +282,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                 rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
                 current_cell_poses.push_back(cell_pose);
             }
+//            ROS_INFO_STREAM("Thread " << std::this_thread::get_id() << " added " << (rost->cells.size() - old_num_cells) << " cells (" << wordObs->observations.size() << " words)");
         }
         auto const duration_add_observations = record_lap(time_checkpoint);
         last_refine_count = rost->get_refine_count();
@@ -425,6 +427,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 
     decltype(K) get_num_topics() const {
         return K;
+    }
+
+    decltype(K) get_num_active_topics() const {
+        return rost->get_active_topics();
     }
 
     decltype(last_time) get_last_observation_time() const {
