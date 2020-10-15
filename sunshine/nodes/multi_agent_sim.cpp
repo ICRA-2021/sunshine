@@ -298,12 +298,12 @@ class MultiAgentSimulation {
                         auto const total_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - start).count();
                         auto const refines = static_cast<double>(robots[i]->getRost()->get_rost().get_refine_count());
-                        ROS_INFO("Robot %ld iter %ld running refine rate %f (total %f)", i, n_obs,
+                        ROS_INFO("Robot %ld iter %ld running refine rate %.2f cells/ms (avg %f)", i, n_obs,
                                  (refines - last_refine) / last_refine_time,
                                  refines / total_refine_time);
                         last = std::chrono::steady_clock::now();
                         last_refine = refines;
-                        ROS_INFO("Iter %ld approximate simulation size: %f MB", n_obs + 1, data_size / (1024.0 * 1024.0));
+                        ROS_INFO("Robot %ld iter %ld approximate simulation size: %f MB", i, n_obs + 1, data_size / (1024.0 * 1024.0));
                     }
                 }
             });
