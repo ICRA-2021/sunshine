@@ -112,10 +112,10 @@ struct Eval {
       ss << ", CLAHE: " << use_clahe << ", texton: " << use_texton << ", ORB: " << use_orb << '\n';
       std::cerr << ss.str() << std::flush;
       auto const result = sunshine::benchmark(bagfile, image_topic_name, segmentation_topic_name, depth_topic_name, params, sunshine::ami<4, true>, 25);
-      ss << "Number of refines: " << result.second;
-      ss << ", Score: " << result.first << "\n";
+      ss << "Cells refined: " << std::get<1>(result) << ", Words refined: " << std::get<2>(result);
+      ss << ", Score: " << std::get<0>(result) << "\n";
       std::cerr << ss.str() << std::endl;
-      return tools::make_vector(result.first);
+      return tools::make_vector(std::get<0>(result));
   }
 };
 
