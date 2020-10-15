@@ -128,15 +128,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
-        num_threads = nh->template param<int>("num_threads", 2); // beta(1,tau) is used to pick cells for refinement
+        num_threads = nh->template param<int>("num_threads", 1); // beta(1,tau) is used to pick cells for refinement
         double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
-        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 30);
-        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 200000);
+        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 40);
+        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 60000);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
         world_frame = nh->template param<std::string>("world_frame", "map");
 

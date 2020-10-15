@@ -57,6 +57,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   )
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(glog)
+if (glog_FOUND)
+    message(STATUS "Linking glog")
+    link_libraries(glog::glog)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_GLOG")
+endif()
 
 find_package(PCL REQUIRED COMPONENTS common io)
 find_package(Boost REQUIRED program_options filesystem system serialization iostreams )

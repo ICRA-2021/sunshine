@@ -19,6 +19,10 @@
 #include <iostream>
 #include <random>
 
+#ifdef USE_GLOG
+#include <glog/logging.h>
+#endif
+
 using namespace sunshine;
 using json = nlohmann::ordered_json;
 
@@ -63,7 +67,7 @@ class MultiAgentSimulation {
                                     std::string const& match_method,
                                     size_t const& n_robots,
                                     Segmentation<int, 3, int, double> const* gtMLMap = nullptr,
-                                    size_t subsample = 16,
+                                    size_t subsample = 64,
                                     bool include_individ = false,
                                     bool include_ssd = false) {
         auto const singleRobotLabels = singleRobotMLMap->toLookupMap();
@@ -292,6 +296,7 @@ class MultiAgentSimulation {
 
                     robots[i]->waitForProcessing();
                     if (n_obs % subsample == 0 || !robot_active) {
+                        if (!robot_active) ROS_INFO("Saving final map and model for robot %ld", i);
                         auto token = robots[i]->getReadToken();
                         robotModels_[i].emplace_back(robots[i]->getTopicModel(*token));
                         robotMaps_[i].emplace_back(robots[i]->getDistMap(*token));
@@ -301,7 +306,7 @@ class MultiAgentSimulation {
                         robotMaps_[i].emplace_back(nullptr);
                     }
 
-                    if (n_obs % 25 == 0) {
+                    if (n_obs % 25 == 0 && robot_active) {
                         auto const last_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now() - last).count();
                         auto const total_refine_time = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -315,12 +320,14 @@ class MultiAgentSimulation {
                         ROS_INFO("Robot %ld iter %ld approximate simulation size: %f MB", i, n_obs + 1, data_size / (1024.0 * 1024.0));
                     }
 
-                    if (!ros::ok() || !robot_active) return;
+                    if (!ros::ok() || !robot_active) break;
                     n_obs++;
                 }
+                ROS_INFO("Robot %ld finished!", i);
             });
         }
         pool.join();
+        ROS_INFO("All robots finished!")
         if (!ros::ok()) return false;
 
         for (size_t n_obs = 0; true; ++n_obs) {
@@ -333,10 +340,12 @@ class MultiAgentSimulation {
             for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
                 if (robotMaps_[robot_idx].size() > n_obs) {
                     added = true;
+                    if (!robotMaps_[robot_idx][n_obs] || robotModels_[robot_idx][n_obs].K == 0) throw std::logic_error("Did not find data for robot " + std::to_string(robot_idx) + " obs " + std::to_string(n_obs));
                     robotMaps.back().emplace_back(std::move(robotMaps_[robot_idx][n_obs]));
                     robotModels.back().emplace_back(std::move(robotModels_[robot_idx][n_obs]));
                 } else {
                     if (n_obs == 0) throw std::logic_error("Some robots had no maps!");
+                    else if (!robotMaps[n_obs - subsample][robot_idx] || robotModels[n_obs - subsample][robot_idx].K == 0) throw std::logic_error("Did not find prior data for robot " + std::to_string(robot_idx) + " obs " + std::to_string(n_obs));
                     robotMaps.back().push_back(std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*(robotMaps[n_obs - subsample][robot_idx])));
                     robotModels.back().emplace_back(robotModels[n_obs - subsample][robot_idx]);
                 }
@@ -531,6 +540,10 @@ class MultiAgentSimulation {
 BOOST_CLASS_VERSION(MultiAgentSimulation, MultiAgentSimulation::VERSION)
 
 int main(int argc, char **argv) {
+#ifdef USE_GLOG
+    google::InitGoogleLogging(argv[0]);
+    google::InstallFailureSignalHandler();
+#endif
     if (argc < 3) {
         std::cerr << "Usage: ./multi_agent_sim <record|replay> <args...>" << std::endl;
         return 1;
@@ -572,7 +585,7 @@ int main(int argc, char **argv) {
 
         std::vector<std::unique_ptr<MultiAgentSimulation>> sims;
         sims.reserve(n_trials);
-        thread_pool pool(std::max(1u, std::thread::hardware_concurrency() / (1 + nh.param<int>("num_threads", 2))));
+        thread_pool pool(std::max(1u, std::thread::hardware_concurrency() / (1 + nh.param<int>("num_threads", 1))));
         auto const batch_size = pool.size();
         assert(batch_size > 0);
         size_t n_ready = 0;
