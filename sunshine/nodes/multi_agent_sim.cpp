@@ -346,46 +346,42 @@ class MultiAgentSimulation {
         ROS_INFO("All robots finished!");
         if (!ros::ok()) return false;
 
+        auto const getMap = [&robotMaps_, subsample](size_t const robot_idx, size_t const n_obs){
+            if (robotMaps_[robot_idx].back().first <= n_obs) {
+                // copy last element
+                if (!robotMaps_[robot_idx].back().second) throw std::logic_error("No map to get!");
+                return std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*robotMaps_[robot_idx].back().second);
+            } else {
+                auto const pos = n_obs / subsample;
+                if (pos >= robotMaps_[robot_idx].size() - 1 || robotMaps_[robot_idx][pos].first != n_obs) throw std::logic_error("My map idx math is wrong");
+                else if (!robotMaps_[robot_idx][pos].second) throw std::logic_error("No map to get!");
+                return std::move(robotMaps_[robot_idx][pos].second);
+            }
+        };
+
+        auto const getModel = [&robotModels_, subsample](size_t const robot_idx, size_t const n_obs){
+            if (robotModels_[robot_idx].back().first <= n_obs) {
+                // copy last element
+                if (robotModels_[robot_idx].back().second.K == 0) throw std::logic_error("No model to get!");
+                return robotModels_[robot_idx].back().second;
+            } else {
+                auto const pos = n_obs / subsample;
+                if (pos >= robotModels_[robot_idx].size() - 1 || robotModels_[robot_idx][pos].first != n_obs) throw std::logic_error("My model idx math is wrong");
+                else if (robotModels_[robot_idx][pos].second.K == 0) throw std::logic_error("No map to get!");
+                return std::move(robotModels_[robot_idx][pos].second);
+            }
+        };
+
         robotMaps.resize(total_obs);
         robotModels.resize(total_obs);
 
-        size_t const last_idx = total_obs - 1;
-        for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
-            if (robotMaps_[robot_idx].back().first < last_idx) {
-                if (robotMaps[last_idx].empty()) {
-                    assert(robotModels[idx].empty());
-                    robotMaps[last_idx].resize(robots.size());
-                    robotModels[last_idx].resize(robots.size());
-                }
-                if (!robotMaps_[robot_idx].back().second) throw std::logic_error("Map has already been moved!");
-                if (last_idx >= robotModels.size() || robot_idx >= robotModels[last_idx].size()) throw std::logic_error("Insufficient capacity at end!");
-                robotMaps[last_idx][robot_idx] = std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*(robotMaps_[robot_idx].back().second));
-                robotModels[last_idx][robot_idx] = robotModels_[robot_idx].back().second;
-                if (robotMaps[last_idx][robot_idx]->bytesSize() != robotMaps_[robot_idx].back().second->bytesSize()) throw std::logic_error("Failed copy map");
-                if (robotModels[last_idx][robot_idx].bytesSize() != robotModels_[robot_idx].back().second.bytesSize()) throw std::logic_error("Failed copy model");
-                if (robotMaps[last_idx][robot_idx].get() == robotMaps_[robot_idx].back().second.get()) throw std::logic_error("Pointer copied instead of map");
+        for (size_t n_obs = 0; true; n_obs += subsample) {
+            if (n_obs >= total_obs) n_obs = total_obs - 1;
+            for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
+                robotMaps[n_obs].emplace_back(getMap(robot_idx, n_obs));
+                robotModels[n_obs].emplace_back(getModel(robot_idx, n_obs));
             }
-
-            for (size_t i = 0; i < robotMaps_[robot_idx].size(); ++i) {
-                auto const idx = robotMaps_[robot_idx][i].first;
-                if (idx % subsample != 0) {
-                    if (i + 1 < robotMaps_[robot_idx].size()) {
-                        ROS_ERROR("Non-subsampled map %ld should be the end (%ld)", idx, robotMaps_[robot_idx].back().first);
-                        throw std::logic_error("Non-subsampled map should only appear at end");
-                    }
-                    continue; // only needed for last_idx
-                }
-                if (robotModels_[robot_idx][i].first != idx) throw std::logic_error("robotMaps_ and robotModels_ are misaligned");
-                if (robotMaps[idx].empty()) {
-                    assert(robotModels[idx].empty());
-                    robotMaps[idx].resize(robots.size());
-                    robotModels[idx].resize(robots.size(), Phi());
-                }
-                if (!robotMaps_[robot_idx][i].second) throw std::logic_error("Map has already been moved!");
-                if (idx >= robotModels.size() || robot_idx >= robotModels[idx].size()) throw std::logic_error("Insufficient capacity!");
-                robotMaps[idx][robot_idx] = std::move(robotMaps_[robot_idx][i].second);
-                robotModels[idx][robot_idx] = robotModels_[robot_idx][i].second;
-            }
+            if (n_obs >= total_obs - 1) break;
         }
 
 #ifndef NDEBUG
