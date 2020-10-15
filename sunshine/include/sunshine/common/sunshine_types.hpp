@@ -125,7 +125,7 @@ struct Phi {
   size_t bytesSize() const {
       auto const headerSize = id.size() + sizeof(K) + sizeof(V);
       auto const weightSize = sizeof(topic_weights) + sizeof(decltype(topic_weights)::value_type) * topic_weights.capacity();
-      auto const countVecSize = sizeof(counts) + sizeof(decltype(counts)::value_type) * topic_weights.capacity();
+      auto const countVecSize = sizeof(counts) + sizeof(decltype(counts)::value_type) * counts.capacity();
       size_t countsSize = 0;
       for (auto const& c : counts) {
           countsSize += c.bytesSize();

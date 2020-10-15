@@ -208,7 +208,19 @@ class MultiAgentSimulation {
         auto const start_time = std::chrono::steady_clock::now();
         auto last_time = start_time;
         static char THREAD_COUNTER = 'A';
+        static int COLOR_COUNTER = 31;
+        if (THREAD_COUNTER > 'Z') THREAD_COUNTER = 'A';
+        if (COLOR_COUNTER > 36) COLOR_COUNTER = 31;
         thread_local const char THREAD_ID = THREAD_COUNTER++;
+        thread_local const int THREAD_COLOR = COLOR_COUNTER++;
+#define USE_COLOR
+#ifdef USE_COLOR
+        std::string const COLOR_START = "\033[1;" + std::to_string(THREAD_COLOR) + "m";
+        std::string const COLOR_RESET = "\033[0m";
+#else
+        std::string const COLOR_START = "";
+        std::string const COLOR_RESET = "";
+#endif
         for (size_t i = 0; i < bagfiles.size(); ++i) {
             singleRobot.open(bagfiles[i], image_topic, depth_topic, segmentation_topic);
             size_t msg = 0;
@@ -216,19 +228,23 @@ class MultiAgentSimulation {
                 if (!ros::ok()) return false;
                 singleRobot.waitForProcessing();
                 if (msg % 50 == 0) {
-                    ROS_INFO("Thread %c bag %ld msg %ld: refined %ld cells since last",
+                    ROS_INFO("%sThread %c bag %ld msg %ld: refined %ld cells since last%s",
+                             COLOR_START.c_str(),
                              THREAD_ID,
                              i + 1,
                              msg,
-                             singleRobot.getRost()->get_rost().get_refine_count() - refine_count);
-                    ROS_INFO("Thread %c: running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells",
+                             singleRobot.getRost()->get_rost().get_refine_count() - refine_count,
+                             COLOR_RESET.c_str());
+                    ROS_INFO("%sThread %c: running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells%s",
+                             COLOR_START.c_str(),
                              THREAD_ID,
                              static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count() - refine_count)
                              / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_time).count(),
                              static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count())
                              / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(),
                              singleRobot.getRost()->get_num_active_topics(),
-                             singleRobot.getRost()->get_rost().cells.size());
+                             singleRobot.getRost()->get_rost().cells.size(),
+                             COLOR_RESET.c_str());
                     last_time = std::chrono::steady_clock::now();
                     refine_count = singleRobot.getRost()->get_rost().get_refine_count();
                 }
@@ -238,7 +254,7 @@ class MultiAgentSimulation {
             auto token = singleRobot.getReadToken();
             singleRobotSubmaps.push_back(singleRobot.getDistMap(*token));
             singleRobotModels.push_back(singleRobot.getTopicModel(*token));
-            ROS_INFO("Saving single robot submap %ld with %ld cell refines (%ld word refines)", i, singleRobotModels.back().cell_refines, singleRobotModels.back().word_refines);
+            ROS_INFO("Saving single robot submap %ld with %ld cell refines (%ld word refines)", i + 1, singleRobotModels.back().cell_refines, singleRobotModels.back().word_refines);
 //            gtSubmaps.push_back(std::make_unique<Segmentation<std::vector<int>, 3, int, double>>(*singleRobot.getGTMap()));
         }
         singleRobot.pause();
@@ -257,6 +273,7 @@ class MultiAgentSimulation {
         ParamPassthrough<ParamServer> paramPassthrough(this, &nh);
         if (!singleRobotMap) record_single_robot(nh); // needed to setup the sharedSegmentationAdapter
         assert(singleRobotMap && sharedSegmentationAdapter);
+        if (robotMaps.size() > 0 || robotModels.size() > 0) throw std::logic_error("Already recorded!");
 
         std::set<std::array<int, 3>> single_robot_poses;
         for (auto const& pose : singleRobotMap->observation_poses) {
@@ -275,12 +292,13 @@ class MultiAgentSimulation {
             //        map_pubs.push_back(nh.advertise<sunshine_msgs::TopicMap>("/" + robots.back()->getName() + "/map", 0));
         }
 
-        decltype(robotModels) robotModels_{robots.size()};
-        decltype(robotMaps) robotMaps_{robots.size()};
+        std::vector<std::vector<std::pair<size_t, Phi>>> robotModels_{robots.size()};
+        std::vector<std::vector<std::pair<size_t, std::unique_ptr<Segmentation<std::vector<int>, 4, int, double>>>>> robotMaps_{robots.size()};
+        size_t total_obs = 0;
 
         thread_pool pool(robots.size());
         for (auto i = 0ul; i < robots.size(); ++i) {
-            pool.enqueue([&robots, &robotModels_, &robotMaps_, i, subsample]{
+            pool.enqueue([&robots, &robotModels_, &robotMaps_, &total_obs, i, subsample]{
                 auto const start = std::chrono::steady_clock::now();
                 auto last = start;
                 size_t last_refine = 0;
@@ -296,14 +314,11 @@ class MultiAgentSimulation {
 
                     robots[i]->waitForProcessing();
                     if (n_obs % subsample == 0 || !robot_active) {
-                        if (!robot_active) ROS_INFO("Saving final map and model for robot %ld", i);
+                        if (!robot_active) ROS_INFO("Saving final map (#%ld) and model for robot %ld", n_obs, i);
                         auto token = robots[i]->getReadToken();
-                        robotModels_[i].emplace_back(robots[i]->getTopicModel(*token));
-                        robotMaps_[i].emplace_back(robots[i]->getDistMap(*token));
-                        data_size += robotMaps_[i].back()->bytesSize() + robotModels_[i].back().bytesSize();
-                    } else {
-                        robotModels_[i].emplace_back();
-                        robotMaps_[i].emplace_back(nullptr);
+                        robotModels_[i].emplace_back(n_obs, robots[i]->getTopicModel(*token));
+                        robotMaps_[i].emplace_back(n_obs, robots[i]->getDistMap(*token));
+                        data_size += robotMaps_[i].back().second->bytesSize() + robotModels_[i].back().second.bytesSize();
                     }
 
                     if (n_obs % 25 == 0 && robot_active) {
@@ -320,9 +335,10 @@ class MultiAgentSimulation {
                         ROS_INFO("Robot %ld iter %ld approximate simulation size: %f MB", i, n_obs + 1, data_size / (1024.0 * 1024.0));
                     }
 
-                    if (!ros::ok() || !robot_active) break;
                     n_obs++;
+                    if (!ros::ok() || !robot_active) break;
                 }
+                total_obs = (n_obs > total_obs) ? n_obs : total_obs;
                 ROS_INFO("Robot %ld finished!", i);
             });
         }
@@ -330,65 +346,82 @@ class MultiAgentSimulation {
         ROS_INFO("All robots finished!");
         if (!ros::ok()) return false;
 
-        for (size_t n_obs = 0; true; ++n_obs) {
-            bool added = false;
-            robotMaps.emplace_back();
-            robotMaps.back().reserve(robots.size());
-            robotModels.emplace_back();
-            robotModels.back().reserve(robots.size());
-            if (n_obs % subsample != 0 && n_obs + 1 < robotModels_[0].size()) continue;
-            for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
-                if (robotMaps_[robot_idx].size() > n_obs) {
-                    added = true;
-                    if (!robotMaps_[robot_idx][n_obs] || robotModels_[robot_idx][n_obs].K == 0) throw std::logic_error("Did not find data for robot " + std::to_string(robot_idx) + " obs " + std::to_string(n_obs));
-                    robotMaps.back().emplace_back(std::move(robotMaps_[robot_idx][n_obs]));
-                    robotModels.back().emplace_back(std::move(robotModels_[robot_idx][n_obs]));
-                } else {
-                    if (n_obs == 0) throw std::logic_error("Some robots had no maps!");
-                    else if (!robotMaps[n_obs - subsample][robot_idx] || robotModels[n_obs - subsample][robot_idx].K == 0) throw std::logic_error("Did not find prior data for robot " + std::to_string(robot_idx) + " obs " + std::to_string(n_obs));
-                    robotMaps.back().push_back(std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*(robotMaps[n_obs - subsample][robot_idx])));
-                    robotModels.back().emplace_back(robotModels[n_obs - subsample][robot_idx]);
+        robotMaps.resize(total_obs);
+        robotModels.resize(total_obs);
+
+        size_t const last_idx = total_obs - 1;
+        for (size_t robot_idx = 0; robot_idx < robots.size(); ++robot_idx) {
+            if (robotMaps_[robot_idx].back().first < last_idx) {
+                if (robotMaps[last_idx].empty()) {
+                    assert(robotModels[idx].empty());
+                    robotMaps[last_idx].resize(robots.size());
+                    robotModels[last_idx].resize(robots.size());
                 }
+                if (!robotMaps_[robot_idx].back().second) throw std::logic_error("Map has already been moved!");
+                if (last_idx >= robotModels.size() || robot_idx >= robotModels[last_idx].size()) throw std::logic_error("Insufficient capacity at end!");
+                robotMaps[last_idx][robot_idx] = std::make_unique<Segmentation<std::vector<int>, 4, int, double>>(*(robotMaps_[robot_idx].back().second));
+                robotModels[last_idx][robot_idx] = robotModels_[robot_idx].back().second;
+                if (robotMaps[last_idx][robot_idx]->bytesSize() != robotMaps_[robot_idx].back().second->bytesSize()) throw std::logic_error("Failed copy map");
+                if (robotModels[last_idx][robot_idx].bytesSize() != robotModels_[robot_idx].back().second.bytesSize()) throw std::logic_error("Failed copy model");
+                if (robotMaps[last_idx][robot_idx].get() == robotMaps_[robot_idx].back().second.get()) throw std::logic_error("Pointer copied instead of map");
             }
-            if (!added) {
-                robotMaps.pop_back();
-                robotModels.pop_back();
-                break;
+
+            for (size_t i = 0; i < robotMaps_[robot_idx].size(); ++i) {
+                auto const idx = robotMaps_[robot_idx][i].first;
+                if (idx % subsample != 0) {
+                    if (i + 1 < robotMaps_[robot_idx].size()) {
+                        ROS_ERROR("Non-subsampled map %ld should be the end (%ld)", idx, robotMaps_[robot_idx].back().first);
+                        throw std::logic_error("Non-subsampled map should only appear at end");
+                    }
+                    continue; // only needed for last_idx
+                }
+                if (robotModels_[robot_idx][i].first != idx) throw std::logic_error("robotMaps_ and robotModels_ are misaligned");
+                if (robotMaps[idx].empty()) {
+                    assert(robotModels[idx].empty());
+                    robotMaps[idx].resize(robots.size());
+                    robotModels[idx].resize(robots.size(), Phi());
+                }
+                if (!robotMaps_[robot_idx][i].second) throw std::logic_error("Map has already been moved!");
+                if (idx >= robotModels.size() || robot_idx >= robotModels[idx].size()) throw std::logic_error("Insufficient capacity!");
+                robotMaps[idx][robot_idx] = std::move(robotMaps_[robot_idx][i].second);
+                robotModels[idx][robot_idx] = robotModels_[robot_idx][i].second;
             }
+        }
+
 #ifndef NDEBUG
-            for (auto const &map : robotMaps.back()) {
-                std::set<std::array<int, 3>> map_poses;
-                for (auto const &pose : map->observation_poses) {
-                    uint32_t const offset = pose.size() == 4;
-                    map_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
-                }
-                if (!includes(single_robot_poses, map_poses)) {
-                    std::vector<std::array<int, 3>> diff_poses;
-                    std::set_difference(map_poses.begin(),
-                                        map_poses.end(),
-                                        single_robot_poses.begin(),
-                                        single_robot_poses.end(),
-                                        std::back_inserter(diff_poses));
-                    ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
-//                throw std::logic_error("Ground truth is missing poses!");
-                }
-            }
-            auto const merged_map = merge_segmentations(robotMaps.back());
-            std::set<std::array<int, 3>> merged_poses;
-            for (auto const &pose : merged_map->observation_poses) {
+        for (auto const &map : robotMaps.back()) {
+            std::set<std::array<int, 3>> map_poses;
+            for (auto const &pose : map->observation_poses) {
                 uint32_t const offset = pose.size() == 4;
-                merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+                map_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
             }
-            if (!includes(*gtPoses, merged_poses)) {
+            if (!includes(single_robot_poses, map_poses)) {
+                std::vector<std::array<int, 3>> diff_poses;
+                std::set_difference(map_poses.begin(),
+                                    map_poses.end(),
+                                    single_robot_poses.begin(),
+                                    single_robot_poses.end(),
+                                    std::back_inserter(diff_poses));
                 ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
 //                throw std::logic_error("Ground truth is missing poses!");
             }
-            if (!includes(single_robot_poses, merged_poses)) {
-                ROS_ERROR("Single robot poses are missing merged poses at obs %lu!", n_obs);
-//                throw std::logic_error("Ground truth is missing poses!");
-            }
-#endif
         }
+        auto const merged_map = merge_segmentations(robotMaps.back());
+        std::set<std::array<int, 3>> merged_poses;
+        for (auto const &pose : merged_map->observation_poses) {
+            uint32_t const offset = pose.size() == 4;
+            merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
+        }
+        if (!includes(*gtPoses, merged_poses)) {
+            ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
+//                throw std::logic_error("Ground truth is missing poses!");
+        }
+        if (!includes(single_robot_poses, merged_poses)) {
+            ROS_ERROR("Single robot poses are missing merged poses at obs %lu!", n_obs);
+//                throw std::logic_error("Ground truth is missing poses!");
+        }
+#endif
+
         ROS_INFO("Approximate simulation size: %f MB", approxBytesSize() / (1024.0 * 1024.0));
         return true;
     }
@@ -526,7 +559,8 @@ class MultiAgentSimulation {
         size_t robotModelsSize = 0;
         for (size_t i = 0ul; i < robotMaps.size(); ++i) {
             for (size_t j = 0ul; j < robotMaps[i].size(); ++j) {
-                robotMapsSize += robotMaps[i][j]->bytesSize();
+                if (robotMaps[i].size() != robotModels[i].size()) throw std::logic_error("Misaligned robotMaps and robotModels");
+                robotMapsSize += (robotMaps[i][j]) ? robotMaps[i][j]->bytesSize() : 0;
                 robotModelsSize += robotModels[i][j].bytesSize();
             }
         }
@@ -611,7 +645,7 @@ int main(int argc, char **argv) {
                 ROS_INFO("Starting simulation %ld", n_done + 1);
                 try
                 {
-                    if (!sims[n_done]->record(nh, nh.param<int>("subsample_results", 1))) throw std::runtime_error ("Simulation aborted");
+                    if (!sims[n_done]->record(nh, nh.param<int>("subsample_results", 4))) throw std::runtime_error ("Simulation aborted");
                 }
                 catch (std::exception const &ex)
                 {
