@@ -7,31 +7,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
 
-# with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
-with open('/home/stewart/workspace/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601584122/seg-results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601604706/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601672384/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601906632/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601942571/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601968132/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1601968132/clear-0.25/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602044237/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602344955/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602344955/clear-0.5/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602344955/fixed/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602516243/seg-results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602516243/clear-0.5-new/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602558424/fixed/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602592176/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602609381/seg-results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602650022/results.json') as test_file:
-# with open('/data/stewart/multiagent-sim-results/1602743683/results.json') as test_file:
-    data = json.load(test_file)
-
 def onehot(n, x):
     z = np.zeros(n)
     z[x] = 1
@@ -120,104 +95,221 @@ def heatmap(M, counts):
     fig.tight_layout()
     plt.show()
 
+# with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
+# with open('/home/stewart/workspace/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601584122/seg-results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601604706/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601672384/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601906632/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601942571/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601968132/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1601968132/clear-0.25/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602044237/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602344955/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602344955/clear-0.5/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602344955/fixed/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602516243/seg-results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602516243/clear-0.5-new/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602558424/fixed/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602592176/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602609381/seg-results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602650022/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602743683/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602793971/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602793971-combined/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602794275/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602801949/results.json') as test_file:
+with open('/data/stewart/multiagent-sim-results/1602806640/results.json') as test_file:
+    data = json.load(test_file)
+
+show_graphs = False
+method_name = {
+    "id": "ID Based Matching",
+    "hungarian-l1": "Hungarian (TVD)",
+    "clear-l1": None, #"CLEAR (TVD)",
+    "clear-l1-0.25": "CLEAR (TVD, 0.25 Threshold)",
+    "clear-l1-0.5": "CLEAR (TVD, 0.5 Threshold)",
+    "Single Robot": "Single Robot",
+    "Single Robot Post Processed 0.5": "Single Robot w/ CLEAR",
+    "Single Robot Post Processed 0.25": None,#"Single Robot w/ CLEAR",
+}
+
+plt.rc('figure', figsize=(6.0, 5.0))
 csv_rows = []
 final_distances = {}
+row = OrderedDict()
 for experiment in data:
     n_robots = experiment["Number of Robots"]
     sr_gt_ami = experiment["Single Robot GT-AMI"]
-    keep_keys = ["Number of Observations", "Unique Topics", "SR-AMI", "GT-AMI", "Number of Cells"]
+    keep_keys = ["Unique Topics", "SR-AMI", "GT-AMI", "Number of Cells"]
     for method in experiment["Match Results"].keys():
+        # print(method)
         for trial in experiment["Match Results"][method]:
-            row = OrderedDict()
-            row["Number of Robots"] = n_robots
+            if method not in method_name:
+                raise LookupError(method)
+            row["Method"] = method_name[method]
+            if row["Method"] is None:
+                continue
+            row["# of Robots"] = n_robots
+            row["Mean Silhouette Index"] = sum([s for s in trial["Silhouette Indices"] if s < 1.0]) / sum([1 for s in trial["Silhouette Indices"] if s < 1.0])
+            row["Mean Davies-Bouldin Index"] = sum([s for s in trial["Davies-Bouldin Indices"] if s < 1.0]) / len(trial["Davies-Bouldin Indices"])
+            row["# of Observations"] = trial["Number of Observations"]
             row["Single Robot GT-AMI"] = sr_gt_ami
-            row["Method"] = method
             for k in keep_keys:
                 row[k] = trial[k]
             # print(row)
-            csv_rows.append(row)
-        print(csv_rows[-1])
+            csv_rows.append(row.copy())
+        # print(csv_rows[-1])
     row = row.copy()
     row.pop("SR-AMI")
-    row["Method"] = "Single Robot"
+    row["Method"] = method_name["Single Robot"]
     row["GT-AMI"] = sr_gt_ami
-    csv_rows.append(row)
+    csv_rows.append(row.copy())
     try:
         row = row.copy()
-        row["Method"] = "Single Robot Post Processed 0.5"
+        row["Method"] = method_name["Single Robot Post Processed 0.5"]
         srpp_gt_ami = experiment["Single Robot Post GT-AMI"]
         row["GT-AMI"] = srpp_gt_ami
-        csv_rows.append(row)
+        csv_rows.append(row.copy())
         row = row.copy()
-        row["Method"] = "Single Robot Post Processed 0.25"
+        row["Method"] = method_name["Single Robot Post Processed 0.25"]
         srpp_gt_ami = experiment["Single Robot + CLEAR (0.25) GT-AMI"]
         row["GT-AMI"] = srpp_gt_ami
-        csv_rows.append(row)
+        csv_rows.append(row.copy())
     except:
         pass
-    if n_robots not in final_distances:
-        final_distances[n_robots] = []
-    # Sim = np.array(experiment["clear-l1"]["Final Distances"])
-    # A = Sim - np.diag(np.diag(Sim))
-    # d = np.sum(A, axis=0)
-    # D = np.diag(d)
-    # L = D - A
-    # Abin = (A >= 0.5).astype(np.int)
-    # Dbin = np.diag(np.sum(A, axis=0))
-    # Lbin = Dbin - Abin
-    # m1 = clear_estimate(D, L)
-    # m2 = clear_estimate(Dbin, Lbin)
-    # m3 = new_clear_estimate(d, L)
-    # if n_robots == 12 and False:
-    #     Sim_reduced = Sim[0, :].reshape((1, -1))
-    #     counts = []
-    #     counter = 1
-    #     for r in range(1, Sim.shape[0]):
-    #         if r % int(experiment["Parameters"]["K"]) == 0:
-    #             counts.append(counter)
-    #             counter = 0
-    #         if Sim[r, :r].max() < 1 and (r + 1 == Sim.shape[0] or Sim[r, r+1:].max() < 1):
-    #             Sim_reduced = np.concatenate((Sim_reduced, Sim[r, :].reshape((1, -1))), axis=0)
-    #             counter += 1
-    #     if counter > 0:
-    #         counts.append(counter)
-    #     for c in range(Sim_reduced.shape[1] - 1, -1, -1):
-    #         if Sim_reduced[:, c].max() == 0:
-    #             Sim_reduced = np.concatenate((Sim_reduced[:, :c], Sim_reduced[:, c+1:]), axis=1)
-    #     heatmap(Sim_reduced, counts)
-    # final_distances[n_robots].append(Sim)
+    if n_robots == 4 and show_graphs:
+        if n_robots not in final_distances:
+            final_distances[n_robots] = []
+        Sim = np.array(experiment["Final Distances"]["clear-l1-0.5"])
+        A = Sim - np.diag(np.diag(Sim))
+        # d = np.sum(A, axis=0)
+        # D = np.diag(d)
+        # L = D - A
+        Abin = (A >= 0.5).astype(np.int)
+        # Dbin = np.diag(np.sum(A, axis=0))
+        # Lbin = Dbin - Abin
+        # m1 = clear_estimate(D, L)
+        # m2 = clear_estimate(Dbin, Lbin)
+        # m3 = new_clear_estimate(d, L)
 
-    # G = nx.from_numpy_matrix(A)
-    # nx.draw(G)
-    # plt.title("M1")
-    # plt.show()
-    #
-    # G = nx.from_numpy_matrix(Abin)
-    # nx.draw(G)
-    # plt.title("M2")
-    # plt.show()
+        Sim_reduced = Sim[0, :].reshape((1, -1))
+        counts = []
+        counter = 1
+        for r in range(1, Sim.shape[0]):
+            if r % int(experiment["Parameters"]["K"]) == 0:
+                counts.append(counter)
+                counter = 0
+            if Sim[r, :r].max() < 1 and (r + 1 == Sim.shape[0] or Sim[r, r+1:].max() < 1):
+                Sim_reduced = np.concatenate((Sim_reduced, Sim[r, :].reshape((1, -1))), axis=0)
+                counter += 1
+        if counter > 0:
+            counts.append(counter)
+        for c in range(Sim_reduced.shape[1] - 1, -1, -1):
+            if Sim_reduced[:, c].max() == 0:
+                Sim_reduced = np.concatenate((Sim_reduced[:, :c], Sim_reduced[:, c+1:]), axis=1)
+        heatmap(Sim_reduced, counts)
+
+        G = nx.from_numpy_matrix(Abin)
+        nx.draw(G, pos=nx.spring_layout(G, k=0.2, iterations=50))
+        plt.title("Topic Correspondences")
+        plt.show()
+        pass
+        #
+        # G = nx.from_numpy_matrix(Abin)
+        # nx.draw(G)
+        # plt.title("M2")
+        # plt.show()
+        # final_distances[n_robots].append(Sim)
 df = pd.DataFrame(csv_rows)
 df[r"Coverage (m$^2$) $\times$ GT-AMI Score"] = df["GT-AMI"] * df["Number of Cells"] / df["Number of Cells"].max()
-# print(df)
-ax = sns.lineplot("Number of Robots", "SR-AMI", hue="Method", ci=95, data=df[df["Number of Observations"] == df["Number of Observations"].max()])
-ax.set_ylim(0, None)
+
+# plt.rc('font', size=24)
+plt.rc('figure', figsize=(16.0, 9.0))
+sns.set(style="whitegrid", font_scale=2.25)
+
+ax = sns.lineplot("# of Robots", "GT-AMI", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+# ax.set_ylim(0, None)
+# plt.grid(True, which='both', axis='both')
 plt.xlabel("Number of Merged Maps")
+ax.set_xlim(1, 12)
+plt.ylabel("AMI Score")
+leg = ax.legend(loc="lower left")
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.title("Merged Map Quality vs. # of Maps Merged", fontsize=28)
+plt.savefig("gt-ami.png")
 plt.show()
-ax = sns.lineplot("Number of Robots", "GT-AMI", hue="Method", ci=95, data=df[df["Number of Observations"] == df["Number of Observations"].max()])
-ax.set_ylim(0, None)
+ax = sns.lineplot("# of Robots", r"Coverage (m$^2$) $\times$ GT-AMI Score", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+# ax.set_ylim(0, None)
+# plt.grid(True, which='both', axis='both')
 plt.xlabel("Number of Merged Maps")
-plt.title("Merged Map Quality vs. # of Maps Merged")
+plt.ylabel(r"Coverage (m$^2$) $\times$ AMI Score")
+ax.set_xlim(1, 12)
+plt.title("Value of Merged Map vs. # of Maps Merged", fontsize=28)
+leg = ax.legend()
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.savefig("scaled-gt-ami.png")
 plt.show()
-ax = sns.lineplot("Number of Robots", r"Coverage (m$^2$) $\times$ GT-AMI Score", hue="Method", ci=95, data=df[df["Number of Observations"] == df["Number of Observations"].max()])
-ax.set_ylim(0, None)
+
+df = df[df["Method"] != "Single Robot"]
+df = df[df["Method"] != "Single Robot w/ CLEAR"]
+ax = sns.lineplot("# of Robots", "SR-AMI", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+# ax.set_ylim(0, None)
+# plt.grid(True, which='both', axis='both')
 plt.xlabel("Number of Merged Maps")
-plt.title("Estimated Value of Merged Map")
+plt.ylabel("AMI with Single Robot")
+ax.set_xlim(1, 12)
+plt.title("Similarity to Single Robot vs. # of Maps Merged", fontsize=28)
+leg = ax.legend()
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.savefig("sr-ami.png")
 plt.show()
-g = sns.FacetGrid(df, col="Number of Robots", col_wrap=4)
-g.map(sns.lineplot, "Number of Observations", "GT-AMI", hue="Method", ci='sd', data=df)
+
+ax = sns.lineplot("# of Robots", r"Mean Silhouette Index", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+# ax.set_ylim(0, None)
+# plt.grid(True, which='both', axis='both')
+plt.xlabel("Number of Merged Maps")
+ax.set_xlim(2, 12)
+plt.ylabel("Silhouette Index (Higher is Better)")
+plt.title("Silhouette Index vs. # of Maps Merged", fontsize=28)
+leg = ax.legend()
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.savefig("silhouette.png")
 plt.show()
-g = sns.FacetGrid(df, col="Number of Robots", col_wrap=4)
-g.map(sns.lineplot, "Number of Observations", "Unique Topics", hue="Method", ci='sd', data=df)
+
+ax = sns.lineplot("# of Robots", r"Mean Davies-Bouldin Index", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+# ax.set_ylim(0, None)
+# plt.grid(True, which='both', axis='both')
+plt.ylabel("Davies-Bouldin Index (Lower is Better)")
+plt.xlabel("Number of Merged Maps")
+ax.set_xlim(2, 12)
+# plt.yscale('log')
+plt.title("Davies-Bouldin Index vs. # of Maps Merged", fontsize=28)
+leg = ax.legend()
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.savefig("davies-bouldin.png")
+plt.show()
+
+
+sns.set(style="whitegrid", font_scale=1.5)
+
+g = sns.FacetGrid(df, col="# of Robots", col_wrap=4)
+g.map(sns.lineplot, "# of Observations", "GT-AMI", hue="Method", ci='sd', data=df)
+g.set(xlim=(0, None))
+plt.savefig("gt-ami-obs.png")
+plt.show()
+g = sns.FacetGrid(df, col="# of Robots", col_wrap=4)
+g.map(sns.lineplot, "# of Observations", "Unique Topics", hue="Method", ci='sd', data=df)
+g.set(xlim=(0, None))
+plt.savefig("topics-obs.png")
 plt.show()
 # sns.lineplot("Number of Observations", "SR-AMI", style="Number of Robots", hue="Method", ci=95, data=df)
 # plt.show()
