@@ -18,6 +18,8 @@ namespace sunshine {
 template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 template<typename L, typename R = L> using DistanceMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 
+static double const FP_TOLERANCE = 2e-3;
+
 double unit_round(double value, double epsilon = 2e-3) {
     if (value >= 0 && value <= 1) return value;
     if (std::abs(value) <= epsilon) return 0;
@@ -215,7 +217,7 @@ double gaussian_kernel_similarity(std::vector<T> const &v, std::vector<T> const 
 }
 
 template<typename T>
-double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+double inline l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     double distance = 0.0;
     double diff;
@@ -235,8 +237,15 @@ double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scal
 }
 
 template<typename T>
-double l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+double inline l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return 1 - l1_distance(v, w, scale_v, scale_w);
+}
+
+template<typename T>
+double inline adjusted_topic_overlap(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    // TODO 0.051 IS ONLY VALID FOR BETA~=0.04 AND LARGE(ISH) V
+    double constexpr scale = 1. / (1 - 0.051);
+    return std::max(0.0, (l1_similarity(v, w, scale_v, scale_w) - 0.051) * scale);
 }
 
 template<typename T>
@@ -608,12 +617,11 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     assert(i + fi < totalNumTopics && j + fj < totalNumTopics);
                     results.distances[i + fi][j + fj] = sim;
                     results.distances[j + fj][i + fi] = sim;
-                    double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
-                        throw std::logic_error("Invalid entries in similarity matrix!");
-                    } else { matrix(fi, fj) = unit_round(matrix(fi, fj), tolerance); }
+                        throw std::logic_error("Infinite entries in similarity matrix!");
+                    } else { matrix(fi, fj) = unit_round(matrix(fi, fj), FP_TOLERANCE); }
                     if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
-                        if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
+                        if (std::abs(matrix(fi, fj) - 1.0) <= FP_TOLERANCE) { matrix(fi, fj) = 1.; }
                         else {
                             throw std::logic_error("Invalid entries in similarity matrix!");
                         }
@@ -691,6 +699,8 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
     } else if (method == "clear-l1") {
         return clear_matching(topic_models, l1_similarity<int>, false);
+    } else if (method == "clear-ato") {
+        return clear_matching(topic_models, adjusted_topic_overlap<int>, false);
     } else if (method == "clear-l1-0.25") {
         return clear_matching(topic_models, l1_similarity<int>, false, 0.25);
     } else if (method == "clear-l1-0.5") {

@@ -207,20 +207,6 @@ class MultiAgentSimulation {
         size_t refine_count = 0;
         auto const start_time = std::chrono::steady_clock::now();
         auto last_time = start_time;
-        static char THREAD_COUNTER = 'A';
-        static int COLOR_COUNTER = 31;
-        if (THREAD_COUNTER > 'Z') THREAD_COUNTER = 'A';
-        if (COLOR_COUNTER > 36) COLOR_COUNTER = 31;
-        thread_local const char THREAD_ID = THREAD_COUNTER++;
-        thread_local const int THREAD_COLOR = COLOR_COUNTER++;
-#define USE_COLOR
-#ifdef USE_COLOR
-        std::string const COLOR_START = "\033[1;" + std::to_string(THREAD_COLOR) + "m";
-        std::string const COLOR_RESET = "\033[0m";
-#else
-        std::string const COLOR_START = "";
-        std::string const COLOR_RESET = "";
-#endif
         for (size_t i = 0; i < bagfiles.size(); ++i) {
             singleRobot.open(bagfiles[i], image_topic, depth_topic, segmentation_topic);
             size_t msg = 0;
@@ -228,23 +214,17 @@ class MultiAgentSimulation {
                 if (!ros::ok()) return false;
                 singleRobot.waitForProcessing();
                 if (msg % 50 == 0) {
-                    ROS_INFO("%sThread %c bag %ld msg %ld: refined %ld cells since last%s",
-                             COLOR_START.c_str(),
-                             THREAD_ID,
+                    ROS_INFO(threadString("Bag %ld msg %ld: refined %ld cells since last").c_str(),
                              i + 1,
                              msg,
-                             singleRobot.getRost()->get_rost().get_refine_count() - refine_count,
-                             COLOR_RESET.c_str());
-                    ROS_INFO("%sThread %c: running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells%s",
-                             COLOR_START.c_str(),
-                             THREAD_ID,
+                             singleRobot.getRost()->get_rost().get_refine_count() - refine_count);
+                    ROS_INFO(threadString("Running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells").c_str(),
                              static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count() - refine_count)
                              / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_time).count(),
                              static_cast<double>(singleRobot.getRost()->get_rost().get_refine_count())
                              / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_time).count(),
                              singleRobot.getRost()->get_num_active_topics(),
-                             singleRobot.getRost()->get_rost().cells.size(),
-                             COLOR_RESET.c_str());
+                             singleRobot.getRost()->get_rost().cells.size());
                     last_time = std::chrono::steady_clock::now();
                     refine_count = singleRobot.getRost()->get_rost().get_refine_count();
                 }
@@ -398,7 +378,7 @@ class MultiAgentSimulation {
                                     single_robot_poses.begin(),
                                     single_robot_poses.end(),
                                     std::back_inserter(diff_poses));
-                ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
+                ROS_ERROR("Ground truth is missing merged poses!");
 //                throw std::logic_error("Ground truth is missing poses!");
             }
         }
@@ -409,11 +389,11 @@ class MultiAgentSimulation {
             merged_poses.insert({pose[offset], pose[1 + offset], pose[2 + offset]});
         }
         if (!includes(*gtPoses, merged_poses)) {
-            ROS_ERROR("Ground truth is missing merged poses at obs %lu!", n_obs);
+            ROS_ERROR("Ground truth is missing merged poses!");
 //                throw std::logic_error("Ground truth is missing poses!");
         }
         if (!includes(single_robot_poses, merged_poses)) {
-            ROS_ERROR("Single robot poses are missing merged poses at obs %lu!", n_obs);
+            ROS_ERROR("Single robot poses are missing merged poses!");
 //                throw std::logic_error("Ground truth is missing poses!");
         }
 #endif
@@ -588,7 +568,7 @@ int main(int argc, char **argv) {
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
     auto const results_filename = output_prefix + file_prefix + "results.json";
 
-    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1", "clear-l1-0.25", "clear-l1-0.5"};
+    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1", "clear-l1-0.5", "hungarian-ato", "clear-ato"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
     if (!methods_str.empty()) {
         match_methods = sunshine::split(methods_str, ',');
@@ -675,7 +655,7 @@ int main(int argc, char **argv) {
     auto const map_box = nh.param<std::string>("box", "-150x-150x300x300");
     auto const parallel_match = nh.param<bool>("parallel_match", false);
     size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
-    size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 1);
+    size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 2);
     size_t const max_parallel_sim = std::min(cap_parallel_sim, std::max(1ul, std::thread::hardware_concurrency() / n_parallel_match));
     auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", true);
     std::mutex simMutex;

@@ -347,7 +347,7 @@ std::tuple<double, size_t, size_t> benchmark(std::string const &bagfile,
         auto rgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
         auto segmentation = std::make_unique<ImageObservation>(fromRosMsg(lastSeg));
 
-        rostAdapter.wait_for_processing(false);
+        if (count > 0) rostAdapter.wait_for_processing(false);
         auto topicsFuture = wordTransformAdapter(rgb >> visualWordAdapter >> wordDepthAdapter, transform) >> rostAdapter;
         auto gtSeg = imageTransformAdapter(segmentation >> imageDepthAdapter, transform) >> segmentationAdapter;
 
@@ -358,6 +358,12 @@ std::tuple<double, size_t, size_t> benchmark(std::string const &bagfile,
             av_metric = (av_metric * (count - warmup) + result) / (count - warmup + 1);
         }
         count += 1;
+
+        if (count == warmup + 1) {
+            std::cout << threadString("Finished warmup.") << std::endl;
+        } else if (count % 100 == 0) {
+            std::cout << threadString("Processed observations: ") << count << std::endl;
+        }
         return count >= max_iter;
     };
 
