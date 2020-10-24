@@ -4,7 +4,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from tqdm import trange
 
-beta = 4e-2
+beta = 0.04
 V = 15436
 n_samples = 500
 
@@ -20,9 +20,17 @@ print(np.mean(data), np.std(data))
 print(np.mean(np.log10(data)), np.std(np.log10(data)))
 print(np.mean(np.log10(1 - data)), np.std(np.log10(1 - data)))
 
-# plt.figure()
-# plt.hist(data, bins=20)
-# plt.show()
+beta_model = stats.beta.fit(data)
+print(beta_model)
+
+xs = np.linspace(0, 1, num=1000)
+
+beta_pdf = stats.beta.pdf(xs, *beta_model)
+
+plt.figure()
+plt.hist(data, bins=20, density=True)
+plt.plot(xs, beta_pdf)
+plt.show()
 
 # plt.figure()
 # sns.distplot(data, fit=stats.norm)
@@ -30,4 +38,10 @@ print(np.mean(np.log10(1 - data)), np.std(np.log10(1 - data)))
 
 plt.figure()
 sns.distplot(data, fit=stats.lognorm)
+plt.title('Log-Normal Fit')
+plt.show()
+
+plt.figure()
+sns.distplot(data, fit=stats.beta)
+plt.title('Beta Fit')
 plt.show()

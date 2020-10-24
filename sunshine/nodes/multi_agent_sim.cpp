@@ -67,7 +67,7 @@ class MultiAgentSimulation {
                                     std::string const& match_method,
                                     size_t const& n_robots,
                                     Segmentation<int, 3, int, double> const* gtMLMap = nullptr,
-                                    size_t subsample = 64,
+                                    size_t subsample = 128,
                                     bool include_individ = false,
                                     bool include_ssd = false) {
         auto const singleRobotLabels = singleRobotMLMap->toLookupMap();
@@ -101,6 +101,11 @@ class MultiAgentSimulation {
             match_result["Mean-Square Cluster Distances"] = scores.mscd;
             match_result["Silhouette Indices"] = scores.silhouette;
             match_result["Davies-Bouldin Indices"] = scores.davies_bouldin;
+
+            match_scores const cos_scores(models, correspondences.lifting, cosine_distance<double>);
+            match_result["Mean-Square Cluster Cos Distances"] = cos_scores.mscd;
+            match_result["Cos Silhouette Indices"] = cos_scores.silhouette;
+            match_result["Cos Davies-Bouldin Indices"] = cos_scores.davies_bouldin;
 
             uint32_t matched = 0;
             for (auto const size : scores.cluster_sizes) { matched += (size > 1); }
@@ -568,7 +573,7 @@ int main(int argc, char **argv) {
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
     auto const results_filename = output_prefix + file_prefix + "results.json";
 
-    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1", "clear-l1-0.5", "hungarian-ato", "clear-ato"};
+    std::vector<std::string> match_methods = {"id", "hungarian-l1", "clear-l1-0.5", "clear-l1-0.75", "clear-cos-0.5", "clear-cos-0.75", "clear-cos-auto"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
     if (!methods_str.empty()) {
         match_methods = sunshine::split(methods_str, ',');
@@ -605,12 +610,12 @@ int main(int argc, char **argv) {
         {
             for (size_t i = 0; i < batch_size && n_ready < n_trials; ++i, ++n_ready)
             {
-                std::shuffle(bagfiles.begin(), bagfiles.end(), rng);
                 sims.push_back (std::make_unique<MultiAgentSimulation> (bagfiles,
                                                                         image_topic_name,
                                                                         depth_topic_name,
                                                                         segmentation_topic_name));
                 pool.enqueue([ptr = sims.back ().get (), &nh] { ptr->record_single_robot(nh); });
+                std::rotate(bagfiles.begin(), bagfiles.begin() + 1, bagfiles.end());
             }
             pool.join ();
 

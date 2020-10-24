@@ -6,6 +6,10 @@ from collections import OrderedDict
 import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
+from scipy.stats import beta, norm
+from scipy.special import logit, expit
+
+from sklearn.mixture import GaussianMixture
 
 def onehot(n, x):
     z = np.zeros(n)
@@ -96,7 +100,7 @@ def heatmap(M, counts):
     plt.show()
 
 # with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
-# with open('/home/stewart/workspace/results.json') as test_file:
+with open('/home/stewart/workspace/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
@@ -122,22 +126,33 @@ def heatmap(M, counts):
 # with open('/data/stewart/multiagent-sim-results/1602793971-combined/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602794275/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602801949/results.json') as test_file:
-with open('/data/stewart/multiagent-sim-results/1602806640/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602806640/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1602827735/results.json') as test_file:
     data = json.load(test_file)
 
 show_graphs = False
 method_name = {
     "id": "ID Based Matching",
     "hungarian-l1": "Hungarian (TVD)",
-    "clear-l1": None, #"CLEAR (TVD)",
-    "clear-l1-0.25": "CLEAR (TVD, 0.25 Threshold)",
+    "hungarian-cos": "Hungarian (Cosine)",
+    "hungarian-ato": None,#"Hungarian (ATO)",
+    "clear-l1": None,#"CLEAR (TVD)",
+    "clear-l1-0.25": None,#"CLEAR (TVD, 0.25 Threshold)",
+    "clear-icf-l1-0.5": "CLEAR (ICF-TVD, 0.5 Threshold)",
     "clear-l1-0.5": "CLEAR (TVD, 0.5 Threshold)",
+    "clear-l1-0.75": "CLEAR (TVD, 0.75 Threshold)",
+    "clear-l1-1.0": "CLEAR (TVD, 1.0 Threshold)",
+    "clear-ato": "CLEAR (Adjusted TO)",
+    "clear-cos": "CLEAR (Cosine)",
+    "clear-cos-0.5": "CLEAR (Cosine, 0.5 Threshold)",
+    "clear-cos-0.75": "CLEAR (Cosine, 0.75 Threshold)",
+    "clear-cos-auto": "CLEAR (Cosine, Automatic Threshold)",
     "Single Robot": "Single Robot",
-    "Single Robot Post Processed 0.5": "Single Robot w/ CLEAR",
-    "Single Robot Post Processed 0.25": None,#"Single Robot w/ CLEAR",
+    "Single Robot Post Processed 0.5": None, #"Single Robot w/ CLEAR 0.5",
+    "Single Robot Post Processed 0.25": None, #"Single Robot w/ CLEAR 0.25",
 }
 
-plt.rc('figure', figsize=(6.0, 5.0))
+plt.rc('figure', figsize=(12.0, 10.0))
 csv_rows = []
 final_distances = {}
 row = OrderedDict()
@@ -155,7 +170,7 @@ for experiment in data:
                 continue
             row["# of Robots"] = n_robots
             row["Mean Silhouette Index"] = sum([s for s in trial["Silhouette Indices"] if s < 1.0]) / sum([1 for s in trial["Silhouette Indices"] if s < 1.0])
-            row["Mean Davies-Bouldin Index"] = sum([s for s in trial["Davies-Bouldin Indices"] if s < 1.0]) / len(trial["Davies-Bouldin Indices"])
+            row["Mean Davies-Bouldin Index"] = sum([s for s in trial["Davies-Bouldin Indices"] if s > 0.0]) / len(trial["Davies-Bouldin Indices"])
             row["# of Observations"] = trial["Number of Observations"]
             row["Single Robot GT-AMI"] = sr_gt_ami
             for k in keep_keys:
@@ -181,6 +196,51 @@ for experiment in data:
         csv_rows.append(row.copy())
     except:
         pass
+    if n_robots == 2 and True:
+        # Sim_l1 = np.array(experiment["Final Distances"]["clear-l1-0.75"])
+        # Sim_l1 = Sim_l1[Sim_l1 != 1]
+        # Sim_l1 = Sim_l1[Sim_l1 != 0]
+        # Sim_l1_logit = logit(Sim_l1)
+        # l1_params = beta.fit(Sim_l1)
+        Sim_cos = np.array(experiment["Final Distances"]["clear-cos-0.75"])
+        Sim_cos = Sim_cos[Sim_cos != 1]
+        Sim_cos = Sim_cos[Sim_cos != 0]
+        Sim_cos_logit = logit(Sim_cos)
+        # cos_params = beta.fit(Sim_cos)
+        # print("l1 max %f, cos max %f" % (Sim_l1.max(), Sim_cos.max()))
+        # print(l1_params)
+        # print(cos_params)
+        # plt.figure()
+        # plt.hist(Sim_l1.flatten(), bins=np.linspace(0, 1, 21))
+        # xs = np.linspace(0, 1, 101)
+        # ys = beta.pdf(xs, *l1_params)
+        # plt.plot(xs, ys)
+        # plt.xticks(np.linspace(0, 1, 21))
+        # plt.yscale('log')
+        # plt.show()
+        # plt.figure()
+        # plt.hist(Sim_l1_logit.flatten(), bins=20)
+        # plt.show()
+        plt.figure()
+        plt.hist(Sim_cos.flatten(), bins=np.linspace(0, 1, 11))
+        # ys = beta.pdf(xs, *cos_params)
+        # plt.plot(xs, ys)
+        plt.xticks(np.linspace(0, 1, 11))
+        plt.yscale('log')
+        plt.show()
+        # plt.figure()
+        # plt.hist(Sim_cos_logit.flatten(), bins=20, density=True)
+        # mixture = GaussianMixture(n_components=2).fit(Sim_cos_logit.reshape(-1, 1))
+        # means_hat = mixture.means_.flatten()
+        # weights_hat = mixture.weights_.flatten()
+        # sds_hat = np.sqrt(mixture.covariances_).flatten()
+        # xs = np.linspace(Sim_cos_logit.min(), Sim_cos_logit.max(), 100)
+        # y1s = norm.pdf(xs, means_hat[0], sds_hat[0]) * weights_hat[0]
+        # y2s = norm.pdf(xs, means_hat[1], sds_hat[1]) * weights_hat[1]
+        # # ys = beta.pdf(xs, *cos_params)
+        # plt.plot(xs, y1s)
+        # plt.plot(xs, y2s)
+        # plt.show()
     if n_robots == 4 and show_graphs:
         if n_robots not in final_distances:
             final_distances[n_robots] = []
@@ -275,7 +335,7 @@ ax = sns.lineplot("# of Robots", r"Mean Silhouette Index", hue="Method", ci=95, 
 # ax.set_ylim(0, None)
 # plt.grid(True, which='both', axis='both')
 plt.xlabel("Number of Merged Maps")
-ax.set_xlim(2, 12)
+ax.set_xlim(1, 12)
 plt.ylabel("Silhouette Index (Higher is Better)")
 plt.title("Silhouette Index vs. # of Maps Merged", fontsize=28)
 leg = ax.legend()
@@ -289,8 +349,8 @@ ax = sns.lineplot("# of Robots", r"Mean Davies-Bouldin Index", hue="Method", ci=
 # plt.grid(True, which='both', axis='both')
 plt.ylabel("Davies-Bouldin Index (Lower is Better)")
 plt.xlabel("Number of Merged Maps")
-ax.set_xlim(2, 12)
-# plt.yscale('log')
+ax.set_xlim(1, 12)
+plt.yscale('log')
 plt.title("Davies-Bouldin Index vs. # of Maps Merged", fontsize=28)
 leg = ax.legend()
 for line in leg.get_lines():
