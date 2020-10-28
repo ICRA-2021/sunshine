@@ -135,8 +135,8 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
-        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 40);
-        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 60000);
+        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 15);
+        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 0);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
         world_frame = nh->template param<std::string>("world_frame", "map");
 

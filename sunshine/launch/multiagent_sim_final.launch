@@ -5,18 +5,18 @@
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-3.bag  -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-4.bag" /> -->
   <arg name="bagfiles" default="
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_3_of_3.bag" />
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_1_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_2_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_3_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_1_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_2_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_3_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_1_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_2_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_3_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_1_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_2_of_3.bag
+  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_3_of_3.bag" />
 
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
@@ -24,7 +24,7 @@
   <arg name="file_prefix" default="" />
   <arg name="output_dir" default="" />
   <arg name="map_prefix" default="$(arg output_dir)" />
-  <arg name="match_methods" default="id,hungarian-l1,clear-l1,clear-l1-0.5" />
+  <arg name="match_methods" default="id,hungarian-l1,hungarian-cos,clear-l1-0.75,clear-cos-0.75,clear-cos-auto" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />

@@ -100,7 +100,7 @@ def heatmap(M, counts):
     plt.show()
 
 # with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
-with open('/home/stewart/workspace/results.json') as test_file:
+with open('/home/stewart/workspace/results-12.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
@@ -128,15 +128,18 @@ with open('/home/stewart/workspace/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602801949/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602806640/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602827735/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1603861154/results.json') as test_file:
     data = json.load(test_file)
 
 show_graphs = False
 method_name = {
     "id": "ID Based Matching",
     "hungarian-l1": "Hungarian (TVD)",
+    "hungarian-l1-dynamic": "Hungarian (TVD, Dynamic)",
     "hungarian-cos": "Hungarian (Cosine)",
     "hungarian-ato": None,#"Hungarian (ATO)",
     "clear-l1": None,#"CLEAR (TVD)",
+    "clear-l1-auto": "CLEAR (TVD, Automatic Threshold)",
     "clear-l1-0.25": None,#"CLEAR (TVD, 0.25 Threshold)",
     "clear-icf-l1-0.5": "CLEAR (ICF-TVD, 0.5 Threshold)",
     "clear-l1-0.5": "CLEAR (TVD, 0.5 Threshold)",
@@ -148,7 +151,7 @@ method_name = {
     "clear-cos-0.75": "CLEAR (Cosine, 0.75 Threshold)",
     "clear-cos-auto": "CLEAR (Cosine, Automatic Threshold)",
     "Single Robot": "Single Robot",
-    "Single Robot Post Processed 0.5": None, #"Single Robot w/ CLEAR 0.5",
+    "Single Robot Post Processed 0.5": None, #"Single Robot w/ CLEAR AT",
     "Single Robot Post Processed 0.25": None, #"Single Robot w/ CLEAR 0.25",
 }
 
@@ -196,11 +199,29 @@ for experiment in data:
         csv_rows.append(row.copy())
     except:
         pass
-    if n_robots == 2 and True:
-        # Sim_l1 = np.array(experiment["Final Distances"]["clear-l1-0.75"])
-        # Sim_l1 = Sim_l1[Sim_l1 != 1]
-        # Sim_l1 = Sim_l1[Sim_l1 != 0]
-        # Sim_l1_logit = logit(Sim_l1)
+    if n_robots == 12 and True:
+        Sim_sr = np.array(experiment["Final Distances"]["clear-l1-0.75"])
+        Sim_sr = Sim_sr[Sim_sr != 1]
+        Sim_sr = Sim_sr[Sim_sr != 0]
+        plt.figure()
+        h = plt.hist(Sim_sr.flatten(), bins="fd")
+        bins = h[0].size
+        while Sim_sr[Sim_sr >= (bins - 1) / bins].size == 0:
+            bins = bins // 2
+        bin_sizes = [(Sim_sr <= i / bins).sum() - (Sim_sr <= (i - 1) / bins).sum() for i in range(1, bins + 1)]
+        min_bin = np.argmin(bin_sizes)
+        plt.title("Threshold = %f" % ((min_bin + 0.5) / bins))
+        # xs = np.linspace(0, 1, 101)
+        # ys = beta.pdf(xs, *l1_params)
+        # plt.plot(xs, ys)
+        plt.xticks(np.linspace(0, 1, 16))
+        plt.yscale('log')
+        plt.show()
+    elif False:
+        Sim_l1 = np.array(experiment["Final Distances"]["clear-l1-0.75"])
+        Sim_l1 = Sim_l1[Sim_l1 != 1]
+        Sim_l1 = Sim_l1[Sim_l1 != 0]
+        Sim_l1_logit = logit(Sim_l1)
         # l1_params = beta.fit(Sim_l1)
         Sim_cos = np.array(experiment["Final Distances"]["clear-cos-0.75"])
         Sim_cos = Sim_cos[Sim_cos != 1]
@@ -210,24 +231,24 @@ for experiment in data:
         # print("l1 max %f, cos max %f" % (Sim_l1.max(), Sim_cos.max()))
         # print(l1_params)
         # print(cos_params)
-        # plt.figure()
-        # plt.hist(Sim_l1.flatten(), bins=np.linspace(0, 1, 21))
+        plt.figure()
+        plt.hist(Sim_l1.flatten(), bins=np.linspace(0, 1, 32))
         # xs = np.linspace(0, 1, 101)
         # ys = beta.pdf(xs, *l1_params)
         # plt.plot(xs, ys)
-        # plt.xticks(np.linspace(0, 1, 21))
-        # plt.yscale('log')
-        # plt.show()
-        # plt.figure()
-        # plt.hist(Sim_l1_logit.flatten(), bins=20)
-        # plt.show()
-        plt.figure()
-        plt.hist(Sim_cos.flatten(), bins=np.linspace(0, 1, 11))
-        # ys = beta.pdf(xs, *cos_params)
-        # plt.plot(xs, ys)
-        plt.xticks(np.linspace(0, 1, 11))
+        plt.xticks(np.linspace(0, 1, 32))
         plt.yscale('log')
         plt.show()
+        plt.figure()
+        plt.hist(Sim_l1_logit.flatten(), bins=32)
+        plt.show()
+        # plt.figure()
+        # plt.hist(Sim_cos.flatten(), bins=np.linspace(0, 1, 11))
+        # ys = beta.pdf(xs, *cos_params)
+        # plt.plot(xs, ys)
+        # plt.xticks(np.linspace(0, 1, 11))
+        # plt.yscale('log')
+        # plt.show()
         # plt.figure()
         # plt.hist(Sim_cos_logit.flatten(), bins=20, density=True)
         # mixture = GaussianMixture(n_components=2).fit(Sim_cos_logit.reshape(-1, 1))
@@ -241,6 +262,7 @@ for experiment in data:
         # plt.plot(xs, y1s)
         # plt.plot(xs, y2s)
         # plt.show()
+        pass
     if n_robots == 4 and show_graphs:
         if n_robots not in final_distances:
             final_distances[n_robots] = []
@@ -288,7 +310,7 @@ df = pd.DataFrame(csv_rows)
 df[r"Coverage (m$^2$) $\times$ GT-AMI Score"] = df["GT-AMI"] * df["Number of Cells"] / df["Number of Cells"].max()
 
 # plt.rc('font', size=24)
-plt.rc('figure', figsize=(16.0, 9.0))
+plt.rc('figure', figsize=(20.0, 9.0 * 5/4))
 sns.set(style="whitegrid", font_scale=2.25)
 
 ax = sns.lineplot("# of Robots", "GT-AMI", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
