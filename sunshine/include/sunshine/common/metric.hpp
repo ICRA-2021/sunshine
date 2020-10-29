@@ -300,6 +300,8 @@ auto compute_metrics(GTLabelMap const &gt_labels,
     auto const &topic_weights = std::get<2>(contingency_table);
     double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
 
+    if (total_weight == 0) return std::make_tuple(0., 0., 0.);
+
     double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
     double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
     double const nmi = compute_nmi(contingency_table, mi, ex, ey);
