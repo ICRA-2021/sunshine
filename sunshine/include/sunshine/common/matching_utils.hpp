@@ -12,6 +12,7 @@
 //#include <ros/console.h> // only used for ROS logging
 #include "sunshine_types.hpp"
 // #include "adapters/boostmatrixadapter.h"
+#include <boost/math/distributions/normal.hpp>
 
 namespace sunshine {
 
@@ -670,6 +671,7 @@ template <typename T>
 static double estimate_threshold(std::vector<Phi> const& topic_models,
                                  SimilarityMetric<T> const& similarity_metric) {
     std::set<double> similarities;
+    double sum = 0.0;
     for (auto i = 0ul; i < topic_models.size(); ++i) {
         auto const& model_i = topic_models[i].counts;
         auto const& weights_i = topic_models[i].topic_weights;
@@ -680,35 +682,37 @@ static double estimate_threshold(std::vector<Phi> const& topic_models,
                 auto const phi_i = static_cast<std::vector<T>>(model_i[left_idx]);
                 for (auto right_idx = 0ul; right_idx < model_j.size(); ++right_idx) {
                     double const sim = similarity_metric(phi_i, static_cast<std::vector<T>>(model_j[right_idx]), weights_i[left_idx], weights_j[right_idx]);
-                    similarities.insert(sim);
+                    if (sim >= 0.0 && sim <= 1.0) {
+                        sum += sim;
+                        similarities.insert(sim);
+                    }
                 }
             }
         }
     }
-    auto left_iter = similarities.cbegin();
-    std::advance(left_iter, similarities.size() / 4);
-    auto right_iter = similarities.cbegin();
-    std::advance(right_iter, (similarities.size() * 3) / 4);
-    double const iqr = *right_iter - *left_iter;
-    double const bin_width = 2 * iqr / std::pow(similarities.size(), 1./3.);
-    size_t const n_bins = std::ceil(1. / bin_width);
-    std::vector<size_t> histogram(n_bins, 0);
+    double const mean = sum / similarities.size();
+    double ssd = 0.0;
     for (auto const& sim : similarities) {
-        if (sim == 1.0) histogram.back() += 1;
-        else histogram[static_cast<size_t>(sim * n_bins)] += 1;
+        ssd += std::pow(sim - mean, 2);
     }
-    do {
-        auto const zeros = std::count(histogram.cbegin(), histogram.cend(), 0);
-        if (zeros <= 1 && histogram.back() != 0) break;
-        size_t const new_size = histogram.size() / 2;
-        for (size_t idx = 0; idx < new_size; ++idx) {
-            histogram[idx] = histogram[2*idx] + histogram[2*idx + 1];
+    double const std = std::sqrt(ssd / similarities.size());
+
+    boost::math::normal_distribution dist(mean, std);
+    size_t count = 0;
+    size_t const total = similarities.size();
+    double max_difference = 0;
+    double threshold = 0.5;
+    for (auto const& test_threshold : similarities) {
+        if (test_threshold < 0.5) continue;
+        auto const expected = (1.0 - boost::math::cdf(dist, test_threshold)) * total;
+        auto const actual = static_cast<double>(total - count);
+        auto const num_outliers = actual - expected;
+        auto const difference = num_outliers - expected;
+        if (difference > max_difference) {
+            threshold = test_threshold;
+            max_difference = difference;
         }
-        if (histogram.size() % 2 == 1) histogram[new_size - 1] += histogram.back();
-        histogram.resize(new_size);
-    } while (true);
-    size_t const min_bin = (n_bins - 1) - (std::min_element(histogram.rbegin(), histogram.rend()) - histogram.rbegin());
-    volatile double const threshold = (min_bin + 0.5) / n_bins;
+    }
     return threshold;
 }
 
