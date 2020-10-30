@@ -676,8 +676,9 @@ enum class Method {
 template <typename T>
 static double estimate_threshold(std::vector<Phi> const& topic_models,
                                  SimilarityMetric<T> const& similarity_metric,
-                                 Method const method = Method::OUTLIERS) {
+                                 Method const method = Method::HIST_MINIMUM) {
     std::vector<double> similarities;
+    bool const skip_empty = true;
     double sum_logit = 0.0;
     for (auto i = 0ul; i < topic_models.size(); ++i) {
         auto const& model_i = topic_models[i].counts;
@@ -688,24 +689,28 @@ static double estimate_threshold(std::vector<Phi> const& topic_models,
             for (auto left_idx = 0ul; left_idx < model_i.size(); ++left_idx) {
                 auto const phi_i = static_cast<std::vector<T>>(model_i[left_idx]);
                 for (auto right_idx = 0ul; right_idx < model_j.size(); ++right_idx) {
+                    if (skip_empty && (weights_i[left_idx] == 0 || weights_j[right_idx] == 0)) continue;
                     double const sim = similarity_metric(phi_i, static_cast<std::vector<T>>(model_j[right_idx]), weights_i[left_idx], weights_j[right_idx]);
-                    if (sim > 1e-6 && sim < 1.0 - 1e-6) {
+                    if (method == Method::OUTLIERS && sim > 1e-8 && sim < 1.0 - 1e-8) {
                         sum_logit += std::log(sim / (1 - sim));
-                        similarities.push_back(sim);
+                        similarities.push_back((sim < 0.) ? 0. : ((sim > 1.) ? 1. : sim));
+                    } else if (method != Method::OUTLIERS) {
+                        similarities.push_back((sim < 0.) ? 0. : ((sim > 1.) ? 1. : sim));
                     }
                 }
             }
         }
     }
+    if (similarities.empty()) return 0.5;
     std::sort(similarities.begin(), similarities.end());
 
     if (method == Method::OUTLIERS) {
-        double const mean = sum_logit / similarities.size();
+        double const mean = (similarities.empty()) ? 0 : (sum_logit / similarities.size());
         double ssd = 0.0;
         for (auto const &sim : similarities) {
             ssd += std::pow(sim - mean, 2);
         }
-        double const std = std::sqrt(ssd / similarities.size());
+        double const std = (similarities.empty()) ? 1 : std::sqrt(ssd / similarities.size());
 
         boost::math::normal_distribution dist(mean, std);
         size_t count = 0;
@@ -727,29 +732,25 @@ static double estimate_threshold(std::vector<Phi> const& topic_models,
         }
         return threshold;
     } else if (method == Method::HIST_MINIMUM) {
-        auto left_iter = similarities.cbegin();
-        std::advance(left_iter, similarities.size() / 4);
-        auto right_iter = similarities.cbegin();
-        std::advance(right_iter, (similarities.size() * 3) / 4);
-        double const iqr = *right_iter - *left_iter;
+        double const iqr = similarities[(3 * similarities.size()) / 4] - similarities[similarities.size() / 4];
         double const bin_width = 2 * iqr / std::pow(similarities.size(), 1./3.);
-        size_t const n_bins = std::ceil(1. / bin_width);
+        size_t const n_bins = std::max(2ul, size_t(std::ceil(1. / bin_width)));
         std::vector<size_t> histogram(n_bins, 0);
         for (auto const& sim : similarities) {
             if (sim == 1.0) histogram.back() += 1;
             else histogram[static_cast<size_t>(sim * n_bins)] += 1;
         }
-        do {
-            auto const zeros = std::count(histogram.cbegin(), histogram.cend(), 0);
-            if (zeros <= 1 && histogram.back() != 0) break;
-            size_t const new_size = histogram.size() / 2;
-            for (size_t idx = 0; idx < new_size; ++idx) {
-                histogram[idx] = histogram[2*idx] + histogram[2*idx + 1];
-            }
-            if (histogram.size() % 2 == 1) histogram[new_size - 1] += histogram.back();
-            histogram.resize(new_size);
-        } while (true);
-        size_t const min_bin = (n_bins - 1) - (std::min_element(histogram.rbegin(), histogram.rend()) - histogram.rbegin());
+//        while (histogram.size() > 1) {
+//            auto const zeros = std::count(histogram.cbegin(), histogram.cend(), 0);
+//            if (histogram.back() != 0) break;
+//            size_t const new_size = histogram.size() / 2;
+//            for (size_t idx = 0; idx < new_size; ++idx) {
+//                histogram[idx] = histogram[2*idx] + histogram[2*idx + 1];
+//            }
+//            if (histogram.size() % 2 == 1) histogram[new_size - 1] += histogram.back();
+//            histogram.resize(new_size);
+//        }
+        size_t const min_bin = (n_bins - 1) - (std::min_element(histogram.rbegin(), histogram.rbegin() + histogram.size() / 2) - histogram.rbegin());
         volatile double const threshold = (min_bin + 0.5) / n_bins;
         return threshold;
     }
@@ -926,6 +927,8 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return clear_matching(topic_models, l1_similarity<int>, false, 1.0);
     } else if (method == "clear-l2") {
         return clear_matching(topic_models, l2_similarity<int>, false);
+    } else if (method == "clear-l2-0.75") {
+        return clear_matching(topic_models, l2_similarity<int>, false, 0.75);
     } else if (method == "clear-gk") {
         return clear_matching(topic_models, gaussian_kernel_similarity<int>, false);
     } else if (method == "clear-bh") {

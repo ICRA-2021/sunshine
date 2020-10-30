@@ -453,7 +453,7 @@ class MultiAgentSimulation {
 
             if (!singleRobotModels.empty()) {
                 {
-                    auto sr_correspondences = match_topics("clear-cos-auto", make_vector(singleRobotModels[n_robots - 1]));
+                    auto sr_correspondences = match_topics("clear-cos-0.75", make_vector(singleRobotModels[n_robots - 1]));
                     auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()),
                                                                 sr_correspondences.lifting);
                     auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
@@ -468,20 +468,20 @@ class MultiAgentSimulation {
                         saveTopicImg(mapImg, map_prefix + "-srpp.png", map_prefix + "-srpp-colors.csv", &colorMap);
                     }
                 }
-                {
-                    auto sr_correspondences = match_topics("clear-l1-0.33", make_vector(singleRobotModels[n_robots - 1]));
-                    auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()),
-                                                                sr_correspondences.lifting);
-                    auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
-                    exp_results["Single Robot + CLEAR (0.33) GT-MI"] = std::get<0>(srpp_gt_metrics);
-                    exp_results["Single Robot + CLEAR (0.33) GT-NMI"] = std::get<1>(srpp_gt_metrics);
-                    exp_results["Single Robot + CLEAR (0.33) GT-AMI"] = std::get<2>(srpp_gt_metrics);
-                    if (!map_prefix.empty()) {
-                        align(*sr_postprocessed, gtLabels, numGTTopics);
-                        auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
-                        saveTopicImg(mapImg, map_prefix + "-srpp-0.25.png", map_prefix + "-srpp-0.25-colors.csv", &colorMap);
-                    }
-                }
+//                {
+//                    auto sr_correspondences = match_topics("clear-l1-0.33", make_vector(singleRobotModels[n_robots - 1]));
+//                    auto sr_postprocessed = merge_segmentations(make_vector(singleRobotSubmaps[n_robots - 1].get()),
+//                                                                sr_correspondences.lifting);
+//                    auto const srpp_gt_metrics = compute_metrics(gtLabels, numGTTopics, *sr_postprocessed);
+//                    exp_results["Single Robot + CLEAR (0.33) GT-MI"] = std::get<0>(srpp_gt_metrics);
+//                    exp_results["Single Robot + CLEAR (0.33) GT-NMI"] = std::get<1>(srpp_gt_metrics);
+//                    exp_results["Single Robot + CLEAR (0.33) GT-AMI"] = std::get<2>(srpp_gt_metrics);
+//                    if (!map_prefix.empty()) {
+//                        align(*sr_postprocessed, gtLabels, numGTTopics);
+//                        auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
+//                        saveTopicImg(mapImg, map_prefix + "-srpp-0.25.png", map_prefix + "-srpp-0.25-colors.csv", &colorMap);
+//                    }
+//                }
             }
         }
 
@@ -509,7 +509,7 @@ class MultiAgentSimulation {
                 exp_results["Final Distances"][method] = final_results.distances;
                 exp_results["Final Correspondences"][method] = final_results.lifting;
                 exp_results["Match Results"][method] = stats;
-                if (!map_prefix.empty()) {
+                if (!map_prefix.empty() && n_robots == getNumRobots()) {
                     auto mapImg = createTopicImg(toRosMsg(*map), colorMap, pixel_scale, true, 0, 0, map_box);
                     saveTopicImg(mapImg, map_prefix + "-" + method + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
                 }
@@ -588,7 +588,7 @@ int main(int argc, char **argv) {
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
     auto const results_filename = output_prefix + file_prefix + "results.json";
 
-    std::vector<std::string> match_methods = {"id", "hungarian-l1", "hungarian-cos", "clear-l1-0.33", "clear-l1-auto", "clear-cos-0.75", "clear-cos-auto"};
+    std::vector<std::string> match_methods = {"id", "hungarian-l1", "hungarian-l2", "hungarian-cos", "clear-l1-0.75", "clear-cos-0.75", "clear-l2-0.75", "clear-cos-auto"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
     if (!methods_str.empty()) {
         match_methods = sunshine::split(methods_str, ',');
@@ -672,7 +672,7 @@ int main(int argc, char **argv) {
     auto map_prefix = nh.param<std::string>("map_prefix", "/home/stewart/workspace/");
     map_prefix += (map_prefix.empty() || map_prefix.back() == '/') ? "" : "/";
     map_prefix += (map_prefix.empty()) ? "" : file_prefix;
-    auto const map_box = nh.param<std::string>("box", "-200x-150x300x300");
+    auto const map_box = nh.param<std::string>("box", "-10x-135x240x250");
     auto const parallel_match = nh.param<bool>("parallel_match", false);
     size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
     size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 1);

@@ -5,18 +5,18 @@
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-3.bag  -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-4.bag" /> -->
   <arg name="bagfiles" default="
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_1_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_2_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-1_part_3_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_1_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_2_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-2_part_3_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_1_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_2_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-3_part_3_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_1_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_2_of_3.bag
-  /home/stewart/airsim-bags/new-lawnmower-alt4m-quad-4_part_3_of_3.bag" />
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_3_of_3.bag" />
 
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
@@ -119,7 +119,8 @@
     <param name="output_prefix" value="$(arg output_dir)" />
     <param name="map_prefix" value="$(arg map_prefix)" />
     <param name="file_prefix" value="$(arg file_prefix)" />
-    <param name="box" value="-150x-150x300x300" />
+<!--     <param name="box" value="-150x-150x300x300" />   --><!-- for "easy" environment -->
+    <param name="box" value="-10x-135x240x250" /> <!-- for "challenge" environment -->
     <param name="match_methods" value="$(arg match_methods)" />
     <param name="subsample_results" value="$(arg subsample_results)" />
   </node>
