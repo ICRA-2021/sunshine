@@ -184,7 +184,7 @@
   </node>
 
   <node pkg="sunshine" type="visualize3d" name="visualize_gt" if="$(arg visualize_3d)">
-    <param name="input_topic" type="string" value="/gt" />
+    <param name="input_topic" type="string" value="/gt_map" />
     <param name="input_type" type="string" value="$(arg map_type)" />
     <param name="output_topic" type="string" value="/gt_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />

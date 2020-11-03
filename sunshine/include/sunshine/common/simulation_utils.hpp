@@ -10,6 +10,7 @@
 #include <tf/tf.h>
 #include <tf2_msgs/TFMessage.h>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <utility>
@@ -39,6 +40,7 @@ class RobotSim {
     std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
+    tf::TransformBroadcaster tfBroadcaster;
     std::unique_ptr<WordDepthAdapter> wordDepthAdapter;
     std::unique_ptr<ImageDepthAdapter> imageDepthAdapter;
     std::unique_ptr<Word2DAdapter<3>> word2dAdapter;
@@ -55,10 +57,7 @@ class RobotSim {
     ros::Time latestTransformTime = ros::Time(0);
     size_t bag_num = 0;
     decltype(std::chrono::steady_clock::now()) clock = std::chrono::steady_clock::now();
-
-    [[nodiscard]] inline std::string fixFrame(std::string const& frame) const {
-        return frame + "-" + std::to_string(bag_num);
-    }
+    bool broadcast_tf = false;
 
     bool tryProcess() {
         if (!lastRgb || processed_rgb) return false;
@@ -203,6 +202,10 @@ class RobotSim {
 //            ROS_INFO("Adding transform at %f from %s to %s", tfTransform.stamp_.toSec(), tfTransform.frame_id_.c_str(), tfTransform.child_frame_id_.c_str());
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
+            if (broadcast_tf) {
+                tfTransform.stamp_ = ros::Time::now();
+                tfBroadcaster.sendTransform(tfTransform);
+            }
         }
 //        ROS_INFO("%ld ms processing transforms", record_lap(clock));
         return tryProcess();
@@ -214,7 +217,8 @@ class RobotSim {
              ParamServer const &parameters,
              bool const use_3d,
              std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             bool read_only_segmentation = false)
+             bool const read_only_segmentation = false,
+             bool const broadcast_tf = false)
             : name(std::move(name)),
               bagIter(nullptr),
               visualWordAdapter(&parameters),
@@ -226,7 +230,8 @@ class RobotSim {
               wordTransformAdapter(&parameters),
               imageTransformAdapter(&parameters),
               use_3d(use_3d),
-              read_only_segmentation(read_only_segmentation) {}
+              read_only_segmentation(read_only_segmentation),
+              broadcast_tf(broadcast_tf) {}
 
     void open(std::string const& bagFilename,
               std::string const &image_topic,
@@ -271,6 +276,18 @@ class RobotSim {
         double const timestamp = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
         if (segmentation) segmentation->id = ros::Time(timestamp).sec;
         return segmentation;
+    }
+
+    auto getLastPc() const {
+        return lastPc;
+    }
+
+    auto getLatestTransform(std::string const& frame) const {
+        return wordTransformAdapter.getLatestTransform(frame, ros::Time(0));
+    }
+
+    [[nodiscard]] inline std::string fixFrame(std::string const& frame) const {
+        return frame + "-" + name + "-" + std::to_string(bag_num);
     }
 
     /**

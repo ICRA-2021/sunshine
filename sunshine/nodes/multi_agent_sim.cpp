@@ -19,6 +19,9 @@
 #include <iostream>
 #include <random>
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -418,6 +421,7 @@ class MultiAgentSimulation {
 
     bool run_synchronized(ros::NodeHandle& nh, std::vector<std::string> const& match_methods) const {
         std::map<std::string, ros::Publisher> publishers;
+        publishers.insert(std::make_pair("/gt", nh.advertise<sunshine_msgs::TopicMap>("/gt_map", 3)));
         for (auto const& method : match_methods) {
             publishers.insert(std::make_pair(method, nh.advertise<sunshine_msgs::TopicMap>("/" + replace_all(replace_all(method, "-", "_"), ".", "_"), 3)));
         }
@@ -425,36 +429,57 @@ class MultiAgentSimulation {
         auto sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         std::vector<std::unique_ptr<RobotSim>> robots;
         for (auto i = 0; i < bagfiles.size(); ++i) {
-            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), nh, !depth_topic.empty(), sharedSegmentationAdapter, false));
+            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), nh, !depth_topic.empty(), sharedSegmentationAdapter, false, true));
             robots.back()->open(bagfiles[i], image_topic, depth_topic, segmentation_topic, 2000);
         }
 
+        ros::Publisher cameraPublisher = nh.advertise<sensor_msgs::PointCloud2>("/camera/points", robots.size());
         std::vector<Phi> robotModels_;
         std::vector<std::unique_ptr<Segmentation<std::vector<int>, 4, int, double>>> robotMaps_;
+        tf2_ros::Buffer tf_buffer;
+        tf2_ros::TransformListener tf_listener(tf_buffer);
 
         std::mutex finishedLock;
         std::condition_variable finishedCv;
 
         thread_pool pool(robots.size());
         for (auto i = 0ul; i < robots.size(); ++i) {
-            pool.enqueue([&robots, &robotModels_, &robotMaps_, &finishedLock, &finishedCv, i, match_methods, &publishers]{
+            pool.enqueue([&, i, match_methods]{
                 while (true) {
                     bool const robot_active = robots[i]->next();
 
                     robots[i]->waitForProcessing();
+                    // Update map
                     {
                         std::lock_guard<std::mutex> guard(finishedLock);
                         auto token = robots[i]->getReadToken();
                         robotModels_.emplace_back(robots[i]->getTopicModel(*token));
                         robotMaps_.emplace_back(robots[i]->getDistMap(*token));
                     }
+
+                    // Publish point cloud
+                    auto pc = *robots[i]->getLastPc();
+                    pc.header.frame_id = robots[i]->fixFrame(pc.header.frame_id);
+                    auto lastTransform = tf_buffer.lookupTransform(pc.header.frame_id, nh.param<std::string>("world_frame", "map"), ros::Time(0));
+                    pc.header.stamp = lastTransform.header.stamp;
+                    cameraPublisher.publish(pc);
+
+                    // Wait for everyone to finish
                     std::unique_lock<std::mutex> lock(finishedLock);
                     if (i == 0) {
+                        // Robot 0 is in charge of publishing merge
                         if (robotMaps_.size() < robots.size()) finishedCv.wait(lock, [&robotMaps_, &robots]{return robotMaps_.size() >= robots.size();});
                         if (robotMaps_.size() > robots.size()) throw std::logic_error("Failed to clear maps");
+
+                        auto const gtMLMap = merge_segmentations<3>(make_vector(robots[i]->getGTMap()));
+                        auto const lookupMap = gtMLMap->toLookupMap();
+                        auto const numGTTopics = get_num_topics(*gtMLMap);
+                        publishers["/gt"].publish(toRosMsg(*gtMLMap));
+
                         for (auto const& method : match_methods) {
                             auto const correspondences = match_topics(method, robotModels_);
                             auto merged_segmentation = merge_segmentations(robotMaps_, correspondences.lifting);
+                            align(*merged_segmentation, lookupMap, numGTTopics);
                             publishers[method].publish(toRosMsg(*merged_segmentation));
                         }
                         robotMaps_.clear();
