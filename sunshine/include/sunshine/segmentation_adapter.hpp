@@ -57,6 +57,8 @@ class SemanticSegmentationAdapter
     double latest_timestep = 0;
     uint32_t latest_id = 0;
 
+    std::mutex mutable lock;
+
   public:
     template<typename ParameterServer>
     explicit SemanticSegmentationAdapter(ParameterServer *paramServer, bool aggregate = false)
@@ -90,6 +92,10 @@ class SemanticSegmentationAdapter
         //        auto const new_size = counts.size();
         //        std::cout << "Old: " << size << ", New: " << new_size << std::endl;
         return std::move(segmentation);
+    }
+
+    [[nodiscard]] std::unique_lock<std::mutex> getLock() const {
+        return std::unique_lock(lock);
     }
 
     auto operator()(SemanticObservation<ObservationType, PoseDim, PoseType> const *obs) {

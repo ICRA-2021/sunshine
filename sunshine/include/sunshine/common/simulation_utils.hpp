@@ -137,11 +137,18 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
             ROS_DEBUG("%ld ms adding to topic model", record_lap(clock)); // ~40-80ms optimized
-            if (use_segmentation && !read_only_segmentation) segmentation = imageTransformAdapter(newSegmentation >> *imageDepthAdapter, transform) >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) {
+                auto single_segmentation = imageTransformAdapter(newSegmentation >> *imageDepthAdapter, transform);
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                segmentation = std::move(single_segmentation) >> *segmentationAdapter;
+            }
             ROS_DEBUG("%ld ms parsing segmentation", record_lap(clock)); // ~30-40ms optimized
             auto final_observation_poses = cells_toCellSet(rostAdapter->get_rost().cell_pose);
-            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), final_observation_poses)) {
-                throw std::runtime_error("Latest observation includes unrecongized poses!");
+            {
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), final_observation_poses)) {
+                    throw std::runtime_error("Latest observation includes unrecongized poses!");
+                }
             }
             ROS_DEBUG("%ld ms validating poses", record_lap(clock));
         } else {
@@ -153,7 +160,10 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
 //            ROS_INFO("%ld ms adding to 2d topic model", record_lap(clock));
-            if (use_segmentation && !read_only_segmentation) segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) {
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
+            }
 //            ROS_INFO("%ld ms parsing 2d segmentation", record_lap(clock));
         }
         processed_rgb = true;
@@ -222,12 +232,12 @@ class RobotSim {
               std::string const &image_topic,
               std::string const &depth_topic = "",
               std::string const &segmentation_topic= "",
-              double x_offset = 0) {
+              double const _2d_x_offset = 0) {
         if (use_3d && depth_topic.empty()) throw std::invalid_argument("Must provide depth topic if operating in 3D mode");
         wordDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>();
         imageDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>();
-        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
-        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
+        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(_2d_x_offset, 0, 0, true) : nullptr;
+        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(_2d_x_offset, 0, 0, true) : nullptr;
         use_segmentation = !segmentation_topic.empty();
 
         bag_num++;

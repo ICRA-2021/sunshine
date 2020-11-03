@@ -68,7 +68,7 @@ class MultiAgentSimulation {
                                     size_t const& n_robots,
                                     Segmentation<int, 3, int, double> const* gtMLMap = nullptr,
                                     std::vector<size_t> match_indices = {},
-                                    size_t const subsample = 128,
+                                    size_t const subsample = 16,
                                     bool const include_individ = false,
                                     bool const include_ssd = false) {
         auto const singleRobotLabels = singleRobotMLMap->toLookupMap();
@@ -416,6 +416,64 @@ class MultiAgentSimulation {
         return true;
     }
 
+    bool run_synchronized(ros::NodeHandle& nh, std::vector<std::string> const& match_methods) const {
+        std::map<std::string, ros::Publisher> publishers;
+        for (auto const& method : match_methods) {
+            publishers.insert(std::make_pair(method, nh.advertise<sunshine_msgs::TopicMap>("/" + replace_all(replace_all(method, "-", "_"), ".", "_"), 3)));
+        }
+
+        auto sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
+        std::vector<std::unique_ptr<RobotSim>> robots;
+        for (auto i = 0; i < bagfiles.size(); ++i) {
+            robots.emplace_back(std::make_unique<RobotSim>(std::to_string(i), nh, !depth_topic.empty(), sharedSegmentationAdapter, false));
+            robots.back()->open(bagfiles[i], image_topic, depth_topic, segmentation_topic, 2000);
+        }
+
+        std::vector<Phi> robotModels_;
+        std::vector<std::unique_ptr<Segmentation<std::vector<int>, 4, int, double>>> robotMaps_;
+
+        std::mutex finishedLock;
+        std::condition_variable finishedCv;
+
+        thread_pool pool(robots.size());
+        for (auto i = 0ul; i < robots.size(); ++i) {
+            pool.enqueue([&robots, &robotModels_, &robotMaps_, &finishedLock, &finishedCv, i, match_methods, &publishers]{
+                while (true) {
+                    bool const robot_active = robots[i]->next();
+
+                    robots[i]->waitForProcessing();
+                    {
+                        std::lock_guard<std::mutex> guard(finishedLock);
+                        auto token = robots[i]->getReadToken();
+                        robotModels_.emplace_back(robots[i]->getTopicModel(*token));
+                        robotMaps_.emplace_back(robots[i]->getDistMap(*token));
+                    }
+                    std::unique_lock<std::mutex> lock(finishedLock);
+                    if (i == 0) {
+                        if (robotMaps_.size() < robots.size()) finishedCv.wait(lock, [&robotMaps_, &robots]{return robotMaps_.size() >= robots.size();});
+                        if (robotMaps_.size() > robots.size()) throw std::logic_error("Failed to clear maps");
+                        for (auto const& method : match_methods) {
+                            auto const correspondences = match_topics(method, robotModels_);
+                            auto merged_segmentation = merge_segmentations(robotMaps_, correspondences.lifting);
+                            publishers[method].publish(toRosMsg(*merged_segmentation));
+                        }
+                        robotMaps_.clear();
+                        robotModels_.clear();
+                    } else {
+                        while (!robotMaps_.empty()) {
+                            finishedCv.notify_all();
+                            finishedCv.wait_for(lock, std::chrono::milliseconds(5));
+                        }
+                    }
+
+                    if (!ros::ok() || !robot_active) break;
+                }
+                ROS_INFO("Robot %ld finished!", i);
+            });
+        }
+        pool.join();
+    }
+
     json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "", bool parallel=false, std::vector<size_t> match_order = {}) const {
         if (n_robots == 0) n_robots = bagfiles.size();
         else if (n_robots < 0 || n_robots > bagfiles.size()) throw std::invalid_argument("Invalid number of robots!");
@@ -445,7 +503,7 @@ class MultiAgentSimulation {
             exp_results["Single Robot GT-MI"] = std::get<0>(sr_gt_metrics);
             exp_results["Single Robot GT-NMI"] = std::get<1>(sr_gt_metrics);
             exp_results["Single Robot GT-AMI"] = std::get<2>(sr_gt_metrics);
-            if (!map_prefix.empty()) {
+            if (!map_prefix.empty() && n_robots == getNumRobots()) {
                 align(*refMap, gtLabels, numGTTopics);
                 auto mapImg = createTopicImg(toRosMsg(*gtMLMap), colorMap, pixel_scale, true, 0, 0, map_box);
                 saveTopicImg(mapImg, map_prefix + "-gt.png", map_prefix + "-gt-colors.csv", &colorMap);
@@ -462,7 +520,7 @@ class MultiAgentSimulation {
                     exp_results["Single Robot Post GT-AMI"] = std::get<2>(srpp_gt_metrics);
                     exp_results["Single Robot Post Metadata"] = sr_correspondences.metadata;
                     exp_results["Final Distances"]["Single Robot Post"] = sr_correspondences.distances;
-                    if (!map_prefix.empty()) {
+                    if (!map_prefix.empty() && n_robots == getNumRobots()) {
                         align(*sr_postprocessed, gtLabels, numGTTopics);
                         auto mapImg = createTopicImg(toRosMsg(*sr_postprocessed), colorMap, pixel_scale, true, 0, 0, map_box);
                         saveTopicImg(mapImg, map_prefix + "-srpp.png", map_prefix + "-srpp-colors.csv", &colorMap);
@@ -485,7 +543,7 @@ class MultiAgentSimulation {
             }
         }
 
-        if (!map_prefix.empty()) { // by now the map has been aligned if we have GT
+        if (!map_prefix.empty() && n_robots == getNumRobots())  { // by now the map has been aligned if we have GT
             auto mapImg = createTopicImg(toRosMsg(*refMap), colorMap, pixel_scale, true, 0, 0, map_box);
             saveTopicImg(mapImg, map_prefix + "-sr.png", map_prefix + "-sr-colors.csv", &colorMap);
         }
@@ -509,10 +567,12 @@ class MultiAgentSimulation {
                 exp_results["Final Distances"][method] = final_results.distances;
                 exp_results["Final Correspondences"][method] = final_results.lifting;
                 exp_results["Match Results"][method] = stats;
+                auto const final_score = static_cast<float>((gtMLMap) ? stats.back()["GT-AMI"] : stats.back()["SR-AMI"]);
                 if (!map_prefix.empty() && n_robots == getNumRobots()) {
                     auto mapImg = createTopicImg(toRosMsg(*map), colorMap, pixel_scale, true, 0, 0, map_box);
-                    saveTopicImg(mapImg, map_prefix + "-" + method + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
+                    saveTopicImg(mapImg, map_prefix + "-" + method + "-" + std::to_string(final_score) + ".png", map_prefix + "-" + method + "-colors.csv", &colorMap);
                 }
+
             });
             if (!parallel) workers.back().join();
         }
@@ -588,7 +648,7 @@ int main(int argc, char **argv) {
     file_prefix += (file_prefix.empty() || file_prefix.back() == '-') ? "" : "-";
     auto const results_filename = output_prefix + file_prefix + "results.json";
 
-    std::vector<std::string> match_methods = {"id", "hungarian-l1", "hungarian-l2", "hungarian-cos", "clear-l1-0.75", "clear-cos-0.75", "clear-l2-0.75", "clear-cos-auto"};
+    std::vector<std::string> match_methods = {"id", "hungarian-l2", "clear-cos-0.75"};
     auto const methods_str = nh.param<std::string>("match_methods", "");
     if (!methods_str.empty()) {
         match_methods = sunshine::split(methods_str, ',');
@@ -615,7 +675,7 @@ int main(int argc, char **argv) {
 
         std::vector<std::unique_ptr<MultiAgentSimulation>> sims;
         sims.reserve(n_trials);
-        thread_pool pool(std::max(1u, std::thread::hardware_concurrency() / (1 + nh.param<int>("num_threads", 1))));
+        thread_pool pool(std::max(1u, static_cast<uint32_t>(std::thread::hardware_concurrency() / (0.5 + nh.param<int>("num_threads", 1)))));
         auto const batch_size = pool.size();
         assert(batch_size > 0);
         size_t n_ready = 0;
@@ -659,119 +719,143 @@ int main(int argc, char **argv) {
         for (auto i = 2; i < argc; ++i) {
             data_files.emplace_back(argv[i]);
         }
+    } else if (mode == "ros") {
+        if (argc < 3) throw std::runtime_error("Missing command line argument <bagfiles...>");
+        std::vector<std::string> bagfiles;
+        bagfiles.reserve(argc - 2);
+        for (auto i = 2; i < argc; ++i) bagfiles.emplace_back(argv[i]);
+
+        auto const image_topic_name = nh.param<std::string>("image_topic", "/camera/rgb/image_color");
+        auto const depth_topic_name = nh.param<std::string>("depth_cloud_topic", "/camera/points");
+        auto const segmentation_topic_name = nh.param<std::string>("segmentation_topic", "/camera/seg/image_color");
+
+        auto simulation = std::make_unique<MultiAgentSimulation> (bagfiles,
+                                                                  image_topic_name,
+                                                                  depth_topic_name,
+                                                                  segmentation_topic_name);
+        simulation->run_synchronized(nh, match_methods);
     }
 
-    if (!ros::ok()) {
-        ROS_WARN("ROS is shutting down -- writing simulation data but skipping result processing");
-        return 2;
-    }
-    json results = json::array();
-    std::mutex resultsMutex;
-    std::vector<std::thread> workers;
-
-    auto map_prefix = nh.param<std::string>("map_prefix", "/home/stewart/workspace/");
-    map_prefix += (map_prefix.empty() || map_prefix.back() == '/') ? "" : "/";
-    map_prefix += (map_prefix.empty()) ? "" : file_prefix;
-    auto const map_box = nh.param<std::string>("box", "-10x-135x240x250");
-    auto const parallel_match = nh.param<bool>("parallel_match", false);
-    size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
-    size_t const cap_parallel_sim = nh.param<int>("max_parallel_sim", 1);
-    size_t const max_parallel_sim = std::min(cap_parallel_sim, std::max(1ul, std::thread::hardware_concurrency() / n_parallel_match));
-    auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", true);
-    std::mutex simMutex;
-    size_t n_parallel_sim = 0;
-    std::condition_variable sim_cv;
-    size_t run = 1;
-    for (auto const& file : data_files) {
-        {
-            std::lock_guard<std::mutex> guard(simMutex);
-            n_parallel_sim++;
+    if (mode == "record" || mode == "replay") {
+        if (!ros::ok()) {
+            ROS_WARN("ROS is shutting down -- writing simulation data but skipping result processing");
+            return 2;
         }
-        workers.emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods, parallel_match, parallel_nrobots, &simMutex, &sim_cv, &n_parallel_sim, output_prefix, file_prefix](){
-            ROS_INFO("Reading file %s", file.c_str());
-            MultiAgentSimulation sim;
-            try
+        json results = json::array();
+        std::mutex resultsMutex;
+        std::vector<std::thread> workers;
+
+        auto map_prefix = nh.param<std::string>("map_prefix", "/home/stewart/workspace/");
+        map_prefix += (map_prefix.empty() || map_prefix.back() == '/') ? "" : "/";
+        map_prefix += (map_prefix.empty()) ? "" : file_prefix;
+        // easy box: -150x-150x300x300
+        // challenge box: -10x-135x240x250
+        auto const map_box = nh.param<std::string>("box", "-150x-150x300x300");
+        auto const parallel_match = nh.param<bool>("parallel_match", true);
+        size_t const n_parallel_match = (parallel_match) ? match_methods.size() : 1;
+        size_t const max_parallel_sim = nh.param<int>("max_parallel_sim", 2);
+//    size_t const max_parallel_sim = std::min(cap_parallel_sim, std::max(1ul, std::thread::hardware_concurrency() / n_parallel_match));
+        auto const parallel_nrobots = nh.param<bool>("parallel_nrobots", false);
+        std::mutex simMutex;
+        size_t n_parallel_sim = 0;
+        std::condition_variable sim_cv;
+        size_t run = 1;
+        for (auto const &file : data_files) {
             {
-                CompressedFileReader reader(file);
-                reader >> sim;
-            } catch (boost::archive::archive_exception const& e) {
-                CompressedFileReader reader(file);
-                std::unique_ptr<MultiAgentSimulation> simPtr;
-                reader >> simPtr;
-                sim = std::move(*simPtr);
+                std::lock_guard<std::mutex> guard(simMutex);
+                n_parallel_sim++;
             }
+            workers
+                .emplace_back([&resultsMutex, &results, map_prefix, map_box, run, file, match_methods, parallel_match, parallel_nrobots, &simMutex, &sim_cv, &n_parallel_sim, output_prefix, file_prefix]() {
+                    ROS_INFO("Reading file %s", file.c_str());
+                    MultiAgentSimulation sim;
+                    try {
+                        CompressedFileReader reader(file);
+                        reader >> sim;
+                    }
+                    catch (boost::archive::archive_exception const &e) {
+                        CompressedFileReader reader(file);
+                        std::unique_ptr<MultiAgentSimulation> simPtr;
+                        reader >> simPtr;
+                        sim = std::move(*simPtr);
+                    }
 
 #ifdef OCT_15_FIX
-            if (sim.robotMaps.back().empty()) {
+                    if (sim.robotMaps.back().empty()) {
 //                while (sim.robotMaps.back().empty()) sim.robotMaps.pop_back();
 //                while (sim.robotModels.back().empty()) sim.robotModels.pop_back();
-                auto const start_size = sim.robotMaps.size();
-                sim.robotMaps.resize(sim.robotMaps.size() * 2 - 1);
-                sim.robotModels.resize(sim.robotModels.size() * 2 - 1);
-                auto const size = sim.robotMaps.size();
-                auto orig_i = start_size - 1;
-                for (auto i = size - 1; orig_i > 0; i -= 2) {
-                    assert(orig_i * 2 == i);
-                    ROS_INFO("i %ld, orig %ld", i, orig_i);
-                    sim.robotMaps[i] = std::move(sim.robotMaps[orig_i]);
-                    sim.robotMaps[orig_i].clear();
-                    sim.robotModels[i] = std::move(sim.robotModels[orig_i]);
-                    sim.robotModels[orig_i].clear();
-                    orig_i--;
-                }
-                while (sim.robotMaps.back().empty()) {
-                    sim.robotMaps.pop_back();
-                    sim.robotModels.pop_back();
-                }
-            }
+                        auto const start_size = sim.robotMaps.size();
+                        sim.robotMaps.resize(sim.robotMaps.size() * 2 - 1);
+                        sim.robotModels.resize(sim.robotModels.size() * 2 - 1);
+                        auto const size = sim.robotMaps.size();
+                        auto orig_i = start_size - 1;
+                        for (auto i = size - 1; orig_i > 0; i -= 2) {
+                            assert(orig_i * 2 == i);
+                            ROS_INFO("i %ld, orig %ld", i, orig_i);
+                            sim.robotMaps[i] = std::move(sim.robotMaps[orig_i]);
+                            sim.robotMaps[orig_i].clear();
+                            sim.robotModels[i] = std::move(sim.robotModels[orig_i]);
+                            sim.robotModels[orig_i].clear();
+                            orig_i--;
+                        }
+                        while (sim.robotMaps.back().empty()) {
+                            sim.robotMaps.pop_back();
+                            sim.robotModels.pop_back();
+                        }
+                    }
 #endif
 
-            std::vector<std::thread> subworkers;
-            std::vector<size_t> match_order;
-            match_order.reserve(sim.getNumRobots());
-            for (size_t idx = 1; idx <= sim.getNumRobots(); ++idx) match_order.push_back(idx);
-            std::shuffle(match_order.begin(), match_order.end(), default_random_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-            for (auto i = 1; i <= sim.getNumRobots(); ++i) {
-                subworkers.emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match, output_prefix, file_prefix, match_order](){
-                    ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
-                    std::string prefix = map_prefix;
-                    if (!prefix.empty()) {
-                        prefix += "exp" + std::to_string(run) + "-" + std::to_string(i) + "robots";
+                    std::vector<std::thread> subworkers;
+                    std::vector<size_t> match_order;
+                    match_order.reserve(sim.getNumRobots());
+                    for (size_t idx = 1; idx <= sim.getNumRobots(); ++idx) match_order.push_back(idx);
+                    std::shuffle(match_order.begin(),
+                                 match_order.end(),
+                                 default_random_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+                    for (auto i = 4; i <= sim.getNumRobots(); i += 4) { // TODO REMOVE -- TEMPORARY FOR PLOTTING!!
+                        subworkers
+                            .emplace_back([file, i, map_prefix, run, match_methods, map_box, &sim, &resultsMutex, &results, parallel_match, output_prefix, file_prefix, match_order]() {
+                                ROS_INFO("Matching file %s with %d robots", file.c_str(), i);
+                                std::string prefix = map_prefix;
+                                if (!prefix.empty()) {
+                                    prefix += "exp" + std::to_string(run) + "-" + std::to_string(i) + "robots";
+                                }
+                                auto const results_i = sim.process(match_methods, i, prefix, map_box, parallel_match, match_order);
+                                if (!ros::ok()) {
+                                    ROS_WARN("Stopping file %s...", file.c_str());
+                                    return;
+                                }
+                                std::lock_guard<std::mutex> guard(resultsMutex);
+                                results.push_back(results_i);
+                                ROS_INFO("Finished file %s with %d robots", file.c_str(), i);
+                            });
+                        if (!parallel_nrobots) subworkers.back().join();
                     }
-                    auto const results_i = sim.process(match_methods, i, prefix, map_box, parallel_match, match_order);
-                    if (!ros::ok()) {
-                        ROS_WARN("Stopping file %s...", file.c_str());
-                        return;
+                    if (parallel_nrobots) for (auto &worker : subworkers) worker.join();
+                    {
+                        std::lock_guard<std::mutex> guard(resultsMutex);
+                        std::ofstream partialResultsWriter(output_prefix + file_prefix + "results-" + std::to_string(run) + ".json");
+                        partialResultsWriter << results.dump(2);
+                        partialResultsWriter.close();
                     }
-                    std::lock_guard<std::mutex> guard(resultsMutex);
-                    results.push_back(results_i);
-                    ROS_INFO("Finished file %s with %d robots", file.c_str(), i);
+                    {
+                        std::unique_lock<std::mutex> lk(simMutex);
+                        n_parallel_sim--;
+                    }
+                    sim_cv.notify_all();
                 });
-                if (!parallel_nrobots) subworkers.back().join();
-            }
-            if (parallel_nrobots) for (auto& worker : subworkers) worker.join();
-            {
-                std::lock_guard<std::mutex> guard(resultsMutex);
-                std::ofstream partialResultsWriter(output_prefix + file_prefix + "results-" + std::to_string(run) + ".json");
-                partialResultsWriter << results.dump(2);
-                partialResultsWriter.close();
-            }
-            {
-                std::unique_lock<std::mutex> lk(simMutex);
-                n_parallel_sim--;
-            }
-            sim_cv.notify_all();
-        });
-        std::unique_lock<std::mutex> lk(simMutex);
-        if (n_parallel_sim >= max_parallel_sim) sim_cv.wait(lk, [&n_parallel_sim, max_parallel_sim]{return n_parallel_sim < max_parallel_sim;});
-        run += 1;
-    }
-    for (auto& worker : workers) worker.join();
-    if (!ros::ok()) ROS_WARN("ROS is shutting down -- saving partial results");
+            std::unique_lock<std::mutex> lk(simMutex);
+            if (n_parallel_sim >= max_parallel_sim)
+                sim_cv.wait(lk, [&n_parallel_sim, max_parallel_sim] { return n_parallel_sim < max_parallel_sim; });
+            run += 1;
+        }
+        for (auto &worker : workers) worker.join();
+        if (!ros::ok()) ROS_WARN("ROS is shutting down -- saving partial results");
 
-    std::ofstream resultsWriter(results_filename);
-    resultsWriter << results.dump(2);
-    resultsWriter.close();
+        std::ofstream resultsWriter(results_filename);
+        resultsWriter << results.dump(2);
+        resultsWriter.close();
+    }
 
     return 0;
 }

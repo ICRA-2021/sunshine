@@ -783,11 +783,13 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
 
     size_t i = 0, j_offset = 0;
     for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
+        assert(topic_models[left_idx].validated);
         auto const left = (std::vector<std::vector<int>>) topic_models[left_idx];
         auto const &left_weights = topic_models[left_idx].topic_weights;
 
         size_t j = j_offset;
         for (auto right_idx = left_idx; right_idx < topic_models.size(); ++right_idx) {
+            assert(topic_models[right_idx].validated);
             auto const right = (std::vector<std::vector<int>>) topic_models[right_idx];
             auto const &right_weights = topic_models[right_idx].topic_weights;
 
@@ -798,8 +800,8 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
             for (size_t fi = 0; fi < left_weights.size(); ++fi) {
                 for (size_t fj = 0; fj < right_weights.size(); ++fj) {
                     assert(left[fi].size() == right[fj].size());
-                    assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
-                    assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
+//                    assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
+//                    assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
 
                     double sim = 0;
                     if constexpr (!use_tf_icf && !use_tf_idf) {
@@ -911,6 +913,8 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return clear_matching(topic_models, l1_similarity<int>, false, 0.33);
     } else if (method == "clear-l1-0.5") {
         return clear_matching(topic_models, l1_similarity<int>, false, 0.5);
+    } else if (method == "clear-l1-0.5") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.65);
     } else if (method == "clear-l1-0.75") {
         return clear_matching(topic_models, l1_similarity<int>, false, 0.75);
     } else if (method == "clear-l1-auto") {
