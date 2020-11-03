@@ -4,12 +4,15 @@ from scipy.linalg import sqrtm
 import pandas as pd
 from collections import OrderedDict
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
 from scipy.stats import beta, norm
 from scipy.special import logit, expit
 
 from sklearn.mixture import GaussianMixture
+
+matplotlib.rc('text', usetex = True)
 
 def onehot(n, x):
     z = np.zeros(n)
@@ -100,7 +103,11 @@ def heatmap(M, counts):
     plt.show()
 
 # with open('/home/stewart/warp_ws/tmp2/results.json') as test_file:
-with open('/home/stewart/workspace/results-12.json') as test_file:
+# with open('/home/stewart/workspace/results.json') as test_file:
+# with open('/home/stewart/workspace/easy-1603902341-final/results.json') as test_file:
+# with open('/home/stewart/workspace/easy-1603902341-final-obs/results.json') as test_file:
+with open('/home/stewart/workspace/challenge-1604072531-final/results.json') as test_file:
+# with open('/home/stewart/workspace/challenge-1604072531-final-obs/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1600785357/10bot-results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-default-results/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1601527836/clear-0.25-threshold-results/results.json') as test_file:
@@ -129,27 +136,32 @@ with open('/home/stewart/workspace/results-12.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602806640/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1602827735/results.json') as test_file:
 # with open('/data/stewart/multiagent-sim-results/1603861154/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1603932725/results.json') as test_file:
+# with open('/data/stewart/multiagent-sim-results/1604072531/results.json') as test_file:
     data = json.load(test_file)
 
 show_graphs = False
 method_name = {
-    "id": "ID Based Matching",
-    "hungarian-l1": "Hungarian (TVD)",
-    "hungarian-l1-dynamic": "Hungarian (TVD, Dynamic)",
-    "hungarian-cos": "Hungarian (Cosine)",
+    "id": "ID-Based Matching",
+    "hungarian-l1": None,#"Hungarian (TVD)",
+    "hungarian-l2": "Hungarian Matching",
+    "hungarian-l1-dynamic": None,#"Hungarian (TVD, Dynamic)",
+    "hungarian-cos": None,#"Hungarian (Cosine)",
     "hungarian-ato": None,#"Hungarian (ATO)",
     "clear-l1": None,#"CLEAR (TVD)",
-    "clear-l1-auto": "CLEAR (TVD, Automatic Threshold)",
+    "clear-l1-auto": None,#"CLEAR (TVD, Automatic Threshold)",
     "clear-l1-0.25": None,#"CLEAR (TVD, 0.25 Threshold)",
-    "clear-icf-l1-0.5": "CLEAR (ICF-TVD, 0.5 Threshold)",
+    "clear-l1-0.33": None,#"CLEAR (TVD, 0.33 Threshold)",
+    "clear-icf-l1-0.5": None,#"CLEAR (ICF-TVD, 0.5 Threshold)",
     "clear-l1-0.5": "CLEAR (TVD, 0.5 Threshold)",
-    "clear-l1-0.75": "CLEAR (TVD, 0.75 Threshold)",
+    "clear-l1-0.75": None,#"CLEAR (TVD, 0.75 Threshold)",
     "clear-l1-1.0": "CLEAR (TVD, 1.0 Threshold)",
     "clear-ato": "CLEAR (Adjusted TO)",
     "clear-cos": "CLEAR (Cosine)",
     "clear-cos-0.5": "CLEAR (Cosine, 0.5 Threshold)",
-    "clear-cos-0.75": "CLEAR (Cosine, 0.75 Threshold)",
-    "clear-cos-auto": "CLEAR (Cosine, Automatic Threshold)",
+    "clear-cos-0.75": r"$\textit{Ours}$ (CLEAR Based)",
+    "clear-cos-auto": None,#"CLEAR (Cosine, Automatic Threshold)",
+    "clear-l2-0.75": None, #"CLEAR (L2, 0.75 Threshold)",
     "Single Robot": "Single Robot",
     "Single Robot Post Processed 0.5": None, #"Single Robot w/ CLEAR AT",
     "Single Robot Post Processed 0.25": None, #"Single Robot w/ CLEAR 0.25",
@@ -172,53 +184,65 @@ for experiment in data:
             if row["Method"] is None:
                 continue
             row["# of Robots"] = n_robots
-            row["Mean Silhouette Index"] = sum([s for s in trial["Silhouette Indices"] if s < 1.0]) / sum([1 for s in trial["Silhouette Indices"] if s < 1.0])
+            row["Mean Silhouette Index"] = sum([s for s in trial["Silhouette Indices"] if s < 1.0]) / max(1, sum([1 for s in trial["Silhouette Indices"] if s < 1.0]))
             row["Mean Davies-Bouldin Index"] = sum([s for s in trial["Davies-Bouldin Indices"] if s > 0.0]) / len(trial["Davies-Bouldin Indices"])
             row["# of Observations"] = trial["Number of Observations"]
             row["Single Robot GT-AMI"] = sr_gt_ami
             for k in keep_keys:
                 row[k] = trial[k]
             # print(row)
+            assert row["Method"] is not None
             csv_rows.append(row.copy())
         # print(csv_rows[-1])
     row = row.copy()
     row.pop("SR-AMI")
     row["Method"] = method_name["Single Robot"]
     row["GT-AMI"] = sr_gt_ami
+    assert row["Method"] is not None
     csv_rows.append(row.copy())
     try:
         row = row.copy()
         row["Method"] = method_name["Single Robot Post Processed 0.5"]
-        srpp_gt_ami = experiment["Single Robot Post GT-AMI"]
-        row["GT-AMI"] = srpp_gt_ami
-        csv_rows.append(row.copy())
+        if row["Method"] is not None:
+            srpp_gt_ami = experiment["Single Robot Post GT-AMI"]
+            row["GT-AMI"] = srpp_gt_ami
+            assert row["Method"] is not None
+            csv_rows.append(row.copy())
         row = row.copy()
         row["Method"] = method_name["Single Robot Post Processed 0.25"]
-        srpp_gt_ami = experiment["Single Robot + CLEAR (0.25) GT-AMI"]
-        row["GT-AMI"] = srpp_gt_ami
-        csv_rows.append(row.copy())
+        if row["Method"] is not None:
+            srpp_gt_ami = experiment["Single Robot + CLEAR (0.25) GT-AMI"]
+            row["GT-AMI"] = srpp_gt_ami
+            assert row["Method"] is not None
+            csv_rows.append(row.copy())
     except:
         pass
-    if n_robots == 12 and True:
+    if n_robots == 12 and False:
         Sim_sr = np.array(experiment["Final Distances"]["clear-l1-0.75"])
         Sim_sr = Sim_sr[Sim_sr != 1]
         Sim_sr = Sim_sr[Sim_sr != 0]
         plt.figure()
         h = plt.hist(Sim_sr.flatten(), bins="fd")
         bins = h[0].size
-        while Sim_sr[Sim_sr >= (bins - 1) / bins].size == 0:
-            bins = bins // 2
+        # while Sim_sr[Sim_sr >= (bins - 1) / bins].size == 0:
+        #     bins = bins // 2
         bin_sizes = [(Sim_sr <= i / bins).sum() - (Sim_sr <= (i - 1) / bins).sum() for i in range(1, bins + 1)]
         min_bin = np.argmin(bin_sizes)
         plt.title("Threshold = %f" % ((min_bin + 0.5) / bins))
         # xs = np.linspace(0, 1, 101)
         # ys = beta.pdf(xs, *l1_params)
         # plt.plot(xs, ys)
-        plt.xticks(np.linspace(0, 1, 16))
+        plt.xticks(np.linspace(0, 1, 21))
         plt.yscale('log')
         plt.show()
+
+        # plt.figure()
+        # Sim_logit = logit(Sim_sr)
+        # h = plt.hist(Sim_logit.flatten(), bins="fd")
+        # plt.yscale('log')
+        # plt.show()
     elif False:
-        Sim_l1 = np.array(experiment["Final Distances"]["clear-l1-0.75"])
+        Sim_l1 = np.array(experiment["Final Distances"]["clear-cos-0.75"])
         Sim_l1 = Sim_l1[Sim_l1 != 1]
         Sim_l1 = Sim_l1[Sim_l1 != 0]
         Sim_l1_logit = logit(Sim_l1)
@@ -306,32 +330,40 @@ for experiment in data:
         # plt.title("M2")
         # plt.show()
         # final_distances[n_robots].append(Sim)
+csv_rows.sort(key=lambda r: r["Method"], reverse=True)
 df = pd.DataFrame(csv_rows)
 df[r"Coverage (m$^2$) $\times$ GT-AMI Score"] = df["GT-AMI"] * df["Number of Cells"] / df["Number of Cells"].max()
 
+df_12robots = df[df["# of Robots"] == 12]
+df_12robots_final = df_12robots[df_12robots["# of Observations"] == df_12robots["# of Observations"].max()]
+ami_scores = df_12robots_final.groupby(["Method"])["GT-AMI"]
+print(ami_scores.describe().to_string())
+
 # plt.rc('font', size=24)
 plt.rc('figure', figsize=(20.0, 9.0 * 5/4))
-sns.set(style="whitegrid", font_scale=2.25)
+sns.set(style="whitegrid", font_scale=2.75)
 
-ax = sns.lineplot("# of Robots", "GT-AMI", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
+palette = sns.utils.get_color_cycle()[:4]
+palette = [palette[3]] + palette[:3]
+ax = sns.lineplot("# of Robots", "GT-AMI", hue="Method", linewidth=4, ci=95, palette=palette, data=df[df["# of Observations"] == df["# of Observations"].max()])
 # ax.set_ylim(0, None)
 # plt.grid(True, which='both', axis='both')
-plt.xlabel("Number of Merged Maps")
+plt.xlabel("Number of Robots Fused")
 ax.set_xlim(1, 12)
 plt.ylabel("AMI Score")
 leg = ax.legend(loc="lower left")
 for line in leg.get_lines():
     line.set_linewidth(6.0)
-plt.title("Merged Map Quality vs. # of Maps Merged", fontsize=28)
+plt.title(r"Fused Map Quality vs. Number of Robots Fused", fontsize=36)
 plt.savefig("gt-ami.png")
 plt.show()
 ax = sns.lineplot("# of Robots", r"Coverage (m$^2$) $\times$ GT-AMI Score", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
 # ax.set_ylim(0, None)
 # plt.grid(True, which='both', axis='both')
-plt.xlabel("Number of Merged Maps")
+plt.xlabel("Number of Maps Fused")
 plt.ylabel(r"Coverage (m$^2$) $\times$ AMI Score")
 ax.set_xlim(1, 12)
-plt.title("Value of Merged Map vs. # of Maps Merged", fontsize=28)
+plt.title(r"Value of Merged Map vs. Number of Maps Merged", fontsize=36)
 leg = ax.legend()
 for line in leg.get_lines():
     line.set_linewidth(6.0)
@@ -343,10 +375,10 @@ df = df[df["Method"] != "Single Robot w/ CLEAR"]
 ax = sns.lineplot("# of Robots", "SR-AMI", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
 # ax.set_ylim(0, None)
 # plt.grid(True, which='both', axis='both')
-plt.xlabel("Number of Merged Maps")
+plt.xlabel("Number of Maps Fused")
 plt.ylabel("AMI with Single Robot")
 ax.set_xlim(1, 12)
-plt.title("Similarity to Single Robot vs. # of Maps Merged", fontsize=28)
+plt.title("Similarity to Single Robot vs. Number of Maps Merged", fontsize=36)
 leg = ax.legend()
 for line in leg.get_lines():
     line.set_linewidth(6.0)
@@ -356,10 +388,10 @@ plt.show()
 ax = sns.lineplot("# of Robots", r"Mean Silhouette Index", hue="Method", ci=95, data=df[df["# of Observations"] == df["# of Observations"].max()])
 # ax.set_ylim(0, None)
 # plt.grid(True, which='both', axis='both')
-plt.xlabel("Number of Merged Maps")
+plt.xlabel("Number of Maps Fused")
 ax.set_xlim(1, 12)
 plt.ylabel("Silhouette Index (Higher is Better)")
-plt.title("Silhouette Index vs. # of Maps Merged", fontsize=28)
+plt.title("Silhouette Index vs. # of Maps Merged", fontsize=36)
 leg = ax.legend()
 for line in leg.get_lines():
     line.set_linewidth(6.0)
@@ -373,7 +405,7 @@ plt.ylabel("Davies-Bouldin Index (Lower is Better)")
 plt.xlabel("Number of Merged Maps")
 ax.set_xlim(1, 12)
 plt.yscale('log')
-plt.title("Davies-Bouldin Index vs. # of Maps Merged", fontsize=28)
+plt.title("Davies-Bouldin Index vs. # of Maps Merged", fontsize=36)
 leg = ax.legend()
 for line in leg.get_lines():
     line.set_linewidth(6.0)
@@ -383,15 +415,30 @@ plt.show()
 
 sns.set(style="whitegrid", font_scale=1.5)
 
-g = sns.FacetGrid(df, col="# of Robots", col_wrap=4)
+g = sns.FacetGrid(df, col="# of Robots")
 g.map(sns.lineplot, "# of Observations", "GT-AMI", hue="Method", ci='sd', data=df)
 g.set(xlim=(0, None))
 plt.savefig("gt-ami-obs.png")
 plt.show()
-g = sns.FacetGrid(df, col="# of Robots", col_wrap=4)
+g = sns.FacetGrid(df, col="# of Robots", col_wrap=3)
 g.map(sns.lineplot, "# of Observations", "Unique Topics", hue="Method", ci='sd', data=df)
 g.set(xlim=(0, None))
 plt.savefig("topics-obs.png")
 plt.show()
 # sns.lineplot("Number of Observations", "SR-AMI", style="Number of Robots", hue="Method", ci=95, data=df)
 # plt.show()
+
+plt.rc('figure', figsize=(20.0, 9.0 * 5/4))
+sns.set(style="whitegrid", font_scale=2.25)
+plt.figure()
+df["# of Robots Fused"] = df["# of Robots"]
+df["Matching Method"] = df["Method"]
+ax = sns.lineplot("# of Observations", "GT-AMI", hue="Matching Method", style="# of Robots Fused", linewidth=4, ci=95, data=df)
+plt.xlim((50, 250))
+plt.ylabel("AMI Score")
+plt.title("Fused Map Quality vs. Time Since Mission Start", fontsize=36)
+leg = ax.legend(loc="lower right")
+for line in leg.get_lines():
+    line.set_linewidth(6.0)
+plt.savefig("gt-ami-obs-single.png")
+plt.show()
