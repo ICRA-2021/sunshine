@@ -5,31 +5,55 @@
 #ifndef SUNSHINE_PROJECT_SUNSHINE_TYPES_HPP
 #define SUNSHINE_PROJECT_SUNSHINE_TYPES_HPP
 
+#include <string>
+#include <vector>
+#include <iostream>
+#include <numeric>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/array.hpp>
+#include "sparse_vector.hpp"
+
 namespace sunshine {
 
 struct Phi {
+  constexpr static uint32_t VERSION = 1; // increment added constant whenever serialization format changes
   std::string id;
   int K = 0, V = 0;
-  std::vector<std::vector<int>> counts = {};
+  std::vector<sparse_vector<int, uint32_t>> counts = {};
   std::vector<int> topic_weights = {};
+  bool validated = false;
 
-  explicit Phi()
-        : id("") {}
+  explicit Phi() = default;
 
   explicit Phi(std::string id)
-        : id(std::move(id)) {}
+          : id(std::move(id)) {}
 
-  Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
-        : id(std::move(id))
-        , K(K)
-        , V(V)
-        , counts(std::move(counts))
-        , topic_weights(std::move(topic_weights)) {
+  explicit Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
+          : id(std::move(id)), K(K), V(V), counts({counts.begin(), counts.end()}), topic_weights(std::move(topic_weights)) {
+  }
+
+  explicit operator std::vector<std::vector<int>>() const {
+      return {counts.begin(), counts.end()};
+  }
+
+  void remove_unused() {
+      throw std::logic_error("Needs re-thinking -- this will mess up map topic indices");
+//      auto const starting_size = topic_weights.size();
+//      for (size_t i = starting_size; i > 0; --i) {
+//          auto const idx = i - 1;
+//          if (topic_weights[idx] == 0) {
+//              topic_weights.erase(topic_weights.begin() + idx);
+//              counts.erase(counts.begin() + idx);
+//              K -= 1;
+//          }
+//      }
   }
 
   bool validate(bool verbose = true) {
       bool flag = true;
-      if (K != counts.size() || K != topic_weights.size()) {
+      if (static_cast<uint32_t>(K) != counts.size() || static_cast<uint32_t>(K) != topic_weights.size()) {
           if (verbose) {
               std::cerr << "Mismatch between K=" << K << ", counts.size()=" << counts.size() << ", and topic_weights.size()="
                         << topic_weights.size() << std::endl;
@@ -39,14 +63,13 @@ struct Phi {
           topic_weights.resize(K, 0);
       }
       for (auto k = 0; k < K; ++k) {
-          assert(k == 0 || V == counts[k].size());
-          if (V != counts[k].size()) {
+          assert(k == 0 || static_cast<uint32_t>(V) == counts[k].size());
+          if (static_cast<uint32_t>(V) != counts[k].size()) {
               if (verbose) std::cerr << "Mismatch between V=" << V << ", counts[k].size()=" << counts[k].size() << std::endl;
               flag = false;
               V = counts[k].size();
           }
-          int weight = 0;
-          for (auto w = 0; w < V; ++w) weight += counts[k][w];
+          int const weight = counts[k].accumulate(0);
           if (weight != topic_weights[k]) {
               if (verbose) {
                   std::cerr << "Mismatch between computed topic weight " << weight << " and topic_weights[k]=" << topic_weights[k]
@@ -56,54 +79,58 @@ struct Phi {
               topic_weights[k] = weight;
           }
       }
+      validated = true;
       return flag;
   }
 
-  void serialize(std::ostream &out) {
-      if (!out.good()) throw std::logic_error("Output stream in invalid state");
-      validate();
-      constexpr int VERSION = INT_MIN + 1; // increment added constant whenever serialization format changes
-      static_assert(VERSION < 0, "Version number must be negative!");
-      out.write(reinterpret_cast<char const *>(&VERSION), sizeof(VERSION) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&K), sizeof(K) / sizeof(char));
-      out.write(reinterpret_cast<char *>(&V), sizeof(V) / sizeof(char));
-      out.write(reinterpret_cast<char const *>(topic_weights.data()), sizeof(decltype(topic_weights)::value_type) / sizeof(char) * K);
-      for (auto word_dist : counts) {
-          out.write(reinterpret_cast<char const *>(word_dist.data()), sizeof(decltype(word_dist)::value_type) / sizeof(char) * V);
-      }
+  Phi(Phi const &other) = default;
+
+  Phi(Phi &&other) noexcept = default;
+
+  template<typename Archive>
+  void save(Archive &ar, const unsigned int version) const {
+//      if (!out.good()) throw std::invalid_argument("Output stream in invalid state");
+      if (version != VERSION) throw std::logic_error("Unexpected serialization version.");
+      if (!validated) throw std::logic_error("Must validate Phi object before serializing");
+
+      ar & id;
+      ar & K;
+      ar & V;
+      ar & topic_weights;
+      ar & counts;
   }
 
-  explicit Phi(std::istream &in) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      throw std::logic_error("Not yet implemented");
+  template<typename Archive>
+  void load(Archive &ar, const unsigned int version) {
+      ar & id;
+      ar & K;
+      ar & V;
+      ar & topic_weights;
+      if (version < 1) {
+          std::vector<std::vector<int>> vec_counts;
+          ar & vec_counts;
+          counts = {vec_counts.begin(), vec_counts.end()};
+      } else {
+          ar & counts;
+      }
+      assert(this->validate(false));
+      this->validated = true;
   }
 
-//  explicit Phi(Phi &&other)
-//        : id(other.id)
-//        , K(other.K)
-//        , V(other.V)
-//        , counts(other.counts)
-//        , topic_weights(other.topic_weights) {
-//  }
+  BOOST_SERIALIZATION_SPLIT_MEMBER(); // Required for separate load/save functions
 
-  explicit Phi(std::istream &in, std::string id, int const &vocab_size)
-        : id(std::move(id))
-        , K(0)
-        , V(vocab_size) {
-      if (!in.good()) throw std::logic_error("Input stream in invalid state");
-      std::vector<int> row(V, 0);
-      while (!in.eof()) {
-          in.read(reinterpret_cast<char *>(row.data()), sizeof(decltype(row)::value_type) / sizeof(char) * V);
-          if (in.gcount() == 0) break;
-          if (in.fail()) throw std::invalid_argument("Failed to read full row from data; wrong vocab size or corrupt data");
-
-          K += 1;
-          topic_weights.push_back(std::accumulate(row.begin(), row.end(), 0));
-          counts.push_back(row);
+  size_t bytesSize() const {
+      auto const headerSize = id.size() + sizeof(K) + sizeof(V);
+      auto const weightSize = sizeof(topic_weights) + sizeof(decltype(topic_weights)::value_type) * topic_weights.capacity();
+      auto const countVecSize = sizeof(counts) + sizeof(decltype(counts)::value_type) * topic_weights.capacity();
+      size_t countsSize = 0;
+      for (auto const& c : counts) {
+          countsSize += c.bytesSize();
       }
-      assert(validate(false));
+      return headerSize + weightSize + countVecSize + countsSize;
   }
 };
 }
+BOOST_CLASS_VERSION(sunshine::Phi, sunshine::Phi::VERSION);
 
 #endif //SUNSHINE_PROJECT_SUNSHINE_TYPES_HPP

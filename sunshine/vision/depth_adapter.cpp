@@ -12,11 +12,15 @@ void DepthAdapter::updatePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr pc) {
     this->pc = std::move(pc);
 }
 
-std::array<double, 3> DepthAdapter::get_pose(int u, int v) const {
+std::array<double, 3> inline DepthAdapter::get_pose(int u, int v) const {
     if (!pc) throw std::logic_error("Cannot process input without pointcloud");
     auto const &cloud = *pc;
     assert(u < cloud.width && v < cloud.height);
     auto const pcPose = cloud.at(u, v).getArray3fMap();
+    static size_t weird_poses = 0;
+    if (pcPose.x() <= -1000) {
+        weird_poses += 1;
+    }
     return {pcPose.x(), pcPose.y(), pcPose.z()};
 }
 
@@ -24,7 +28,7 @@ std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operat
     auto const num_words = wordObs2d->observations.size();
 
     std::vector<std::array<double, 3>> observation_pose;
-    observation_pose.reserve(num_words * 4);
+    observation_pose.reserve(num_words);
     for (size_t i = 0; i < num_words; ++i) {
         int const u = wordObs2d->observation_poses[i][0], v = wordObs2d->observation_poses[i][1];
         observation_pose.push_back(this->get_pose(u, v));
@@ -33,7 +37,7 @@ std::unique_ptr<CategoricalObservation<int, 3, double>> WordDepthAdapter::operat
     return std::make_unique<CategoricalObservation<int, 3, double>>(wordObs2d->frame,
                                                                     wordObs2d->timestamp,
                                                                     wordObs2d->id,
-                                                                    std::move(wordObs2d->observations),
+                                                                    wordObs2d->observations,
                                                                     std::move(observation_pose),
                                                                     wordObs2d->vocabulary_start,
                                                                     wordObs2d->vocabulary_size);
@@ -44,7 +48,8 @@ std::unique_ptr<SemanticObservation<std::array<uint8_t, 3>, 3, double>> ImageDep
 
     std::vector<std::array<uint8_t, 3>> observations;
     std::vector<std::array<double, 3>> observation_pose;
-    observation_pose.reserve(num_words * 4);
+    observations.reserve(num_words);
+    observation_pose.reserve(num_words);
     for (int y = 0; y < wordObs2d->image.rows; ++y) {
         for (int x = 0; x < wordObs2d->image.cols; ++x) {
             auto const& rgb = wordObs2d->image.at<cv::Vec3b>(cv::Point(x, y));

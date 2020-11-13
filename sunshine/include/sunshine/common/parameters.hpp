@@ -6,6 +6,7 @@
 #define SUNSHINE_PROJECT_PARAMETERS_HPP
 
 #include <map>
+#include <utility>
 #include <variant>
 
 namespace sunshine {
@@ -14,7 +15,7 @@ class Parameters {
     std::map<std::string, std::variant<std::string, int, double, bool>> parameters;
   public:
     explicit Parameters(decltype(parameters) params)
-          : parameters(params) {}
+          : parameters(std::move(params)) {}
 
     std::variant<std::string, int, double, bool>& operator[](std::string const& key) {
         return parameters[key];

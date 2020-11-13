@@ -23,7 +23,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
     MultiBOW multi_bow;
 
     [[nodiscard]] cv::Mat apply_clahe(cv::Mat img) const;
-    [[nodiscard]] std::string get_rost_path() const;
+    std::string get_rost_path() const;
 
   public:
 
@@ -31,12 +31,12 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
     explicit VisualWordAdapter(ParamServer *nh) {
         std::string const data_root = get_rost_path();
 
-        use_clahe = nh->template param<bool>("use_clahe", true);
+        use_clahe = nh->template param<bool>("use_clahe", false);
         show_clahe = nh->template param<bool>("show_clahe", false);
         img_scale = nh->template param<double>("scale", 1.0);
         seq_duration = nh->template param<double>("seq_duration", 0);
 
-        bool const use_texton = nh->template param<bool>("use_texton", true);
+        bool const use_texton = nh->template param<bool>("use_texton", false);
         int const texton_cell_size = nh->template param<int>("texton_cell_size", 64);
         std::string texton_vocab_filename = nh->template param<std::string>("texton_vocab",
                                                                             data_root
@@ -61,7 +61,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         std::vector<int> feature_sizes;
 
         if (use_texton) {
-            multi_bow.add(new TextonBOW(0, texton_cell_size, img_scale, texton_vocab_filename));
+            multi_bow.add(new TextonBOW(texton_cell_size, img_scale, texton_vocab_filename));
         }
 
         if (use_surf || use_orb) {
@@ -73,8 +73,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
                 feature_detector_names.emplace_back("ORB");
                 feature_sizes.push_back(num_orb);
             }
-            multi_bow.add(new LabFeatureBOW(0,
-                                            vocabulary_filename,
+            multi_bow.add(new LabFeatureBOW(vocabulary_filename,
                                             feature_detector_names,
                                             feature_sizes,
                                             feature_descriptor_name,
@@ -82,7 +81,7 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         }
 
         if (use_hue || use_intensity) {
-            multi_bow.add(new ColorBOW(0, color_cell_size, img_scale, use_hue, use_intensity));
+            multi_bow.add(new ColorBOW(color_cell_size, img_scale, use_hue, use_intensity));
         }
     }
 

@@ -131,7 +131,7 @@ public:
 
 Visualize3d::Visualize3d(ros::NodeHandle &nh) {
     auto const input_topic = nh.param<std::string>("input_topic", "/words");
-    auto const output_topic = nh.param<std::string>("output_topic", "/word_cloud");
+    auto const output_topic = nh.param<std::string>("output_topic", "/topic_cloud");
     auto const input_type = nh.param<std::string>("input_type", "TopicMap");
     auto const ppx_topic = nh.param<std::string>("ppx_topic", "/ppx_cloud");
     auto const output_frame = nh.param<std::string>("output_frame", "map");

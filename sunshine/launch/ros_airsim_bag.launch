@@ -15,7 +15,6 @@
   <arg name="camera_info_topic" default="/camera/camera_info" /> <!--unused?-->
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" />
-
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
   <arg name="world_frame" default="map" />
@@ -24,7 +23,8 @@
   <arg name="rate" default="3" />
   <arg name="hue" default="true" />
   <arg name="intensity" default="true" />
-  <arg name="texton" default="true" />
+  <arg name="clahe" default="true" />
+  <arg name="texton" default="false" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
   <arg name="use_pc" default="true" />
@@ -32,16 +32,16 @@
   
   <!-- Topic model arguments -->
   <arg name="K" default="20" />
-  <arg name="V" default="16180" />
-  <arg name="alpha" default="0.073" />
-  <arg name="beta" default="0.15" />
-  <arg name="gamma" default="0.00001" />
+  <arg name="V" default="15436" />
+  <arg name="alpha" default="0.6722" />
+  <arg name="beta" default="0.078899" />
+  <arg name="gamma" default="0.00000139" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
-  <arg name="num_threads" default="4" />
-  <arg name="cell_space" default="1" />
-  <arg name="cell_time" default="1" />
-  <arg name="cell_size" default="1x1x1x1.0" />
+  <arg name="num_threads" default="7" />
+  <arg name="cell_space" default="1.211" />
+  <arg name="cell_time" default="3600" />
+  <arg name="cell_size" default="" />
   <arg name="G_time" default="1" />
   <arg name="G_space" default="1" />
   <arg name="polled_refine" default="false" />
@@ -69,6 +69,7 @@
     <param name="feature_descriptor" type="string" value="ORB"/>
     <param name="scale" type="double" value="$(arg scale)"/>
     <param name="rate" type="double" value="$(arg rate)"/>
+    <param name="use_clahe" value="$(arg clahe)" />
     <param name="use_hue" value="$(arg hue)"/>
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>

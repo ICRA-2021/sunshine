@@ -20,9 +20,10 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <future>
+#include <sunshine/common/data_proc_utils.hpp>
 //#include <boost/sort/sort.hpp>
 #include "sunshine/common/csv.hpp"
-#include "sunshine/common/adrost_utils.hpp"
+#include "sunshine/common/matching_utils.hpp"
 
 using namespace sunshine;
 
@@ -38,10 +39,9 @@ std::vector<std::string> split_algs(const std::string &arg) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 4) throw std::invalid_argument("Usage: <TOPIC_BIN_DIR> <VOCAB_SIZE> <MATCHING_ALGORITHM>");
+    if (argc != 4) throw std::invalid_argument("Usage: <TOPIC_BIN_DIR> <MATCHING_ALGORITHM>");
     std::string const in_dir(argv[1]);
-    int const V = std::stoi(argv[2]);
-    auto const match_algs = split_algs(argv[3]);
+    auto const match_algs = split_algs(argv[2]);
 
     using namespace boost::filesystem;
     if (!is_directory(in_dir)) throw std::invalid_argument(in_dir + " is not a valid directory!");
@@ -94,11 +94,11 @@ int main(int argc, char **argv) {
         assert(name_idx > ms_idx && name_idx <= ms_idx + 4);
         int64_t const timestamp = std::stol(stem.substr(0, ms_idx)) * 1000000000 + std::stol(stem.substr(ms_idx + 1, name_idx)) * 1000000;
         std::string const name = std::string(stem.substr(name_idx + 1));
-
-        std::ifstream file_reader(topic_bin.string(), std::ios::in | std::ios::binary);
-        model_map[name].emplace(file_reader, name, V);
-        assert(file_reader.eof());
-        file_reader.close();
+        {
+            CompressedFileReader reader(topic_bin.string());
+            model_map[name].emplace(reader.read<Phi>());
+            assert(reader.eof());
+        }
 
         std::vector<Phi> topic_models;
         topic_models.reserve(model_map.size());

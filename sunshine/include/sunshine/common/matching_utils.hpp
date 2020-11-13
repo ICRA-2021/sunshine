@@ -1,8 +1,8 @@
-#ifndef SUNSHINE_PROJECT_ADROST_UTILS_HPP
-#define SUNSHINE_PROJECT_ADROST_UTILS_HPP
+#ifndef SUNSHINE_PROJECT_MATCHING_UTILS_HPP
+#define SUNSHINE_PROJECT_MATCHING_UTILS_HPP
 
 #include <cmath>
-#include <munkres/munkres.h>
+#include <clear/Hungarian.h>
 #include <clear/MultiwayMatcher.hpp>
 #include <Eigen/Core>
 #include <numeric>
@@ -52,13 +52,14 @@ struct match_scores {
                     cluster_scales.resize(K, 0.);
                 }
 
-                sorted_points.insert(clusterEnd(sorted_points, cluster), std::vector<double>{data[topic].begin(), data[topic].end()});
+                auto topicDist = (std::vector<int>) data[topic];
+                sorted_points.insert(clusterEnd(sorted_points, cluster), std::vector<double>{topicDist.begin(), topicDist.end()});
                 point_scales.insert(clusterEnd(point_scales, cluster), scale);
 
                 cluster_sizes[cluster]++;
                 std::transform(cluster_centers[cluster].begin(),
                                cluster_centers[cluster].end(),
-                               data[topic].begin(),
+                               topicDist.begin(),
                                cluster_centers[cluster].begin(),
                                [scale](double const& sum, int const& val){return sum + (static_cast<double>(val) / ((scale > 0) ? scale : 1.));});
                 cluster_scales[cluster] += (scale > 0) ? 1 : 0;
@@ -161,7 +162,24 @@ struct match_results {
   int num_unique = -1;
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
+  std::vector<std::vector<float>> distances = {};
 };
+
+std::vector<std::vector<int>> identity_lifting(std::vector<int> const& Ks) {
+    std::vector<std::vector<int>> lifting;
+    for (int const& K : Ks) {
+        lifting.emplace_back();
+        lifting.back().reserve(K);
+        for (auto j = 0; j < K; ++j) {
+            lifting.back().push_back(j);
+        }
+    }
+    return lifting;
+}
+
+std::vector<std::vector<int>> identity_lifting(size_t const N, int const K) {
+    return identity_lifting(std::vector<int>(N, K));
+}
 
 /**
  * Computes the squared euclidean distance between two vectors, v and w
@@ -454,40 +472,71 @@ match_results id_matching(std::vector<Phi> const &topic_models) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
-    auto const &left = topic_models[0].counts;
+    auto const left = (std::vector<std::vector<int>>) topic_models[0];
     auto const &left_weights = topic_models[0].topic_weights;
 
-    results.num_unique = left_weights.size();
-    results.lifting.emplace_back();
-    for (auto i = 0ul; i < left_weights.size(); ++i) {
-        results.lifting[0].push_back(i);
-    }
+    std::vector<int> Ks;
+    for (auto const &tm : topic_models) Ks.push_back(tm.K);
+    results.lifting = identity_lifting(Ks);
+    results.num_unique = *std::max_element(Ks.begin(), Ks.end());
 
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
-        auto const &right = topic_models[i].counts;
+        auto const right = (std::vector<std::vector<int>>) topic_models[i];
         auto const &right_weights = topic_models[i].topic_weights;
-        Matrix<double> matrix(left_weights.size(), right_weights.size());
 
         std::vector<std::vector<double>> pd_sq = compute_all_pairs<int>(left, right, left_weights, right_weights, normed_dist_sq<int>);
-        std::vector<std::vector<int>> assignment(left_weights.size(), std::vector<int>(right_weights.size(), -1));
-
         results.ssd.push_back(0);
         for (uint64_t row = 0; row < left_weights.size(); row++) {
-            assignment[row][row] = 0;
             results.ssd.back() += pd_sq[row][row];
         }
-        results.lifting.push_back(get_permutation(assignment, &results.num_unique));
     }
     return results;
+}
+
+std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<double>> const& costs) {
+    if (costs.empty() || costs[0].empty()) throw std::invalid_argument("Cost matrix must be non-empty");
+    auto const N = costs.size();
+    auto const M = costs[0].size();
+
+    // convert pd_sq to a Matrix
+//    Matrix<double> matrix(N, M);
+//    for (int fi = 0; fi < N; ++fi) {
+//        for (int fj = 0; fj < M; ++fj) {
+//            matrix(fi, fj) = costs[fi][fj];
+//        }
+//    }
+
+    // Apply Munkres algorithm to matrix.
+//    Munkres<double> m;
+//    m.solve(matrix);
+
+//    for (int row = 0; row < N; row++) {
+//        for (int col = 0; col < M; col++) {
+//            assignment[row][col] = matrix(row, col);
+//        }
+//    }
+    // assign to universe using Hungarian
+    std::vector<int> assignments;
+    HungarianAlgorithm hungarian;
+    hungarian.Solve(costs, assignments);
+
+    // copy results to assignments matrix
+    std::vector<std::vector<int>> assignmentMat(N, std::vector<int>(M, -1));
+    for (unsigned i = 0; i < N; ++i) {
+        if (assignments[i] == -1) continue;
+        else if (assignments[i] < 0 || assignments[i] >= assignmentMat[i].size()) throw std::logic_error("Failed to process hungarian match results");
+        assignmentMat[i][assignments[i]] = 0;
+    }
+    return assignmentMat;
 }
 
 match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models, DistanceMetric<int> const &metric = normed_dist_sq<int>) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
-    auto const &left = topic_models[0].counts;
+    auto const left = (std::vector<std::vector<int>>) topic_models[0];
     auto const &left_weights = topic_models[0].topic_weights;
 
     results.num_unique = left_weights.size();
@@ -498,32 +547,19 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
     for (auto i = 1ul; i < topic_models.size(); ++i) {
-        auto const &right = topic_models[i].counts;
+        auto const right = (std::vector<std::vector<int>>) topic_models[i];
         auto const &right_weights = topic_models[i].topic_weights;
 //        ROS_WARN("%lu %lu %lu %lu", left.size(), right.size(), left_weights.size(), right_weights.size());
-        Matrix<double> matrix(left_weights.size(), right_weights.size());
 
-        std::vector<std::vector<int>> assignment(left_weights.size(), std::vector<int>(right_weights.size(), -1));
         std::vector<int> perm;
 
         auto const pd_sq = compute_all_pairs(left, right, left_weights, right_weights, metric);
+        auto const assignment = hungarian_assignments(pd_sq);
 
         results.ssd.push_back(0);
-        // convert pd_sq to a Matrix
         for (int fi = 0; fi < left_weights.size(); ++fi) {
             for (int fj = 0; fj < right_weights.size(); ++fj) {
-                matrix(fi, fj) = pd_sq[fi][fj];
                 if (fi == fj) results.ssd.back() += normed_dist_sq(left[fi], right[fj], left_weights[fi], right_weights[fj]);
-            }
-        }
-
-        // Apply Munkres algorithm to matrix.
-        Munkres<double> m;
-        m.solve(matrix);
-
-        for (int row = 0; row < left_weights.size(); row++) {
-            for (int col = 0; col < right_weights.size(); col++) {
-                assignment[row][col] = matrix(row, col);
             }
         }
 
@@ -544,15 +580,16 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                                                0,
                                                [](int count, Phi const &next) { return count + next.K; });
     Eigen::MatrixXf P = Eigen::MatrixXf::Constant(totalNumTopics, totalNumTopics, 0);
+    results.distances = std::vector<std::vector<float>>(totalNumTopics, std::vector<float>(totalNumTopics, 0));
 
     size_t i = 0, j_offset = 0;
     for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
-        auto const &left = topic_models[left_idx].counts;
+        auto const left = (std::vector<std::vector<int>>) topic_models[left_idx];
         auto const &left_weights = topic_models[left_idx].topic_weights;
 
         size_t j = j_offset;
         for (auto right_idx = left_idx; right_idx < topic_models.size(); ++right_idx) {
-            auto const &right = topic_models[right_idx].counts;
+            auto const right = (std::vector<std::vector<int>>) topic_models[right_idx];
             auto const &right_weights = topic_models[right_idx].topic_weights;
 
             Eigen::MatrixXf matrix = Eigen::MatrixXf::Constant(left_weights.size(), right_weights.size(), 0);
@@ -564,7 +601,11 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
                     assert(left[fi].size() == right[fj].size());
                     assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
                     assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
-                    matrix(fi, fj) = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    double const sim = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    matrix(fi, fj) = sim;
+                    assert(i + fi < totalNumTopics && j + fj < totalNumTopics);
+                    results.distances[i + fi][j + fj] = sim;
+                    results.distances[j + fj][i + fi] = sim;
                     double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
                         throw std::logic_error("Invalid entries in similarity matrix!");
@@ -631,7 +672,7 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
     return results;
 }
 
-match_results match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
+match_results inline match_topics(std::string const &method, std::vector<Phi> const &topic_models) {
     if (method == "id") {
         return id_matching(topic_models);
     } else if (method == "hungarian-l2") {
@@ -680,4 +721,4 @@ match_results match_topics(std::string const &method, std::vector<Phi> const &to
 }
 }
 
-#endif //SUNSHINE_PROJECT_ADROST_UTILS_HPP
+#endif //SUNSHINE_PROJECT_MATCHING_UTILS_HPP

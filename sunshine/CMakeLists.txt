@@ -4,13 +4,40 @@ project(sunshine)
 ## Compile as C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_STANDARD 17)
 
-set(USE_ASAN off)
+set(USE_ASAN OFF)
 if (USE_ASAN)
-    message(WARNING "Using ASAN; performance will be degraded!")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address -fsanitize=leak")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -fsanitize=address -fsanitize=leak")
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fsanitize=address -fsanitize=leak")
-    set(CMAKE_MODULE_LINKER_FLAGS_DEBUG "${CMAKE_MODULE_LINKER_FLAGS_DEBUG} -fsanitize=address -fsanitize=leak")
+    message(WARNING "Using ASAN; performance will be degraded.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls")
+endif()
+
+set(USE_LSAN OFF)
+if (USE_LSAN)
+    message(WARNING "Using LSAN; performance will be degraded!")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=leak")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=leak")
+endif()
+
+set(USE_UBSAN OFF)
+if (USE_UBSAN)
+    message(WARNING "Using UBSAN; performance will be degraded.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=undefined")
+    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -fsanitize=undefined")
+endif()
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wno-sign-compare -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+
+set(OPTIMIZE_DEBUG OFF)
+if (OPTIMIZE_DEBUG)
+    message(STATUS "Optimizing debug build at level -Og")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og") # Parts of rost-cli/sunshine are very slow unoptimized
 endif()
 
 ## Find catkin macros and libraries
@@ -31,8 +58,8 @@ find_package(catkin REQUIRED COMPONENTS
   )
 find_package(tf2_geometry_msgs REQUIRED)
 
-find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
+find_package(Boost REQUIRED program_options filesystem system serialization iostreams )
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 4.2 QUIET)
@@ -139,10 +166,10 @@ find_library(libnlopt libnlopt.so NAMES libnlopt_cxx.so)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES sunshine
-   CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES sunshine_vision_adapters
+  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs sunshine_msgs tf2 tf2_ros tf2_geometry_msgs
+#  DEPENDS boost
 )
 
 ###########
@@ -154,7 +181,6 @@ catkin_package(
 include_directories(
   include
 #  common
-  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -172,10 +198,11 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/sunshine_node.cpp)
 
-add_library(sunshine_adapters SHARED topic_model/rost_adapter.cpp vision/visual_word_adapter.cpp include/sunshine/visual_word_adapter.hpp vision/depth_adapter.cpp include/sunshine/depth_adapter.hpp include/sunshine/segmentation_adapter.hpp)
+add_library(sunshine_vision_adapters SHARED vision/visual_word_adapter.cpp vision/depth_adapter.cpp vision/segmentation_label_adapter.cpp)
 
-add_executable(visual_word_extractor nodes/word_extractor_node.cpp)
-add_executable(topic_model nodes/topic_model_node.cpp)
+add_executable(visual_word_extractor nodes/visual_word_extractor.cpp)
+add_executable(label_word_extractor nodes/label_extractor.cpp include/sunshine/common/data_proc_utils.hpp)
+add_executable(topic_model nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
 add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
@@ -183,10 +210,12 @@ add_executable(save_point_cloud_2d nodes/visualize/save_point_cloud_2d.cpp)
 add_executable(perplexity_viz nodes/visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher nodes/image_publisher.cpp)
 add_executable(test.image_walker nodes/image_walk.cpp)
-add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp include/sunshine/benchmark.hpp)
+add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp)
 add_executable(test.adapters test/test_adapters.cpp)
+add_executable(test.topic_model_node test/dummy_topic_model.cpp)
 
 add_dependencies(visual_word_extractor sunshine_msgs_generate_messages_cpp)
+add_dependencies(label_word_extractor sunshine_msgs_generate_messages_cpp)
 add_dependencies(topic_model sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize sunshine_msgs_generate_messages_cpp)
 add_dependencies(visualize3d sunshine_msgs_generate_messages_cpp)
@@ -197,6 +226,7 @@ add_dependencies(test.image_publisher sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.image_walker sunshine_msgs_generate_messages_cpp)
 add_dependencies(utils.sunshine_eval sunshine_msgs_generate_messages_cpp)
 add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
+add_dependencies(test.topic_model_node sunshine_msgs_generate_messages_cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -214,28 +244,32 @@ add_dependencies(test.adapters sunshine_msgs_generate_messages_cpp)
 # )
 
 
-target_include_directories(sunshine_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_include_directories(sunshine_vision_adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+target_link_libraries(sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
-target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(visual_word_extractor sunshine_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+target_include_directories(visual_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(visual_word_extractor sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
+
+target_include_directories(label_word_extractor PUBLIC ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(label_word_extractor sunshine_vision_adapters ${libvisualwords} ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} lz4)
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_adapters)
+target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_vision_adapters)
 
+target_include_directories(perplexity_viz PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})
 
-target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(visualize PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(visualize ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_include_directories(visualize3d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(visualize3d ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
-target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(save_topic_map ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_include_directories(save_topic_map PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(save_topic_map ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
-target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS})
-target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${OpenCV_LIBS} ${catkin_LIBRARIES})
+target_include_directories(save_point_cloud_2d PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(save_point_cloud_2d ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_publisher PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
@@ -244,10 +278,14 @@ target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${cat
 target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_adapters)
+target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
 
-target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters)
+target_include_directories(test.adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} sunshine_vision_adapters)
 target_compile_features(test.adapters PRIVATE cxx_std_17)
+
+target_include_directories(test.topic_model_node PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(test.topic_model_node ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
 if (libclear)
     find_package(Eigen3 REQUIRED)
@@ -255,18 +293,28 @@ if (libclear)
     add_executable(model_translator nodes/model_translator.cpp)
     add_executable(utils.topic_match utilities/topic_match.cpp)
     add_executable(utils.find_lifting utilities/find_lifting.cpp)
+    add_executable(utils.multi_agent_match nodes/multi_agent_sim.cpp)
+#    add_executable(utils.map_match utilities/map_match.cpp)
 
     add_dependencies(model_translator sunshine_msgs_generate_messages_cpp)
     target_include_directories(model_translator PUBLIC ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
     target_link_libraries(model_translator ${catkin_LIBRARIES} ${libclear})
 
-    target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.topic_match ${Boost_LIBRARIES} ${libclear})
+    target_include_directories(utils.topic_match PUBLIC ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
+    target_link_libraries(utils.topic_match ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.topic_match PRIVATE cxx_std_17)
 
-    target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR})
-    target_link_libraries(utils.find_lifting ${Boost_LIBRARIES} ${libclear})
+    target_include_directories(utils.find_lifting PUBLIC ${EIGEN3_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
+    target_link_libraries(utils.find_lifting ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${libclear})
     target_compile_features(utils.find_lifting PRIVATE cxx_std_17)
+
+    add_dependencies(utils.multi_agent_match sunshine_msgs_generate_messages_cpp)
+    target_include_directories(utils.multi_agent_match PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+#    message(WARNING "${Boost_LIBRARIES}")
+    target_link_libraries(utils.multi_agent_match ${Boost_LIBRARIES} ${libclear} ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
+    target_compile_features(utils.multi_agent_match PRIVATE cxx_std_17)
+else()
+    message(STATUS "Did not find libclear -- skipping topic matching executables")
 endif()
 
 if (liblimbo)
@@ -275,15 +323,17 @@ if (liblimbo)
         message(WARNING "Cannot build optimizers without libnlopt")
     else()
         find_package(Eigen3 REQUIRED)
-        add_executable(utils.rost_optimize utilities/rost_optimize.cpp include/sunshine/benchmark.hpp)
+        add_executable(utils.rost_optimize utilities/rost_optimize.cpp)
         add_executable(test.test_optimize test/test_optimize.cpp)
 
-        target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
-        target_link_libraries(utils.rost_optimize ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_adapters ${liblimbo} ${libnlopt} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
+        target_include_directories(utils.rost_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
+        target_link_libraries(utils.rost_optimize ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES} sunshine_vision_adapters ${liblimbo} ${libnlopt} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES})
 
         target_include_directories(test.test_optimize PUBLIC "/home/stewart/devel/3rdparty/limbo/src/" ${EIGEN3_INCLUDE_DIR})
         target_link_libraries(test.test_optimize ${liblimbo} ${libnlopt} ${Boost_LIBRARIES})
     endif()
+else()
+    message(STATUS "Did not find liblimbo -- skipping optimizers")
 endif()
 
 #############

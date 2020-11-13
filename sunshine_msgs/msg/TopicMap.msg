@@ -21,6 +21,9 @@ float64[] cell_poses
 #size of each cell, dimensions ordered the same as the cell pose
 float64[] cell_width
 
+# Temporal "width" of each cell. Special cases: use -1 if integrating across time, 0 if snapshot
+float64 cell_time
+
 #perplexity of each cell
 float64[] cell_ppx
 

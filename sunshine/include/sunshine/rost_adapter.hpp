@@ -21,7 +21,8 @@ using warp::hROST;
 
 template<size_t _POSEDIM = 4, typename WordInputDimType = double, typename WordOutputDimType = double>
 class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation<int,
-      _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>> {
+        _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>
+{
   public:
     static size_t constexpr POSEDIM = _POSEDIM;
     typedef WordOutputDimType WordDimType;
@@ -29,8 +30,11 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     typedef std::array<CellDimType, POSEDIM> cell_pose_t;
     typedef std::array<WordDimType, POSEDIM> word_pose_t;
     typedef neighbors<cell_pose_t> neighbors_t;
-    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+//    typedef warp::SpatioTemporalTopicModel<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> ROST_t;
+    typedef ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >> ROST_t;
     using WordObservation = CategoricalObservation<int, POSEDIM - 1, WordInputDimType>;
+
+    constexpr static double DEFAULT_CELL_SPACE = 1;
   private:
     mutable std::mutex wordsReceivedLock;
     std::chrono::steady_clock::time_point lastWordsAdded;
@@ -42,7 +46,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     double k_alpha, k_beta, k_gamma, k_tau, p_refine_rate_local, p_refine_rate_global;
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
-    bool polled_refine, update_topic_model;
+    bool update_topic_model;
     size_t last_refine_count = 0;
     std::unique_ptr<ROST_t> rost;
     std::string world_frame;
@@ -53,6 +57,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     std::atomic<bool> stopWork;
     std::vector<std::shared_ptr<std::thread>> workers;
     std::function<void(ROSTAdapter *)> newObservationCallback;
+    bool const broadcastMode;
     std::list<std::unique_ptr<std::thread>> observationThreads;
 
     static std::map<cell_pose_t, std::vector<int>> words_for_cell_poses(WordObservation const &wordObs,
@@ -64,25 +69,27 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             word_pose_t wordPose;
             if constexpr(POSEDIM == 4) {
                 wordPose = {wordObs.timestamp, wordObs.observation_poses[i][0], wordObs.observation_poses[i][1],
-                      wordObs.observation_poses[i][2]};
+                            wordObs.observation_poses[i][2]};
             } else if constexpr(POSEDIM == 3) {
                 wordPose = {wordObs.timestamp, wordObs.observation_poses[i][0], wordObs.observation_poses[i][1]};
             } else {
                 static_assert(always_false<POSEDIM>);
             }
-            cell_pose_t const cell_stamped_point = toCellId(wordPose, cell_size);
+            cell_pose_t const cell_stamped_point = sunshine::toCellId<POSEDIM, CellDimType>(wordPose, cell_size);
             words_by_cell_pose[cell_stamped_point].emplace_back(wordObs.observations[i]);
         }
         return words_by_cell_pose;
     }
 
-    std::vector<std::vector<int>> getTopicDistsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
-        std::vector<std::vector<int>> topics;
+    template<typename T>
+    std::vector<T> getTopicDistsForPoses(const std::vector<cell_pose_t> &cell_poses, std::function<T(std::vector<int>)> const& f) const {
+        auto rostReadToken = rost->get_read_token();
+        std::vector<T> topics;
         topics.reserve(cell_poses.size());
         for (auto const &pose : cell_poses) {
             auto const cell = rost->get_cell(pose);
             if (cell->nZ.size() == this->K) {
-                topics.push_back(cell->nZ);
+                topics.push_back(f(cell->nZ));
             } else {
                 ROS_WARN_THROTTLE(1, "ROSTAdapter::getObservationForPoses() : Skipping cells with wrong number of topics");
                 continue;
@@ -92,16 +99,27 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return topics;
     }
 
+    std::vector<std::vector<int>> getTopicDistsForPoses(std::vector<cell_pose_t> const& cell_poses) const {
+        return getTopicDistsForPoses<std::vector<int>>(cell_poses, [](std::vector<int>const & nZ){return nZ;});
+    }
+
+    std::vector<int> getMLTopicsForPoses(const std::vector<cell_pose_t> &cell_poses) const {
+        return getTopicDistsForPoses<int>(cell_poses, [](std::vector<int> const& nZ){return argmax(nZ);});
+    }
+
   public:
 #ifndef NDEBUG
     std::vector<std::vector<int>> externalTopicCounts = {}; // TODO Delete?
 #endif
 
     template<typename ParamServer>
-    explicit ROSTAdapter(ParamServer *nh, decltype(newObservationCallback) callback = nullptr)
-          : newObservationCallback(std::move(callback)) {
+    explicit ROSTAdapter(ParamServer *nh,
+                         decltype(newObservationCallback) callback = nullptr,
+                         const std::vector<std::vector<int>> &init_model = {},
+                         bool const broadcastMode = true)
+            : newObservationCallback(std::move(callback)), stopWork(false), broadcastMode(broadcastMode) {
         K = nh->template param<int>("K", 10); // number of topics
-        V = nh->template param<int>("V", 16180); // vocabulary size
+        V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
         int const num_levels = nh->template param<int>("num_levels", 3);
         k_alpha = nh->template param<double>("alpha", 0.073);
@@ -110,13 +128,12 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
-        num_threads = nh->template param<int>("num_threads", 4); // beta(1,tau) is used to pick cells for refinement
-        double const cell_size_space = nh->template param<double>("cell_space", 1);
+        num_threads = nh->template param<int>("num_threads", 2); // beta(1,tau) is used to pick cells for refinement
+        double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
-        polled_refine = nh->template param<bool>("polled_refine", false);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
         min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
@@ -131,44 +148,65 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
 //        ROS_INFO("Starting online topic modelling with parameters: K=%u, alpha=%f, beta=%f, tau=%f", K, k_alpha, k_beta, k_tau);
 
         cell_pose_t const G = computeCellSize<POSEDIM, CellDimType>(G_time, G_space);
-        if (is_hierarchical) {
+//        if (is_hierarchical) {
 //            ROS_INFO("Enabling hierarchical ROST with %d levels, gamma=%f", num_levels, k_gamma);
-            rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
-                                                                                                   static_cast<size_t>(K),
-                                                                                                   static_cast<size_t>(num_levels),
-                                                                                                   k_alpha,
-                                                                                                   k_beta,
-                                                                                                   k_gamma,
-                                                                                                   neighbors_t(G));
-        } else {
-            rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
-                                                                                                  static_cast<size_t>(K),
-                                                                                                  k_alpha,
-                                                                                                  k_beta,
-                                                                                                  neighbors_t(G));
-            if (k_gamma > 0) {
+//            rost = std::make_unique<hROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+//                                                                                                   static_cast<size_t>(K),
+//                                                                                                   static_cast<size_t>(num_levels),
+//                                                                                                   k_alpha,
+//                                                                                                   k_beta,
+//                                                                                                   k_gamma,
+//                                                                                                   neighbors_t(G));
+//        } else {
+        rost = std::make_unique<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t >>>(static_cast<size_t>(V),
+                                                                                              static_cast<size_t>(K),
+                                                                                              k_alpha,
+                                                                                              k_beta,
+                                                                                              neighbors_t(G),
+                                                                                              hash_container<cell_pose_t>(),
+                                                                                              (k_gamma > 0) ? k_gamma : 1.0);
+        if (k_gamma > 0) {
 //                ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
-                auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
-                rost_concrete->gamma = k_gamma;
-                rost_concrete->enable_auto_topics_size(true);
-            }
+            auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
+            rost_concrete->enable_auto_topics_size(true);
+        }
+//        }
+
+        if (!init_model.empty()) {
+            if (init_model.size() != K) throw std::invalid_argument("Initial topic model dimension mismatch with number of topics.");
+            if (init_model[0].size() != V) throw std::invalid_argument("Initial topic model dimension mismatch with vocabulary size.");
+
+            auto rostWriteGuard = rost->get_write_token();
+            rost->set_topic_model(*rostWriteGuard, init_model);
         }
 
-        if (polled_refine) { //refine when requested
-            throw std::runtime_error("Not implemented. Requires services.");
-//            ROS_INFO("Topics will be refined on request.");
+        stopWorkers();
+        if (num_threads <= 0) { //refine when requested
+            ROS_INFO("Topics will only be refined on service request.");
         } else { //refine automatically
-//            ROS_INFO("Topics will be refined online.");
+            ROS_DEBUG("Topics will be refined online.");
+            startWorkers();
+        }
+    }
+
+    void stopWorkers() {
+        if (!stopWork) {
+            stopWork = true;                // signal workers to stop
+            for (auto const &t : workers) { // wait for them to stop
+                if (t) t->join();
+            }
+        }
+    }
+
+    void startWorkers() {
+        if (stopWork) {
             stopWork = false;
             workers = parallel_refine_online_exp_beta(rost.get(), k_tau, p_refine_rate_local, p_refine_rate_global, num_threads, &stopWork);
         }
     }
 
     ~ROSTAdapter() override {
-        stopWork = true; //signal workers to stop
-        for (auto const &t : workers) { //wait for them to stop
-            if (t) t->join();
-        }
+        stopWorkers();
         for (auto const &t : observationThreads) {
             if (t) t->join();
         }
@@ -185,6 +223,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             ROS_ERROR("Word observation in wrong frame! Skipping...\nFound: %s\nExpected: %s", wordObs->frame.c_str(), world_frame.c_str());
             throw std::invalid_argument("Word observation in invalid frame.");
         }
+
+        ROS_ERROR_COND(wordObs->vocabulary_size > V,
+                       "Word observation vocabulary size (%lu) is larger than ROST vocabulary (%d)! May cause crash...",
+                       wordObs->vocabulary_size,
+                       V);
+        ROS_WARN_COND(wordObs->vocabulary_size < V,
+                      "Word observation vocabulary size (%lu) is smaller than ROST vocabulary (%d).",
+                      wordObs->vocabulary_size,
+                      V);
 
         using namespace std;
         lock_guard<mutex> guard(wordsReceivedLock);
@@ -232,16 +279,16 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
         auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::steady_clock::now() - time_start).count();
+                std::chrono::steady_clock::now() - time_start).count();
         if (total_duration > this->min_obs_refine_time) {
             ROS_WARN(
-                  "Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
-                  total_duration,
-                  duration_words_lock,
-                  duration_write_lock,
-                  duration_broadcast,
-                  duration_add_observations,
-                  min_obs_refine_time);
+                    "Words observation overhead: %lu ms (%lu words lock, %lu write lock, %lu broadcast, %lu updating cells) exceeds min refine time %d",
+                    total_duration,
+                    duration_words_lock,
+                    duration_write_lock,
+                    duration_broadcast,
+                    duration_add_observations,
+                    min_obs_refine_time);
         } else {
             ROS_DEBUG("Words observation overhead: %lu ms (%lu lock, %lu write lock, %lu broadcast, %lu updating cells)",
                       total_duration,
@@ -256,19 +303,28 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
         std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
-        observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, poses = current_cell_poses, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
-              std::move(promisedTopics)}]() mutable {
-            using namespace std::chrono;
-            wait_for_processing(false);
-            auto topics = getTopicDistsForPoses(cell_poses);
-            double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
-            promisedTopics.set_value(std::make_unique<Segmentation>("map", timestamp, id, cell_size, std::move(topics), std::move(poses)));
-        }));
+        if (broadcastMode) {
+            observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+                    std::move(promisedTopics)}]() mutable {
+                using namespace std::chrono;
+                wait_for_processing(false);
+                auto topics = getTopicDistsForPoses(cell_poses);
+                double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+                promisedTopics.set_value(std::make_unique<Segmentation>("map",
+                                                                        timestamp,
+                                                                        id,
+                                                                        cell_size,
+                                                                        std::move(topics),
+                                                                        std::move(cell_poses)));
+            }));
+        } else {
+            promisedTopics.set_value(nullptr);
+        }
         return futureTopics;
     }
 
     using Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation<int,
-          _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>::operator();
+            _POSEDIM - 1, WordInputDimType>, std::future<Segmentation<std::vector<int>, _POSEDIM, int32_t, WordOutputDimType>>>::operator();
 
     std::map<CellDimType, std::vector<int>> get_topics_by_time() const {
         auto rostReadToken = rost->get_read_token();
@@ -302,6 +358,22 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return topics_by_cell;
     }
 
+    auto get_map(activity_manager::ReadToken const &read_token) const {
+        using namespace std::chrono;
+        double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+        auto map = std::make_unique<Segmentation<int, POSEDIM, CellDimType, WordDimType>>("map", timestamp, ros::Time(timestamp).sec, cell_size, std::vector<int>(), rost->cell_pose);
+        map->observations = getMLTopicsForPoses(map->observation_poses);
+        return map;
+    }
+
+    auto get_dist_map(activity_manager::ReadToken const &read_token) const {
+        using namespace std::chrono;
+        double const timestamp = duration<double>(steady_clock::now().time_since_epoch()).count();
+        auto map = std::make_unique<Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType>>("map", timestamp, ros::Time(timestamp).sec, cell_size, std::vector<std::vector<int>>(), rost->cell_pose);
+        map->observations = getTopicDistsForPoses(map->observation_poses);
+        return map;
+    }
+
     Phi get_topic_model(activity_manager::ReadToken const &read_token) const {
         Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights());
         phi.validate(false);
@@ -309,17 +381,15 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     void set_topic_model(activity_manager::WriteToken const &write_token, Phi const &phi) {
-        rost->set_topic_model(write_token, phi.counts, phi.topic_weights);
+        rost->set_topic_model(write_token, (std::vector<std::vector<int>>) phi, phi.topic_weights);
     }
 
-    void wait_for_processing(bool const new_data = true) const {
+    void wait_for_processing(bool const new_data = false) const {
         using namespace std::chrono;
-        auto const elapsedSinceAdd = steady_clock::now() - lastWordsAdded;
-        bool const delay = duration_cast<milliseconds>(elapsedSinceAdd).count() < min_obs_refine_time;
+        auto const elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
+        bool const delay = elapsedSinceAdd < min_obs_refine_time;
         if (new_data) {
-            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms",
-                      min_obs_refine_time,
-                      duration_cast<milliseconds>(elapsedSinceAdd).count());
+            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms", min_obs_refine_time, elapsedSinceAdd);
             if (delay) {
                 consecutive_rate_violations++;
                 ROS_WARN("New word observation received too soon! Delaying...");
@@ -330,7 +400,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             }
         }
         if (delay) {
-            std::this_thread::sleep_for(milliseconds(min_obs_refine_time) - elapsedSinceAdd);
+            std::this_thread::sleep_for(milliseconds(min_obs_refine_time - elapsedSinceAdd));
         }
     }
 
@@ -350,6 +420,10 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return cell_size;
     }
 
+    decltype(world_frame) const &get_world_frame() const {
+        return world_frame;
+    }
+
     ROST_t const &get_rost() const {
         return *rost;
     }
@@ -358,38 +432,12 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         return rost->get_ml_topics_and_ppx_for_pose(pose);
     }
 
-    static inline cell_pose_t toCellId(word_pose_t const &word, std::array<WordDimType, POSEDIM> cell_size) {
-        static_assert(std::numeric_limits<CellDimType>::max() <= std::numeric_limits<WordDimType>::max(),
-                      "Word dim type must be larger than cell dim type!");
-        if constexpr (POSEDIM == 4) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[3] / cell_size[3], std::numeric_limits<CellDimType>::max()))};
-        } else if constexpr (POSEDIM == 3) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[2] / cell_size[2], std::numeric_limits<CellDimType>::max()))};
-        } else if constexpr (POSEDIM == 2) {
-            return {static_cast<CellDimType>(std::fmod(word[0] / cell_size[0], std::numeric_limits<CellDimType>::max())),
-                  static_cast<CellDimType>(std::fmod(word[1] / cell_size[1], std::numeric_limits<CellDimType>::max()))};
-        } else {
-            static_assert(always_false<POSEDIM>);
-        }
+    inline cell_pose_t toCellId(word_pose_t const &word_pose) const {
+        return sunshine::toCellId<POSEDIM, CellDimType, WordDimType>(word_pose, cell_size);
     }
 
-    static inline word_pose_t toWordPose(cell_pose_t const &cell, std::array<double, POSEDIM> cell_size) {
-        if constexpr(POSEDIM == 4) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                  static_cast<WordDimType>(cell[2] * cell_size[2]), static_cast<WordDimType>(cell[3] * cell_size[3])};
-        } else if constexpr(POSEDIM == 3) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1]),
-                  static_cast<WordDimType>(cell[2] * cell_size[2])};
-        } else if constexpr(POSEDIM == 2) {
-            return {static_cast<WordDimType>(cell[0] * cell_size[0]), static_cast<WordDimType>(cell[1] * cell_size[1])};
-        } else {
-            static_assert(always_false<POSEDIM>);
-        }
+    inline word_pose_t toWordPose(cell_pose_t const &cell_pose) const {
+        return sunshine::toWordPose<POSEDIM, CellDimType, WordDimType>(cell_pose, cell_size);
     }
 };
 }

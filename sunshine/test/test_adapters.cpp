@@ -28,7 +28,7 @@ class DummyTopicModel : public TopicModelAdapter<DummyTopicModel, int, int, 4, d
   public:
     std::unique_ptr<Output> operator()(Input const* wordObs) {
         std::vector<ROSTAdapter<4>::cell_pose_t> cellPoses;
-        for (auto const &wordPose : wordObs->observation_poses) cellPoses.push_back(ROSTAdapter<4>::toCellId(wordPose, {10, 10, 10, 10}));
+        for (auto const &wordPose : wordObs->observation_poses) cellPoses.push_back(toCellId<4,int>(wordPose, {10, 10, 10, 10}));
         return std::make_unique<Output>(wordObs->frame,
                                         wordObs->timestamp,
                                         wordObs->id,
