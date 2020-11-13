@@ -12,11 +12,17 @@
 //#include <ros/console.h> // only used for ROS logging
 #include "sunshine_types.hpp"
 // #include "adapters/boostmatrixadapter.h"
+#undef Complex
+#include <boost/math/distributions/normal.hpp>
 
 namespace sunshine {
 
+// TODO: these should use sparse_vector instead of vector, once sparse_vector has a zero-overhead sparse_vector(vector) constructor
+// that way much faster to compare two sparse topics
 template<typename L, typename R = L> using SimilarityMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
 template<typename L, typename R = L> using DistanceMetric = std::function<double(std::vector<L>, std::vector<R>, double, double)>;
+
+static double const FP_TOLERANCE = 2e-3;
 
 double unit_round(double value, double epsilon = 2e-3) {
     if (value >= 0 && value <= 1) return value;
@@ -163,6 +169,8 @@ struct match_results {
   std::vector<std::vector<int>> lifting = {};
   std::vector<double> ssd = {};
   std::vector<std::vector<float>> distances = {};
+  int num_active = -1;
+  std::map<std::string, std::string> metadata = {};
 };
 
 std::vector<std::vector<int>> identity_lifting(std::vector<int> const& Ks) {
@@ -215,7 +223,7 @@ double gaussian_kernel_similarity(std::vector<T> const &v, std::vector<T> const 
 }
 
 template<typename T>
-double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+double inline l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     if (v.size() != w.size()) throw std::invalid_argument("Vector sizes do not match");
     double distance = 0.0;
     double diff;
@@ -235,8 +243,17 @@ double l1_distance(std::vector<T> const &v, std::vector<T> const &w, double scal
 }
 
 template<typename T>
-double l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+double inline l1_similarity(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return 1 - l1_distance(v, w, scale_v, scale_w);
+}
+
+template<typename T>
+double inline adjusted_topic_overlap(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    // TODO 0.051 IS ONLY VALID FOR BETA~=0.04 AND LARGE(ISH) V
+    double constexpr EXP_TO = 0.7463441728612739;
+//    double constexpr EXP_TO = 0.051;
+    double constexpr scale = 1. / (1 - EXP_TO);
+    return std::max(0.0, (l1_similarity(v, w, scale_v, scale_w) - EXP_TO) * scale);
 }
 
 template<typename T>
@@ -332,6 +349,11 @@ double cosine_similarity(std::vector<T> const &v, std::vector<T> const &w, doubl
 }
 
 template<typename T>
+double cosine_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
+    return 1 - cosine_similarity(v, w, scale_v, scale_w);
+}
+
+template<typename T>
 double angular_distance(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     auto const angle = std::acos(cosine_similarity(v, w, scale_v, scale_w));
     return unit_round(angle / M_PI);
@@ -361,6 +383,49 @@ double bhattacharyya_coeff(std::vector<T> const &v, std::vector<T> const &w, dou
 template<typename T>
 double hellinger_dist(std::vector<T> const &v, std::vector<T> const &w, double scale_v = 1., double scale_w = 1.) {
     return std::sqrt(1. - bhattacharyya_coeff(v, w, scale_v, scale_w));
+}
+
+std::vector<double> icf(std::vector<Phi> const& topic_models) {
+    if (topic_models.empty()) throw std::invalid_argument("Must have at least one topic model");
+    long N = 0;
+    std::vector<double> icf = std::vector<double>(topic_models[0].V, 0.0);
+    for (auto const& phi : topic_models) {
+        N += std::accumulate(phi.topic_weights.begin(), phi.topic_weights.end(), 0l);
+        for (auto i = 0; i < phi.K; ++i) {
+            for (auto const& [idx, v] : phi.counts[i].as_map()) icf[idx] += v;
+        }
+    }
+    assert(std::accumulate(icf.begin(), icf.end(), 0.0) == N);
+    std::transform(icf.begin(), icf.end(), icf.begin(), [N, &icf](double v){return (v == 0) ? 1.0 : std::log(N / v);});
+    return icf;
+}
+
+std::vector<double> idf(std::vector<Phi> const& topic_models) {
+    if (topic_models.empty()) throw std::invalid_argument("Must have at least one topic model");
+    long N = 0;
+    std::vector<double> idf_counts = std::vector<double>(topic_models[0].V, 0.0);
+    for (auto const& phi : topic_models) {
+        N += phi.K;
+        for (auto i = 0; i < phi.K; ++i) {
+            for (auto const& [idx, v] : phi.counts[i].as_map()) idf_counts[idx] += (v > 0) ? 1 : 0;
+        }
+    }
+    assert(std::accumulate(idf_counts.begin(), idf_counts.end(), 0.0) == N);
+    std::transform(idf_counts.begin(), idf_counts.end(), idf_counts.begin(), [N, &idf_counts](double v){return (v == 0) ? 1.0 : std::log(N / v);});
+    return idf_counts;
+}
+
+template <typename T1, typename T2, typename Ret = double>
+std::pair<std::vector<Ret>, Ret> scale(std::vector<T1> const& tf, std::vector<T2> const& icf) {
+    double scale = 0;
+    std::vector<Ret> output;
+    output.reserve(tf.size());
+    std::transform(tf.begin(), tf.end(), icf.begin(), std::back_inserter(output), [&scale](T1 left, T2 right){
+        Ret const sum = left * right;
+        scale += sum;
+        return sum;
+    });
+    return {output, scale};
 }
 
 /**
@@ -532,17 +597,29 @@ std::vector<std::vector<int>> hungarian_assignments(std::vector<std::vector<doub
     return assignmentMat;
 }
 
+template <bool merge_unused = true, bool dynamic = false>
 match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models, DistanceMetric<int> const &metric = normed_dist_sq<int>) {
     match_results results = {};
     if (topic_models.empty()) return results;
 
-    auto const left = (std::vector<std::vector<int>>) topic_models[0];
-    auto const &left_weights = topic_models[0].topic_weights;
+    auto left = (std::vector<std::vector<int>>) topic_models[0];
+    auto left_weights = topic_models[0].topic_weights;
 
     results.num_unique = left_weights.size();
     results.lifting.emplace_back();
+    int unused_topic_idx = -1;
     for (auto i = 0ul; i < left_weights.size(); ++i) {
-        results.lifting[0].push_back(i);
+        if (merge_unused && left_weights[i] == 0) {
+            if (unused_topic_idx == -1) {
+                unused_topic_idx = i;
+            } else {
+                left.erase(left.begin() + i);
+                left_weights.erase(left_weights.begin() + i);
+                results.num_unique--;
+                i--;
+            }
+            results.lifting[0].push_back(unused_topic_idx);
+        } else results.lifting[0].push_back(i);
     }
     results.ssd = std::vector<double>(1, 0); // SSD with self is 0
 
@@ -564,14 +641,130 @@ match_results sequential_hungarian_matching(std::vector<Phi> const &topic_models
         }
 
 //        ROS_INFO("SSD %f", results.ssd.back());
-        results.lifting.push_back(get_permutation(assignment, &results.num_unique));
+        int new_count = results.num_unique;
+        int const starting_count = results.num_unique;
+        results.lifting.push_back(get_permutation(assignment, &new_count));
+        assert(results.lifting.back().size() == right.size());
+        if constexpr (merge_unused || dynamic) {
+            for (auto j = 0ul; j < right.size(); ++j) {
+                auto& assignment_j = results.lifting.back()[j];
+                if (merge_unused && right_weights[j] == 0) {
+                    if (unused_topic_idx == -1) unused_topic_idx = results.num_unique++;
+                    assignment_j = unused_topic_idx;
+                } else if (assignment_j >= starting_count) {
+                    if (!merge_unused) throw std::logic_error("this should be impossible");
+                    assignment_j = results.num_unique++;
+                    if (dynamic) {
+                        left.push_back(right[j]);
+                        left_weights.push_back(right_weights[j]);
+                    }
+                }
+                assert(assignment_j < results.num_unique);
+            }
+        } else results.num_unique = new_count;
+        assert(new_count >= starting_count);
+        assert((merge_unused && new_count >= results.num_unique) || (!merge_unused && results.num_unique == left.size()));
     }
     return results;
 }
 
+enum class Method {
+    OUTLIERS,
+    HIST_MINIMUM
+};
+
+template <typename T>
+static double estimate_threshold(std::vector<Phi> const& topic_models,
+                                 SimilarityMetric<T> const& similarity_metric,
+                                 Method const method = Method::HIST_MINIMUM) {
+    std::vector<double> similarities;
+    bool const skip_empty = true;
+    double sum_logit = 0.0;
+    for (auto i = 0ul; i < topic_models.size(); ++i) {
+        auto const& model_i = topic_models[i].counts;
+        auto const& weights_i = topic_models[i].topic_weights;
+        for (auto j = i; j < topic_models.size(); ++j) {
+            auto const& model_j = topic_models[j].counts;
+            auto const& weights_j = topic_models[j].topic_weights;
+            for (auto left_idx = 0ul; left_idx < model_i.size(); ++left_idx) {
+                auto const phi_i = static_cast<std::vector<T>>(model_i[left_idx]);
+                for (auto right_idx = 0ul; right_idx < model_j.size(); ++right_idx) {
+                    if (skip_empty && (weights_i[left_idx] == 0 || weights_j[right_idx] == 0)) continue;
+                    double const sim = similarity_metric(phi_i, static_cast<std::vector<T>>(model_j[right_idx]), weights_i[left_idx], weights_j[right_idx]);
+                    if (method == Method::OUTLIERS && sim > 1e-8 && sim < 1.0 - 1e-8) {
+                        sum_logit += std::log(sim / (1 - sim));
+                        similarities.push_back((sim < 0.) ? 0. : ((sim > 1.) ? 1. : sim));
+                    } else if (method != Method::OUTLIERS) {
+                        similarities.push_back((sim < 0.) ? 0. : ((sim > 1.) ? 1. : sim));
+                    }
+                }
+            }
+        }
+    }
+    if (similarities.empty()) return 0.5;
+    std::sort(similarities.begin(), similarities.end());
+
+    if (method == Method::OUTLIERS) {
+        double const mean = (similarities.empty()) ? 0 : (sum_logit / similarities.size());
+        double ssd = 0.0;
+        for (auto const &sim : similarities) {
+            ssd += std::pow(sim - mean, 2);
+        }
+        double const std = (similarities.empty()) ? 1 : std::sqrt(ssd / similarities.size());
+
+        boost::math::normal_distribution dist(mean, std);
+        size_t count = 0;
+        size_t const total = similarities.size();
+        double max_difference = 0;
+        double threshold = 1.0 - FP_TOLERANCE;
+        for (auto const &test_threshold : similarities) {
+            if (test_threshold >= 0.5) {
+                auto const expected = (1.0 - boost::math::cdf(dist, std::log(test_threshold / (1 - test_threshold)))) * total;
+                auto const actual = static_cast<double>(total - count);
+                auto const num_outliers = actual - expected;
+                auto const difference = num_outliers - expected;
+                if (difference > max_difference && num_outliers > 0.5) {
+                    threshold = test_threshold - FP_TOLERANCE;
+                    max_difference = difference;
+                }
+            }
+            count += 1;
+        }
+        return threshold;
+    } else if (method == Method::HIST_MINIMUM) {
+        double const iqr = similarities[(3 * similarities.size()) / 4] - similarities[similarities.size() / 4];
+        double const bin_width = 2 * iqr / std::pow(similarities.size(), 1./3.);
+        size_t const n_bins = std::max(2ul, size_t(std::ceil(1. / bin_width)));
+        std::vector<size_t> histogram(n_bins, 0);
+        for (auto const& sim : similarities) {
+            if (sim == 1.0) histogram.back() += 1;
+            else histogram[static_cast<size_t>(sim * n_bins)] += 1;
+        }
+//        while (histogram.size() > 1) {
+//            auto const zeros = std::count(histogram.cbegin(), histogram.cend(), 0);
+//            if (histogram.back() != 0) break;
+//            size_t const new_size = histogram.size() / 2;
+//            for (size_t idx = 0; idx < new_size; ++idx) {
+//                histogram[idx] = histogram[2*idx] + histogram[2*idx + 1];
+//            }
+//            if (histogram.size() % 2 == 1) histogram[new_size - 1] += histogram.back();
+//            histogram.resize(new_size);
+//        }
+        size_t const min_bin = (n_bins - 1) - (std::min_element(histogram.rbegin(), histogram.rbegin() + histogram.size() / 2) - histogram.rbegin());
+        volatile double const threshold = (min_bin + 0.5) / n_bins;
+        return threshold;
+    }
+    throw std::logic_error("Not implemented");
+}
+
+static auto const NO_THRESHOLD = -1;
+static auto const AUTO_THRESHOLD = -2;
+template <bool use_tf_icf = false, bool use_tf_idf = false>
 match_results clear_matching(std::vector<Phi> const &topic_models,
-                             SimilarityMetric<int> const &similarity_metric = bhattacharyya_coeff<int>,
-                             bool enforce_distinctness = false) {
+                             SimilarityMetric<std::conditional_t<use_tf_icf || use_tf_idf, double, int>> const &similarity_metric = bhattacharyya_coeff<int>,
+                             bool enforce_distinctness = false,
+                             double binarize_threshold = NO_THRESHOLD) {
+    static_assert(!use_tf_icf || !use_tf_idf);
     match_results results = {};
     if (topic_models.empty()) return results;
 
@@ -582,13 +775,21 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
     Eigen::MatrixXf P = Eigen::MatrixXf::Constant(totalNumTopics, totalNumTopics, 0);
     results.distances = std::vector<std::vector<float>>(totalNumTopics, std::vector<float>(totalNumTopics, 0));
 
+    auto const weights = (use_tf_icf) ? icf(topic_models) : ((use_tf_idf) ? idf(topic_models) : std::vector<double>());
+    if constexpr(!use_tf_icf && !use_tf_idf) {
+        if (binarize_threshold == AUTO_THRESHOLD) binarize_threshold = estimate_threshold(topic_models, similarity_metric);
+    } else if (binarize_threshold == AUTO_THRESHOLD) throw std::logic_error("Unsupported at this time!");
+    results.metadata.insert(std::make_pair("Binarize Threshold", std::to_string(binarize_threshold)));
+
     size_t i = 0, j_offset = 0;
     for (auto left_idx = 0ul; left_idx < topic_models.size(); ++left_idx) {
+        assert(topic_models[left_idx].validated);
         auto const left = (std::vector<std::vector<int>>) topic_models[left_idx];
         auto const &left_weights = topic_models[left_idx].topic_weights;
 
         size_t j = j_offset;
         for (auto right_idx = left_idx; right_idx < topic_models.size(); ++right_idx) {
+            assert(topic_models[right_idx].validated);
             auto const right = (std::vector<std::vector<int>>) topic_models[right_idx];
             auto const &right_weights = topic_models[right_idx].topic_weights;
 
@@ -599,19 +800,30 @@ match_results clear_matching(std::vector<Phi> const &topic_models,
             for (size_t fi = 0; fi < left_weights.size(); ++fi) {
                 for (size_t fj = 0; fj < right_weights.size(); ++fj) {
                     assert(left[fi].size() == right[fj].size());
-                    assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
-                    assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
-                    double const sim = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
-                    matrix(fi, fj) = sim;
+//                    assert(std::accumulate(left[fi].begin(), left[fi].end(), 0) == left_weights[fi]);
+//                    assert(std::accumulate(right[fj].begin(), right[fj].end(), 0) == right_weights[fj]);
+
+                    double sim = 0;
+                    if constexpr (!use_tf_icf && !use_tf_idf) {
+                        sim = similarity_metric(left[fi], right[fj], left_weights[fi], right_weights[fj]);
+                    } else {
+                        auto const& [new_left, new_left_scale] = scale(left[fi], weights);
+                        auto const& [new_right, new_right_scale] = scale(right[fj], weights);
+                        sim = similarity_metric(new_left, new_right, new_left_scale, new_right_scale);
+                    }
+                    if (binarize_threshold > 0) matrix(fi, fj) = sim >= binarize_threshold;
+                    else {
+                        assert(binarize_threshold == NO_THRESHOLD);
+                        matrix(fi, fj) = sim;
+                    }
                     assert(i + fi < totalNumTopics && j + fj < totalNumTopics);
                     results.distances[i + fi][j + fj] = sim;
                     results.distances[j + fj][i + fi] = sim;
-                    double const tolerance = 2e-3;
                     if (!std::isfinite(matrix(fi, fj))) {
-                        throw std::logic_error("Invalid entries in similarity matrix!");
-                    } else { matrix(fi, fj) = unit_round(matrix(fi, fj), tolerance); }
+                        throw std::logic_error("Infinite entries in similarity matrix!");
+                    } else { matrix(fi, fj) = unit_round(matrix(fi, fj), FP_TOLERANCE); }
                     if (left_idx == right_idx && fi == fj && matrix(fi, fj) != 1) {
-                        if (std::abs(matrix(fi, fj) - 1.0) <= tolerance) { matrix(fi, fj) = 1.; }
+                        if (std::abs(matrix(fi, fj) - 1.0) <= FP_TOLERANCE) { matrix(fi, fj) = 1.; }
                         else {
                             throw std::logic_error("Invalid entries in similarity matrix!");
                         }
@@ -679,24 +891,60 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return sequential_hungarian_matching(topic_models, l2_distance<int>);
     } else if (method == "hungarian-l1") {
         return sequential_hungarian_matching(topic_models, l1_distance<int>);
+    } else if (method == "hungarian-l1-dynamic") {
+        return sequential_hungarian_matching<true, true>(topic_models, l1_distance<int>);
     } else if (method == "hungarian-js") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_dist<int>);
     } else if (method == "hungarian-js2") {
         return sequential_hungarian_matching(topic_models, jensen_shannon_div<int>);
     } else if (method == "hungarian-angle") {
         return sequential_hungarian_matching(topic_models, angular_distance<int>);
+    } else if (method == "hungarian-cos") {
+        return sequential_hungarian_matching(topic_models, cosine_distance<int>);
     } else if (method == "hungarian-hg") {
         return sequential_hungarian_matching(topic_models, hellinger_dist<int>);
     } else if (method == "clear-l1") {
         return clear_matching(topic_models, l1_similarity<int>, false);
+    } else if (method == "clear-ato") {
+        return clear_matching(topic_models, adjusted_topic_overlap<int>, false);
+    } else if (method == "clear-l1-0.25") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.25);
+    } else if (method == "clear-l1-0.33") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.33);
+    } else if (method == "clear-l1-0.5") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.5);
+    } else if (method == "clear-l1-0.5") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.65);
+    } else if (method == "clear-l1-0.75") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 0.75);
+    } else if (method == "clear-l1-auto") {
+        return clear_matching(topic_models, l1_similarity<int>, false, AUTO_THRESHOLD);
+    } else if (method == "clear-icf-l1-0.5") {
+        return clear_matching<true, false>(topic_models, l1_similarity<double>, false, 0.5);
+    } else if (method == "clear-icf-l1-0.75") {
+        return clear_matching<true, false>(topic_models, l1_similarity<double>, false, 0.75);
+    } else if (method == "clear-idf-l1-0.5") {
+        return clear_matching<false, true>(topic_models, l1_similarity<double>, false, 0.5);
+    } else if (method == "clear-idf-l1-0.75") {
+        return clear_matching<false, true>(topic_models, l1_similarity<double>, false, 0.75);
+    } else if (method == "clear-l1-1.0") {
+        return clear_matching(topic_models, l1_similarity<int>, false, 1.0);
     } else if (method == "clear-l2") {
         return clear_matching(topic_models, l2_similarity<int>, false);
+    } else if (method == "clear-l2-0.75") {
+        return clear_matching(topic_models, l2_similarity<int>, false, 0.75);
     } else if (method == "clear-gk") {
         return clear_matching(topic_models, gaussian_kernel_similarity<int>, false);
     } else if (method == "clear-bh") {
         return clear_matching(topic_models, bhattacharyya_coeff<int>, false);
-    } else if (method == "clear-cosine") {
+    } else if (method == "clear-cos") {
         return clear_matching(topic_models, cosine_similarity<int>, false);
+    } else if (method == "clear-cos-0.5") {
+        return clear_matching(topic_models, cosine_similarity<int>, false, 0.5);
+    } else if (method == "clear-cos-0.75") {
+        return clear_matching(topic_models, cosine_similarity<int>, false, 0.75);
+    } else if (method == "clear-cos-auto") {
+        return clear_matching(topic_models, cosine_similarity<int>, false, AUTO_THRESHOLD);
     } else if (method == "clear-js") {
         return clear_matching(topic_models, jensen_shannon_similarity<int>, false);
     } else if (method == "clear-js2") {
@@ -709,7 +957,7 @@ match_results inline match_topics(std::string const &method, std::vector<Phi> co
         return clear_matching(topic_models, gaussian_kernel_similarity<int>, true);
     } else if (method == "clear-distinct-bh") {
         return clear_matching(topic_models, bhattacharyya_coeff<int>, true);
-    } else if (method == "clear-distinct-cosine") {
+    } else if (method == "clear-distinct-cos") {
         return clear_matching(topic_models, cosine_similarity<int>, true);
     } else if (method == "clear-distinct-js") {
         return clear_matching(topic_models, jensen_shannon_similarity<int>, true);

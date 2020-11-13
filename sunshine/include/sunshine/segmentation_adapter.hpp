@@ -53,6 +53,11 @@ class SemanticSegmentationAdapter
     bool const aggregate;
     UniqueStore<ObservationType> unique_obs;
     std::unordered_map<std::array<CellPoseType, POSEDIM>, std::map<size_t, size_t>, hasharray<CellPoseType, POSEDIM>> counts;
+    std::string frame_id;
+    double latest_timestep = 0;
+    uint32_t latest_id = 0;
+
+    std::mutex mutable lock;
 
   public:
     template<typename ParameterServer>
@@ -65,27 +70,10 @@ class SemanticSegmentationAdapter
                               PoseType>(paramServer)
         , aggregate(aggregate) { }
 
-    auto operator()(SemanticObservation<ObservationType, PoseDim, PoseType> const *obs) {
+    std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> constructSegmentation() const {
         typedef Segmentation<LabelType, POSEDIM, CellPoseType, PoseType> Output;
-        if (!aggregate) { counts.clear(); }
-        std::unique_ptr<Segmentation<LabelType, POSEDIM, CellPoseType, PoseType>> segmentation =
-            std::make_unique<Output>(obs->frame, obs->timestamp, obs->id, this->cell_size, std::vector<LabelType>(),
-                                     std::vector<std::array<CellPoseType, PoseDim>>());
-//        auto const size = counts.size();
-        if (obs->observations.empty()) return std::move(segmentation);
-        for (auto i = 0; i < obs->observations.size(); ++i) {
-            auto const pose = toCellId<POSEDIM, CellPoseType>(obs->observation_poses[i], this->cell_size);
-            size_t const id = unique_obs.get_id(obs->observations[i]);
-            if (auto iter = counts.find(pose); iter != counts.end()) {
-                if (auto countIter = iter->second.find(id); countIter != iter->second.end()) {
-                    countIter->second++;
-                } else {
-                    iter->second.emplace(id, 1);
-                }
-            } else {
-                counts.emplace(pose, std::map<size_t, size_t>{{id, 1}});
-            }
-        }
+        auto segmentation = std::make_unique<Output>(frame_id, latest_timestep, latest_id, this->cell_size, std::vector<LabelType>(),
+            std::vector<std::array<CellPoseType, PoseDim>>());
         if constexpr (std::is_integral_v<LabelType>) {
             // TODO Find max count
             static_assert(always_false<LabelType>, "Not implemented.");
@@ -101,9 +89,40 @@ class SemanticSegmentationAdapter
         } else {
             static_assert(always_false<LabelType>, "Invalid template argument.");
         }
-//        auto const new_size = counts.size();
-//        std::cout << "Old: " << size << ", New: " << new_size << std::endl;
-        return segmentation;
+        //        auto const new_size = counts.size();
+        //        std::cout << "Old: " << size << ", New: " << new_size << std::endl;
+        return std::move(segmentation);
+    }
+
+    [[nodiscard]] std::unique_lock<std::mutex> getLock() const {
+        return std::unique_lock(lock);
+    }
+
+    auto operator()(SemanticObservation<ObservationType, PoseDim, PoseType> const *obs) {
+        typedef Segmentation<LabelType, POSEDIM, CellPoseType, PoseType> Output;
+        if (!aggregate) {
+            assert(obs != nullptr);
+            counts.clear();
+        }
+        if (obs != nullptr) {
+            frame_id = obs->frame;
+            latest_timestep = obs->timestamp;
+            latest_id = obs->id;
+            for (auto i = 0; i < obs->observations.size(); ++i) {
+                auto const pose = toCellId<POSEDIM, CellPoseType>(obs->observation_poses[i], this->cell_size);
+                size_t const id = unique_obs.get_id(obs->observations[i]);
+                if (auto iter = counts.find(pose); iter != counts.end()) {
+                    if (auto countIter = iter->second.find(id); countIter != iter->second.end()) {
+                        countIter->second++;
+                    } else {
+                        iter->second.emplace(id, 1);
+                    }
+                } else {
+                    counts.emplace(pose, std::map<size_t, size_t>{{id, 1}});
+                }
+            }
+        }
+        return constructSegmentation();
     }
 
     auto operator()(std::unique_ptr<SemanticObservation<ObservationType, PoseDim, PoseType>> input) {

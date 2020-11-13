@@ -24,7 +24,7 @@ class WordColorMap {
                 den *= 2;
             }
         }
-        return num * 360. / den;
+        return (num * 360.) / den;
     }
 
 public:

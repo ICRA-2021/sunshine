@@ -5,18 +5,18 @@
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-3.bag  -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-4.bag" /> -->
   <arg name="bagfiles" default="
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_3_of_3.bag" />
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_3_of_3.bag" />
 
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
@@ -24,7 +24,7 @@
   <arg name="file_prefix" default="" />
   <arg name="output_dir" default="" />
   <arg name="map_prefix" default="$(arg output_dir)" />
-  <arg name="match_methods" default="id,hungarian-l1,clear-l1,clear-l1-0.5" />
+  <arg name="match_methods" default="id,hungarian-l1,hungarian-cos,clear-l1-0.75,clear-cos-0.75,clear-cos-auto" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
@@ -42,11 +42,11 @@
   <arg name="use_tf" default="true" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="10" />
+  <arg name="K" default="32" />
   <arg name="V" default="15436" />
-  <arg name="alpha" default="0.3" />
-  <arg name="beta" default="0.04" />
-  <arg name="gamma" default="1.39e-6" />
+  <arg name="alpha" default="0.008587" />
+  <arg name="beta" default="4.692290" />
+  <arg name="gamma" default="0.000015" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="1" />
@@ -119,7 +119,8 @@
     <param name="output_prefix" value="$(arg output_dir)" />
     <param name="map_prefix" value="$(arg map_prefix)" />
     <param name="file_prefix" value="$(arg file_prefix)" />
-    <param name="box" value="-150x-150x300x300" />
+<!--     <param name="box" value="-150x-150x300x300" />   --><!-- for "easy" environment -->
+    <param name="box" value="-10x-135x240x250" /> <!-- for "challenge" environment -->
     <param name="match_methods" value="$(arg match_methods)" />
     <param name="subsample_results" value="$(arg subsample_results)" />
   </node>

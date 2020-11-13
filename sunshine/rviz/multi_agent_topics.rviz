@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /GT_Topics1
       Splitter Ratio: 0.5089820623397827
     Tree Height: 346
   - Class: rviz/Selection
@@ -26,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Merged_Topics
+    SyncSource: ID Matching
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -57,6 +58,56 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        base_link-0-1:
+          Value: true
+        base_link-1-1:
+          Value: true
+        base_link-10-1:
+          Value: true
+        base_link-11-1:
+          Value: true
+        base_link-2-1:
+          Value: true
+        base_link-3-1:
+          Value: true
+        base_link-4-1:
+          Value: true
+        base_link-5-1:
+          Value: true
+        base_link-6-1:
+          Value: true
+        base_link-7-1:
+          Value: true
+        base_link-8-1:
+          Value: true
+        base_link-9-1:
+          Value: true
+        bottom_camera-0-1:
+          Value: true
+        bottom_camera-1-1:
+          Value: true
+        bottom_camera-10-1:
+          Value: true
+        bottom_camera-11-1:
+          Value: true
+        bottom_camera-2-1:
+          Value: true
+        bottom_camera-3-1:
+          Value: true
+        bottom_camera-4-1:
+          Value: true
+        bottom_camera-5-1:
+          Value: true
+        bottom_camera-6-1:
+          Value: true
+        bottom_camera-7-1:
+          Value: true
+        bottom_camera-8-1:
+          Value: true
+        bottom_camera-9-1:
+          Value: true
+        map:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -64,7 +115,55 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        map:
+          base_link-0-1:
+            {}
+          base_link-1-1:
+            {}
+          base_link-10-1:
+            {}
+          base_link-11-1:
+            {}
+          base_link-2-1:
+            {}
+          base_link-3-1:
+            {}
+          base_link-4-1:
+            {}
+          base_link-5-1:
+            {}
+          base_link-6-1:
+            {}
+          base_link-7-1:
+            {}
+          base_link-8-1:
+            {}
+          base_link-9-1:
+            {}
+          bottom_camera-0-1:
+            {}
+          bottom_camera-1-1:
+            {}
+          bottom_camera-10-1:
+            {}
+          bottom_camera-11-1:
+            {}
+          bottom_camera-2-1:
+            {}
+          bottom_camera-3-1:
+            {}
+          bottom_camera-4-1:
+            {}
+          bottom_camera-5-1:
+            {}
+          bottom_camera-6-1:
+            {}
+          bottom_camera-7-1:
+            {}
+          bottom_camera-8-1:
+            {}
+          bottom_camera-9-1:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -97,96 +196,6 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Alpha: 0.5
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: Robot0_Topics
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.20000000298023224
-      Style: Flat Squares
-      Topic: /0/topic_cloud
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
-    - Alpha: 0.5
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: Robot1_Topics
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.20000000298023224
-      Style: Flat Squares
-      Topic: /1/topic_cloud
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: RGB8
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 4096
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: Naive_Topics
-      Position Transformer: XYZ
-      Queue Size: 10
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.20000000298023224
-      Style: Flat Squares
-      Topic: /naive_topic_cloud
-      Unreliable: false
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -205,14 +214,14 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: Merged_Topics
+      Name: GT_Topics
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.20000000298023224
-      Style: Flat Squares
-      Topic: /merged_topic_cloud
+      Style: Points
+      Topic: /gt_cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -235,14 +244,74 @@ Visualization Manager:
       Max Intensity: 4096
       Min Color: 0; 0; 0
       Min Intensity: 0
-      Name: GT_Topics
+      Name: ID Matching
       Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.20000000298023224
-      Style: Flat Squares
-      Topic: /gt_topic_cloud
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /id_cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Hungarian Matching
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /hungarian_cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: CLEAR Matching
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
+      Topic: /clear_cloud
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
@@ -275,7 +344,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 56.38865661621094
+      Distance: 286.5673522949219
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -283,17 +352,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 5.049209117889404
-        Y: -6.923354148864746
-        Z: 1.9761273860931396
+        X: 111.32231903076172
+        Y: 13.416315078735352
+        Z: 20.112266540527344
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4747964143753052
+      Pitch: 1.4847965240478516
       Target Frame: <Fixed Frame>
-      Yaw: 1.6635897159576416
+      Yaw: 1.5735876560211182
     Saved: ~
 Window Geometry:
   Displays:

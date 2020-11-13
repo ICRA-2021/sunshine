@@ -10,6 +10,7 @@
 #include <tf/tf.h>
 #include <tf2_msgs/TFMessage.h>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <utility>
@@ -39,6 +40,7 @@ class RobotSim {
     std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> segmentationAdapter;
     ObservationTransformAdapter<WordDepthAdapter::Output> wordTransformAdapter;
     ObservationTransformAdapter<ImageDepthAdapter::Output> imageTransformAdapter;
+    tf::TransformBroadcaster tfBroadcaster;
     std::unique_ptr<WordDepthAdapter> wordDepthAdapter;
     std::unique_ptr<ImageDepthAdapter> imageDepthAdapter;
     std::unique_ptr<Word2DAdapter<3>> word2dAdapter;
@@ -46,7 +48,7 @@ class RobotSim {
     sensor_msgs::Image::ConstPtr lastRgb, lastSegmentation;
     sensor_msgs::PointCloud2::ConstPtr lastPc;
     std::shared_ptr<Segmentation<std::vector<int>, 3, int, double>> segmentation;
-    double depth_timestamp = -1;
+    ros::Time depth_timestamp = ros::Time(0.0);
 //    bool transform_found = false;
     bool processed_rgb = false;
     bool const use_3d;
@@ -55,20 +57,19 @@ class RobotSim {
     ros::Time latestTransformTime = ros::Time(0);
     size_t bag_num = 0;
     decltype(std::chrono::steady_clock::now()) clock = std::chrono::steady_clock::now();
-
-    [[nodiscard]] inline std::string fixFrame(std::string const& frame) const {
-        return frame + "-" + std::to_string(bag_num);
-    }
+    bool broadcast_tf = false;
 
     bool tryProcess() {
         if (!lastRgb || processed_rgb) return false;
-        if (use_3d && (latestTransformTime < lastRgb->header.stamp || lastRgb->header.stamp.toSec() != depth_timestamp)) return false;
-        if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp.toSec() != lastSegmentation->header.stamp.toSec())) return false;
+        if (use_3d && (latestTransformTime < lastRgb->header.stamp || lastRgb->header.stamp != depth_timestamp)) return false;
+        if (use_segmentation && (!lastSegmentation || lastRgb->header.stamp != lastSegmentation->header.stamp)) return false;
         assert(!use_segmentation || (lastSegmentation->header.frame_id == lastRgb->header.frame_id));
         #ifndef NDEBUG
-        ROS_INFO("PROCESSING NEW OBSERVATION");
-        ROS_INFO("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
-        if (use_segmentation) ROS_INFO("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
+        static char ID_LETTER = 'A';
+        thread_local char THREAD_LETTER = ID_LETTER++;
+        ROS_DEBUG("THREAD %c PROCESSING NEW OBSERVATION", THREAD_LETTER);
+        ROS_DEBUG("RGB: #%d, %f s, %s", lastRgb->header.seq, lastRgb->header.stamp.toSec(), lastRgb->header.frame_id.c_str());
+        if (use_segmentation) ROS_DEBUG("Seg: #%d, %f s, %s", lastSegmentation->header.seq, lastSegmentation->header.stamp.toSec(), lastSegmentation->header.frame_id.c_str());
         #endif
         ROS_DEBUG("%ld ms since last observation", record_lap(clock));
         auto newRgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
@@ -100,8 +101,8 @@ class RobotSim {
             try {
                 transform = wordTransformAdapter.getLatestTransform(fixFrame(lastRgb->header.frame_id), lastRgb->header.stamp);
                 #ifndef NDEBUG
-                ROS_INFO("Depth: #%d, %f s, %s", lastPc->header.seq, lastPc->header.stamp.toSec(), lastPc->header.frame_id.c_str());
-                ROS_INFO("Transform: %f s, %s, child: %s", transform.stamp_.toSec(), transform.frame_id_.c_str(), transform.child_frame_id_.c_str());
+                ROS_DEBUG("Depth: #%d, %f s, %s", lastPc->header.seq, lastPc->header.stamp.toSec(), lastPc->header.frame_id.c_str());
+                ROS_DEBUG("Transform: %f s, %s, child: %s", transform.stamp_.toSec(), transform.frame_id_.c_str(), transform.child_frame_id_.c_str());
                 #endif
             } catch (tf::ExtrapolationException const& ex) {
                 ROS_WARN("Extrapolation exceptions shouldn't happen since we have latestTransformTime...");
@@ -135,11 +136,18 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
             ROS_DEBUG("%ld ms adding to topic model", record_lap(clock)); // ~40-80ms optimized
-            if (use_segmentation && !read_only_segmentation) segmentation = imageTransformAdapter(newSegmentation >> *imageDepthAdapter, transform) >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) {
+                auto single_segmentation = imageTransformAdapter(newSegmentation >> *imageDepthAdapter, transform);
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                segmentation = std::move(single_segmentation) >> *segmentationAdapter;
+            }
             ROS_DEBUG("%ld ms parsing segmentation", record_lap(clock)); // ~30-40ms optimized
             auto final_observation_poses = cells_toCellSet(rostAdapter->get_rost().cell_pose);
-            if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), final_observation_poses)) {
-                throw std::runtime_error("Latest observation includes unrecongized poses!");
+            {
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                if (use_segmentation && !includes(segmentationAdapter->getRawCounts(), final_observation_poses)) {
+                    throw std::runtime_error("Latest observation includes unrecongized poses!");
+                }
             }
             ROS_DEBUG("%ld ms validating poses", record_lap(clock));
         } else {
@@ -151,7 +159,10 @@ class RobotSim {
                 (*rostAdapter)(std::move(observation));
             }
 //            ROS_INFO("%ld ms adding to 2d topic model", record_lap(clock));
-            if (use_segmentation && !read_only_segmentation) segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
+            if (use_segmentation && !read_only_segmentation) {
+                [[maybe_unused]] auto lock = segmentationAdapter->getLock();
+                segmentation = newSegmentation >> *image2dAdapter >> *segmentationAdapter;
+            }
 //            ROS_INFO("%ld ms parsing 2d segmentation", record_lap(clock));
         }
         processed_rgb = true;
@@ -173,7 +184,7 @@ class RobotSim {
 
     bool depthCallback(sensor_msgs::PointCloud2::ConstPtr msg) {
 //        ROS_INFO("%ld ms before entering depthCallback", record_lap(clock));
-        depth_timestamp = msg->header.stamp.toSec();
+        depth_timestamp = msg->header.stamp;
         lastPc = std::move(msg);
         return tryProcess();
     };
@@ -191,6 +202,10 @@ class RobotSim {
 //            ROS_INFO("Adding transform at %f from %s to %s", tfTransform.stamp_.toSec(), tfTransform.frame_id_.c_str(), tfTransform.child_frame_id_.c_str());
             wordTransformAdapter.addTransform(tfTransform);
             imageTransformAdapter.addTransform(tfTransform);
+            if (broadcast_tf) {
+                tfTransform.stamp_ = ros::Time::now();
+                tfBroadcaster.sendTransform(tfTransform);
+            }
         }
 //        ROS_INFO("%ld ms processing transforms", record_lap(clock));
         return tryProcess();
@@ -202,7 +217,8 @@ class RobotSim {
              ParamServer const &parameters,
              bool const use_3d,
              std::shared_ptr<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>> shared_seg_adapter = nullptr,
-             bool read_only_segmentation = false)
+             bool const read_only_segmentation = false,
+             bool const broadcast_tf = false)
             : name(std::move(name)),
               bagIter(nullptr),
               visualWordAdapter(&parameters),
@@ -214,18 +230,19 @@ class RobotSim {
               wordTransformAdapter(&parameters),
               imageTransformAdapter(&parameters),
               use_3d(use_3d),
-              read_only_segmentation(read_only_segmentation) {}
+              read_only_segmentation(read_only_segmentation),
+              broadcast_tf(broadcast_tf) {}
 
     void open(std::string const& bagFilename,
               std::string const &image_topic,
               std::string const &depth_topic = "",
               std::string const &segmentation_topic= "",
-              double x_offset = 0) {
+              double const _2d_x_offset = 0) {
         if (use_3d && depth_topic.empty()) throw std::invalid_argument("Must provide depth topic if operating in 3D mode");
         wordDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<WordDepthAdapter>();
         imageDepthAdapter = (depth_topic.empty()) ? nullptr : std::make_unique<ImageDepthAdapter>();
-        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
-        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(x_offset, 0, 0, true) : nullptr;
+        word2dAdapter = (depth_topic.empty()) ? std::make_unique<Word2DAdapter<3>>(_2d_x_offset, 0, 0, true) : nullptr;
+        image2dAdapter = (depth_topic.empty()) ? std::make_unique<Image2DAdapter<3>>(_2d_x_offset, 0, 0, true) : nullptr;
         use_segmentation = !segmentation_topic.empty();
 
         bag_num++;
@@ -261,6 +278,18 @@ class RobotSim {
         return segmentation;
     }
 
+    auto getLastPc() const {
+        return lastPc;
+    }
+
+    auto getLatestTransform(std::string const& frame) const {
+        return wordTransformAdapter.getLatestTransform(frame, ros::Time(0));
+    }
+
+    [[nodiscard]] inline std::string fixFrame(std::string const& frame) const {
+        return frame + "-" + name + "-" + std::to_string(bag_num);
+    }
+
     /**
      *
      * @return false if finished, true if there are more messages to simulate
@@ -271,7 +300,7 @@ class RobotSim {
         auto const start = std::chrono::steady_clock::now();
         auto const ret = !bagIter->play(false);
         auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
-        ROS_WARN_COND(duration.count() > 300, "%s spent %ld ms playing bag", name.c_str(), duration.count());
+        ROS_WARN_COND(duration.count() > 400, "%s spent %ld ms playing bag", name.c_str(), duration.count());
         return ret;
     }
 
@@ -293,21 +322,22 @@ class RobotSim {
 };
 
 template<typename Metric>
-double benchmark(std::string const &bagfile,
+std::tuple<double, size_t, size_t> benchmark(std::string const &bagfile,
                  std::string const &image_topic,
                  std::string const &segmentation_topic,
                  std::string const &depth_topic,
                  sunshine::Parameters const &parameters,
                  Metric const &metric,
                  uint32_t const warmup = 0,
-                 uint32_t const max_iter = std::numeric_limits<uint32_t>::max()) {
+                 uint32_t const max_iter = std::numeric_limits<uint32_t>::max(),
+                 bool const average = false) {
     // TODO Use RobotSim
     using namespace sunshine;
 
     auto visualWordAdapter = VisualWordAdapter(&parameters);
 //    auto labelSegmentationAdapter = SemanticSegmentationAdapter<int, std::vector<int>>(&parameters);
-    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters);
-    auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters);
+    auto rostAdapter = ROSTAdapter<4, double, double>(&parameters, nullptr, {}, average);
+    auto segmentationAdapter = SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>(&parameters, !average);
     auto wordDepthAdapter = WordDepthAdapter();
     auto imageDepthAdapter = ImageDepthAdapter();
     auto wordTransformAdapter = ObservationTransformAdapter<WordDepthAdapter::Output>(&parameters);
@@ -317,15 +347,21 @@ double benchmark(std::string const &bagfile,
 
     sensor_msgs::Image::ConstPtr lastRgb, lastSeg;
     sensor_msgs::PointCloud2::ConstPtr lastDepth;
+    ros::Time lastMsgTime(0);
     auto const processPair = [&]() {
-        if (!lastRgb || !lastSeg || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
+        if (!lastRgb || lastMsgTime == lastRgb->header.stamp || !lastSeg || !lastDepth || lastRgb->header.stamp != lastDepth->header.stamp || lastRgb->header.stamp != lastSeg->header.stamp) return false;
         tf::StampedTransform transform;
         try {
             transform = wordTransformAdapter.getLatestTransform(lastRgb->header.frame_id, lastRgb->header.stamp);
         } catch (tf::ExtrapolationException const& ex) {
             ROS_INFO("Waiting for appropriate transformation.");
             return false;
+        } catch (tf::LookupException const& ex) {
+            ROS_INFO("Waiting for appropriate transformation.");
+            return false;
         }
+        ROS_DEBUG("Processing t=%f", lastRgb->header.stamp.toSec());
+        lastMsgTime = lastRgb->header.stamp;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr pc(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::PCLPointCloud2 pcl_pc2;
@@ -338,15 +374,23 @@ double benchmark(std::string const &bagfile,
         auto rgb = std::make_unique<ImageObservation>(fromRosMsg(lastRgb));
         auto segmentation = std::make_unique<ImageObservation>(fromRosMsg(lastSeg));
 
+        if (count > 0) rostAdapter.wait_for_processing(false);
         auto topicsFuture = wordTransformAdapter(rgb >> visualWordAdapter >> wordDepthAdapter, transform) >> rostAdapter;
         auto gtSeg = imageTransformAdapter(segmentation >> imageDepthAdapter, transform) >> segmentationAdapter;
-        auto topicsSeg = topicsFuture.get();
 
-        if (count >= warmup) {
+        if (average && count >= warmup) {
+            rostAdapter.wait_for_processing(false);
+            auto topicsSeg = topicsFuture.get();
             double const result = metric(*gtSeg, *topicsSeg);
             av_metric = (av_metric * (count - warmup) + result) / (count - warmup + 1);
         }
         count += 1;
+
+        if (count == warmup + 1) {
+            std::cout << threadString("Finished warmup.") << std::endl;
+        } else if (count % 100 == 0) {
+            std::cout << threadString("Processed observations: ") << count << std::endl;
+        }
         return count >= max_iter;
     };
 
@@ -385,7 +429,14 @@ double benchmark(std::string const &bagfile,
     auto const finished = bagIter.play();
     ROS_ERROR_COND(!finished, "Failed to finish playing bagfile!");
     ROS_INFO("Processed %u images from rosbag.", count);
-    return av_metric;
+
+    if (!average) {
+        auto readToken = rostAdapter.get_rost().get_read_token();
+        auto topicsSeg = rostAdapter.get_dist_map(*readToken);
+        auto gtSeg = segmentationAdapter(nullptr);
+        av_metric = metric(*gtSeg, *topicsSeg);
+    }
+    return {av_metric, rostAdapter.get_rost().get_refine_count(), rostAdapter.get_rost().get_word_refine_count()};
 }
 }
 

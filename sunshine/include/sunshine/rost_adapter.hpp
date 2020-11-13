@@ -47,7 +47,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     CellDimType G_time, G_space;
     int num_threads, min_obs_refine_time, obs_queue_size;
     bool update_topic_model;
-    size_t last_refine_count = 0;
+    size_t last_refine_count = 0, min_refines_per_obs = 0;
     std::unique_ptr<ROST_t> rost;
     std::string world_frame;
 
@@ -118,24 +118,25 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                          const std::vector<std::vector<int>> &init_model = {},
                          bool const broadcastMode = true)
             : newObservationCallback(std::move(callback)), stopWork(false), broadcastMode(broadcastMode) {
-        K = nh->template param<int>("K", 10); // number of topics
+        K = nh->template param<int>("K", 32); // number of topics
         V = nh->template param<int>("V", 15436); // vocabulary size
         bool const is_hierarchical = nh->template param<bool>("hierarchical", false);
         int const num_levels = nh->template param<int>("num_levels", 3);
-        k_alpha = nh->template param<double>("alpha", 0.073);
-        k_beta = nh->template param<double>("beta", 0.15);
-        k_gamma = nh->template param<double>("gamma", 0);
+        k_alpha = nh->template param<double>("alpha", 0.00803958);
+        k_beta = nh->template param<double>("beta", 0.420008);
+        k_gamma = nh->template param<double>("gamma", 6.27228e-07);
         k_tau = nh->template param<double>("tau", 0.5); // beta(1,tau) is used to pick cells for global refinement
         p_refine_rate_local = nh->template param<double>("p_refine_rate_local", 0.5); // probability of refining last observation
         p_refine_rate_global = nh->template param<double>("p_refine_rate_global", 0.5);
-        num_threads = nh->template param<int>("num_threads", 2); // beta(1,tau) is used to pick cells for refinement
+        num_threads = nh->template param<int>("num_threads", 1); // beta(1,tau) is used to pick cells for refinement
         double const cell_size_space = nh->template param<double>("cell_space", sunshine::ROSTAdapter<>::DEFAULT_CELL_SPACE);
         double const cell_size_time = nh->template param<double>("cell_time", 1);
         std::string const cell_size_string = nh->template param<std::string>("cell_size", "");
         G_time = nh->template param<CellDimType>("G_time", 1);
         G_space = nh->template param<CellDimType>("G_space", 1);
         update_topic_model = nh->template param<bool>("update_topic_model", true);
-        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 200);
+        min_obs_refine_time = nh->template param<int>("min_obs_refine_time", 15);
+        min_refines_per_obs = nh->template param<int>("min_refines_per_obs", 0);
         obs_queue_size = nh->template param<int>("word_obs_queue_size", 1);
         world_frame = nh->template param<std::string>("world_frame", "map");
 
@@ -244,19 +245,25 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         //update the  list of observed time step ids
         observation_times.push_back(observation_time);
         if (!observation_times.empty() && last_time > observation_time) {
-            ROS_WARN("Observation received that is older than previous observation!");
+            ROS_WARN_THROTTLE(30, "Observation received that is older than previous observation!");
         }
 
         //if we are receiving observations from the next time step, then spit out
         //topics for the current time step.
+        static decltype(std::chrono::steady_clock::now()) timeFirstAdd;
         if (last_time >= 0) {
             ROS_DEBUG("Received more word observations - broadcasting observations for time %f", last_time);
             if (newObservationCallback) newObservationCallback(this);
             this->wait_for_processing(true);
             size_t const refine_count = rost->get_refine_count();
-            ROS_DEBUG("#cells_refined: %u", static_cast<unsigned>(refine_count - last_refine_count));
-            last_refine_count = refine_count;
+            ROS_DEBUG("time since last add: %ld ms", chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - lastWordsAdded));
+            ROS_DEBUG("#words_refined since last add: %ld", refine_count - last_refine_count);
+            auto timeSinceFirstAdd = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - timeFirstAdd).count();
+//            ROS_INFO("Running Refine Rate: %f", static_cast<double>(refine_count - last_refine_count) / chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - lastWordsAdded).count());
+            ROS_DEBUG("(%s) Avg. Refine Rate: %f", (rost->get_num_words() >= 15000) ? "ORB" : "NO ORB", static_cast<double>(refine_count) / timeSinceFirstAdd);
             current_cell_poses.clear();
+        } else {
+            timeFirstAdd = std::chrono::steady_clock::now();
         }
         last_time = std::max(last_time, observation_time);
         auto const duration_broadcast = record_lap(time_checkpoint);
@@ -267,6 +274,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             duration_write_lock = record_lap(time_checkpoint);
 
             auto const &words_by_cell_pose = words_for_cell_poses(*wordObs, cell_size);
+            auto const old_num_cells = rost->cells.size();
             current_cell_poses.reserve(current_cell_poses.size() + words_by_cell_pose.size());
             for (auto const &entry : words_by_cell_pose) {
                 auto const &cell_pose = entry.first;
@@ -274,8 +282,11 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                 rost->add_observation(cell_pose, cell_words.begin(), cell_words.end(), update_topic_model);
                 current_cell_poses.push_back(cell_pose);
             }
+//            ROS_INFO_STREAM("Thread " << std::this_thread::get_id() << " added " << (rost->cells.size() - old_num_cells) << " cells (" << wordObs->observations.size() << " words)");
         }
         auto const duration_add_observations = record_lap(time_checkpoint);
+        last_refine_count = rost->get_refine_count();
+        lastWordsAdded = chrono::steady_clock::now();
         ROS_DEBUG("Refining %lu cells", current_cell_poses.size());
 
         auto const total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -298,13 +309,11 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                       duration_add_observations);
         }
 
-        lastWordsAdded = chrono::steady_clock::now();
-
         typedef Segmentation<std::vector<int>, POSEDIM, CellDimType, WordDimType> Segmentation;
         std::promise<std::unique_ptr<Segmentation>> promisedTopics;
         auto futureTopics = promisedTopics.get_future();
         if (broadcastMode) {
-            observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, startTime = lastWordsAdded, refineTime = min_obs_refine_time, cell_poses = current_cell_poses, promisedTopics{
+            observationThreads.push_back(std::make_unique<std::thread>([this, id = wordObs->id, cell_poses = current_cell_poses, promisedTopics{
                     std::move(promisedTopics)}]() mutable {
                 using namespace std::chrono;
                 wait_for_processing(false);
@@ -375,7 +384,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
     }
 
     Phi get_topic_model(activity_manager::ReadToken const &read_token) const {
-        Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights());
+        Phi phi("", rost->get_num_topics(), rost->get_num_words(), rost->get_topic_model(), rost->get_topic_weights(), rost->get_refine_count(), rost->get_word_refine_count());
         phi.validate(false);
         return phi;
     }
@@ -384,12 +393,14 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
         rost->set_topic_model(write_token, (std::vector<std::vector<int>>) phi, phi.topic_weights);
     }
 
-    void wait_for_processing(bool const new_data = false) const {
+    void inline wait_for_processing(bool const new_data = false) const {
         using namespace std::chrono;
-        auto const elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
-        bool const delay = elapsedSinceAdd < min_obs_refine_time;
+        int64_t elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
+        uint64_t refinedSinceAdd = rost->get_refine_count() - last_refine_count;
+        bool const delay = elapsedSinceAdd < min_obs_refine_time || refinedSinceAdd < min_refines_per_obs;
         if (new_data) {
-            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %lu ms", min_obs_refine_time, elapsedSinceAdd);
+            ROS_DEBUG("Time elapsed since last observation added (minimum set to %d ms): %l ms", min_obs_refine_time, elapsedSinceAdd);
+            ROS_DEBUG("Refines since last observation added (minimum set to %d): %lu ms", min_refines_per_obs, refinedSinceAdd);
             if (delay) {
                 consecutive_rate_violations++;
                 ROS_WARN("New word observation received too soon! Delaying...");
@@ -400,12 +411,26 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             }
         }
         if (delay) {
-            std::this_thread::sleep_for(milliseconds(min_obs_refine_time - elapsedSinceAdd));
+            if (elapsedSinceAdd < min_obs_refine_time) {
+                std::this_thread::sleep_for(milliseconds(min_obs_refine_time - elapsedSinceAdd));
+            }
+            do {
+                refinedSinceAdd = rost->get_refine_count() - last_refine_count;
+                if (refinedSinceAdd >= min_refines_per_obs) break;
+                elapsedSinceAdd = duration_cast<milliseconds>(steady_clock::now() - lastWordsAdded).count();
+                auto const ms_per_refine = static_cast<double>(elapsedSinceAdd) / refinedSinceAdd;
+                auto const required_refine_time = ms_per_refine * (min_refines_per_obs - refinedSinceAdd);
+                std::this_thread::sleep_for(milliseconds(strictNumericCast<int64_t>(std::max(1.0, std::min(50.0, ceil(required_refine_time))))));
+            } while (true);
         }
     }
 
     decltype(K) get_num_topics() const {
         return K;
+    }
+
+    decltype(K) get_num_active_topics() const {
+        return rost->get_active_topics();
     }
 
     decltype(last_time) get_last_observation_time() const {

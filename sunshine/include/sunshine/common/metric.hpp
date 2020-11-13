@@ -264,7 +264,7 @@ double compute_ami(SegmentationMatch const &contingency_table,
     double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
 
     double const ami = (entropy_x <= 0. && entropy_y <= 0.) ? 1 : ((mi - emi) / (std::max(entropy_x, entropy_y) - emi));
-    if (ami > 1) {
+    if (ami > 1 + 1e-6) {
         std::cerr << "Invalid AMI value -- AMI: " << ami << ", MI: " << mi << ", EMI: " << emi
                   << ", Ex: " << entropy_x << ", Ey: " << entropy_y << std::endl;
     }
@@ -274,7 +274,7 @@ double compute_ami(SegmentationMatch const &contingency_table,
     return std::isnan(ami) ? 0. : ami;
 }
 
-template<size_t pose_dimen = 4>
+template<size_t pose_dimen = 4, bool bound_unit = false>
 double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_seg,
            sunshine::Segmentation<std::vector<int>, pose_dimen, int, double> const &topic_seg) {
     auto const contingency_table = compute_matches<pose_dimen>(gt_seg.toLookupMap(), get_num_topics(gt_seg), topic_seg);
@@ -287,7 +287,7 @@ double ami(sunshine::Segmentation<std::vector<int>, 3, int, double> const &gt_se
     double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);
     double const emi = expected_mutual_info(gt_weights, topic_weights, total_weight, std::max(ex, ey));
     double const ami = compute_ami(contingency_table, mi, emi, ex, ey);
-    return ami;
+    return (bound_unit) ? std::max(0., std::min(1., ami)) : ami;
 }
 
 template<typename GTLabelMap, typename LabelType>
@@ -299,6 +299,8 @@ auto compute_metrics(GTLabelMap const &gt_labels,
     auto const &gt_weights = std::get<1>(contingency_table);
     auto const &topic_weights = std::get<2>(contingency_table);
     double const &total_weight = static_cast<double>(std::get<3>(contingency_table));
+
+    if (total_weight == 0) return std::make_tuple(0., 0., 0.);
 
     double const mi = compute_mutual_info(matches, gt_weights, topic_weights, total_weight);
     double const ex = entropy<>(gt_weights, total_weight), ey = entropy<>(topic_weights, total_weight);

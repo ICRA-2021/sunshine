@@ -396,6 +396,35 @@ bool includes(std::map<T, V> const& parent, std::vector<T> const& child) {
     return includes(std::set<T>(parent.begin(), parent.end()), child);
 }
 
+static int get_thread_color() {
+    static int COLOR_COUNTER = 31;
+    if (COLOR_COUNTER > 36) COLOR_COUNTER = 31;
+    thread_local const int THREAD_COLOR = COLOR_COUNTER++;
+    return THREAD_COLOR;
+}
+
+static std::string get_thread_id() { // TODO indicate when count has looped
+    static char THREAD_COUNTER = 'A';
+    if (THREAD_COUNTER > 'Z') THREAD_COUNTER = 'A';
+    thread_local const char THREAD_ID = THREAD_COUNTER++;
+    (void) get_thread_color(); // keep them aligned
+    return std::string(1, THREAD_ID);
+}
+
+#ifndef USE_COLOR
+#define USE_COLOR true
+#endif
+
+static std::string threadString(std::string const& in) {
+#if USE_COLOR
+    thread_local std::string const START = "\033[1;" + std::to_string(get_thread_color()) + "m(Thread " + get_thread_id() + ") ";
+    static std::string const RESET = "\033[0m";
+    return START + in + RESET;
+#else
+    return "(Thread " + get_thread_id() + ") " + in;
+#endif
+}
+
 }
 
 #endif // SUNSHINE_PROJECT_UTILS_HPP

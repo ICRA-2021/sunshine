@@ -18,11 +18,12 @@
 namespace sunshine {
 
 struct Phi {
-  constexpr static uint32_t VERSION = 1; // increment added constant whenever serialization format changes
+  constexpr static uint32_t VERSION = 2; // increment added constant whenever serialization format changes
   std::string id;
   int K = 0, V = 0;
   std::vector<sparse_vector<int, uint32_t>> counts = {};
   std::vector<int> topic_weights = {};
+  uint64_t cell_refines = 0, word_refines = 0;
   bool validated = false;
 
   explicit Phi() = default;
@@ -30,8 +31,8 @@ struct Phi {
   explicit Phi(std::string id)
           : id(std::move(id)) {}
 
-  explicit Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights)
-          : id(std::move(id)), K(K), V(V), counts({counts.begin(), counts.end()}), topic_weights(std::move(topic_weights)) {
+  explicit Phi(std::string id, uint32_t K, uint32_t V, std::vector<std::vector<int>> counts, std::vector<int> topic_weights, uint64_t cell_refines = 0, uint64_t word_refines = 0)
+          : id(std::move(id)), K(K), V(V), counts({counts.begin(), counts.end()}), topic_weights(std::move(topic_weights)), cell_refines(cell_refines), word_refines(word_refines) {
   }
 
   explicit operator std::vector<std::vector<int>>() const {
@@ -83,10 +84,6 @@ struct Phi {
       return flag;
   }
 
-  Phi(Phi const &other) = default;
-
-  Phi(Phi &&other) noexcept = default;
-
   template<typename Archive>
   void save(Archive &ar, const unsigned int version) const {
 //      if (!out.good()) throw std::invalid_argument("Output stream in invalid state");
@@ -98,6 +95,8 @@ struct Phi {
       ar & V;
       ar & topic_weights;
       ar & counts;
+      ar & cell_refines;
+      ar & word_refines;
   }
 
   template<typename Archive>
@@ -113,6 +112,10 @@ struct Phi {
       } else {
           ar & counts;
       }
+      if (version >= 2) {
+          ar & cell_refines;
+          ar & word_refines;
+      }
       assert(this->validate(false));
       this->validated = true;
   }
@@ -122,7 +125,7 @@ struct Phi {
   size_t bytesSize() const {
       auto const headerSize = id.size() + sizeof(K) + sizeof(V);
       auto const weightSize = sizeof(topic_weights) + sizeof(decltype(topic_weights)::value_type) * topic_weights.capacity();
-      auto const countVecSize = sizeof(counts) + sizeof(decltype(counts)::value_type) * topic_weights.capacity();
+      auto const countVecSize = sizeof(counts) + sizeof(decltype(counts)::value_type) * counts.capacity();
       size_t countsSize = 0;
       for (auto const& c : counts) {
           countsSize += c.bytesSize();

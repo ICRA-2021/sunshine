@@ -1,22 +1,21 @@
 <launch>
-  <arg name="n_trials" default="10" />
 <!--   <arg name="bagfiles" default="/data/stewart/airsim-bags/lawnmower-alt4m-1.bag -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-2.bag  -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-3.bag  -->
 <!--   /data/stewart/airsim-bags/lawnmower-alt4m-4.bag" /> -->
   <arg name="bagfiles" default="
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-1_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-2_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-3_part_3_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_1_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_2_of_3.bag
-  /home/stewart/airsim-bags/lawnmower-alt4m-4_part_3_of_3.bag" />
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-1_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-2_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-3_part_3_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_1_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_2_of_3.bag
+  /home/stewart/airsim-bags/final-lawnmower-alt4m-quad-4_part_3_of_3.bag" />
 
   <arg name="image_topic" default="/camera/rgb/image_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="/camera/points" /> <!--Depth cloud topic-->
@@ -24,7 +23,7 @@
   <arg name="file_prefix" default="" />
   <arg name="output_dir" default="" />
   <arg name="map_prefix" default="$(arg output_dir)" />
-  <arg name="match_methods" default="id,hungarian-l1,clear-l1,clear-l1-0.5" />
+  <arg name="match_methods" default="id,hungarian-l2,clear-cos-0.75" />
 
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
@@ -42,11 +41,11 @@
   <arg name="use_tf" default="true" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="10" />
+  <arg name="K" default="32" />
   <arg name="V" default="15436" />
-  <arg name="alpha" default="0.3" />
-  <arg name="beta" default="0.04" />
-  <arg name="gamma" default="1.39e-6" />
+  <arg name="alpha" default="0.008587" />
+  <arg name="beta" default="4.692290" />
+  <arg name="gamma" default="0.000015" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="1" />
@@ -70,13 +69,13 @@
   <arg name="show_equalized" default="true" />
   <arg name="ppx_display_factor" default="0.75" />
 
-  <arg name="use_rviz" default="false" />
+  <arg name="use_rviz" default="true" />
   <arg name="visualize_3d" default="$(arg use_rviz)" />
 
   <param name="/use_sim_time" value="false"/>
 
 
-  <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim_launch" args="record $(arg n_trials) $(arg bagfiles)">
+  <node pkg="sunshine" type="utils.multi_agent_match" output="screen" name="multi_agent_sim_launch" args="ros $(arg bagfiles)">
     <param name="image_topic" value="$(arg image_topic)" />
     <param name="depth_cloud_topic" value="$(arg depth_cloud_topic)" />
     <param name="segmentation_topic" value="$(arg segmentation_topic)" />
@@ -148,10 +147,10 @@
 <!--     <param name="cell_time" type="double" value="$(arg cell_time)" /> -->
 <!--   </node> -->
 
-  <node pkg="sunshine" type="visualize3d" name="visualize_naive" if="$(arg visualize_3d)">
-    <param name="input_topic" type="string" value="/naive_map" />
+  <node pkg="sunshine" type="visualize3d" name="visualize_id" if="$(arg visualize_3d)">
+    <param name="input_topic" type="string" value="/id" />
     <param name="input_type" type="string" value="$(arg map_type)" />
-    <param name="output_topic" type="string" value="/naive_topic_cloud" />
+    <param name="output_topic" type="string" value="/id_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
     <param name="world_frame" type="string" value="$(arg world_frame)" />
@@ -160,10 +159,22 @@
     <param name="cell_time" type="double" value="$(arg cell_time)" />
   </node>
 
-  <node pkg="sunshine" type="visualize3d" name="visualize_merged" if="$(arg visualize_3d)">
-    <param name="input_topic" type="string" value="/merged_map" />
+  <node pkg="sunshine" type="visualize3d" name="visualize_hungarian" if="$(arg visualize_3d)">
+    <param name="input_topic" type="string" value="/hungarian_l2" />
     <param name="input_type" type="string" value="$(arg map_type)" />
-    <param name="output_topic" type="string" value="/merged_topic_cloud" />
+    <param name="output_topic" type="string" value="/hungarian_cloud" />
+    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
+    <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
+    <param name="world_frame" type="string" value="$(arg world_frame)" />
+    <param name="cell_size" type="string" value="$(arg cell_size)" />
+    <param name="cell_space" type="double" value="$(arg cell_space)" />
+    <param name="cell_time" type="double" value="$(arg cell_time)" />
+  </node>
+
+  <node pkg="sunshine" type="visualize3d" name="visualize_clear" if="$(arg visualize_3d)">
+    <param name="input_topic" type="string" value="/clear_cos_0_75" />
+    <param name="input_type" type="string" value="$(arg map_type)" />
+    <param name="output_topic" type="string" value="/clear_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
     <param name="world_frame" type="string" value="$(arg world_frame)" />
@@ -175,7 +186,7 @@
   <node pkg="sunshine" type="visualize3d" name="visualize_gt" if="$(arg visualize_3d)">
     <param name="input_topic" type="string" value="/gt_map" />
     <param name="input_type" type="string" value="$(arg map_type)" />
-    <param name="output_topic" type="string" value="/gt_topic_cloud" />
+    <param name="output_topic" type="string" value="/gt_cloud" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
     <param name="ppx_display_factor" type="double" value="$(arg ppx_display_factor)" />
     <param name="world_frame" type="string" value="$(arg world_frame)" />

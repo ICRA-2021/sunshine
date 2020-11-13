@@ -46,6 +46,18 @@ class sparse_vector {
         return out;
     }
 
+    auto map_begin() const {
+        return sparse.cbegin();
+    }
+
+    auto map_end() const {
+        return sparse.cend();
+    }
+
+    auto const& as_map() const {
+        return sparse;
+    }
+
     IndexT size() const {
         return vec_size;
     }
