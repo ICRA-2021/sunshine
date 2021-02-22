@@ -72,9 +72,6 @@
     <param name="image" value="$(arg image_topic)"/>
     <param name="use_pc" value="false" />
     <param name="use_tf" value="false" />
-    <param name="publish_ppx" value="$(arg publish_ppx)" />
-    <param name="publish_local_surprise" value="$(arg publish_local_surprise)" />
-    <param name="publish_global_surprise" value="$(arg publish_global_surprise)" />
   </node>
 
   <!-- Launch topic model -->
@@ -94,6 +91,9 @@
     <param name="words_topic" value="$(arg words_topic)_2d" />
     <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
+    <param name="publish_ppx" value="$(arg publish_ppx)" />
+    <param name="publish_local_surprise" value="$(arg publish_local_surprise)" />
+    <param name="publish_global_surprise" value="$(arg publish_global_surprise)" />
   </node>
 
   <node pkg="sunshine" type="visualize" name="visualizer" output="screen" >
