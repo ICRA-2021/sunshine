@@ -426,6 +426,8 @@ class MultiAgentSimulation {
             publishers.insert(std::make_pair(method, nh.advertise<sunshine_msgs::TopicMap>("/" + replace_all(replace_all(method, "-", "_"), ".", "_"), 3)));
         }
 
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - std::chrono::high_resolution_clock::now()).count();
+
         auto sharedSegmentationAdapter = std::make_shared<SemanticSegmentationAdapter<std::array<uint8_t, 3>, std::vector<int>>>(&nh, true);
         std::vector<std::unique_ptr<RobotSim>> robots;
         for (auto i = 0; i < bagfiles.size(); ++i) {

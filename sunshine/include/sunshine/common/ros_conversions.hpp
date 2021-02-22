@@ -23,7 +23,7 @@
 namespace sunshine {
 
 template<typename WordType, uint32_t PoseDim, typename PoseType = double>
-sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim, PoseType> const &in, geometry_msgs::TransformStamped observationTransform = {}) {
+sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim, PoseType> const &in, geometry_msgs::TransformStamped observationTransform) {
     static_assert(std::is_integral<WordType>::value, "Only integral word types are supported!");
     static_assert(sizeof(WordType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type),
                   "WordType is too large!");
@@ -38,6 +38,38 @@ sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim
     out.vocabulary_begin = in.vocabulary_start;
     out.vocabulary_size = in.vocabulary_size;
     out.observation_transform = std::move(observationTransform);
+
+    out.words.reserve(in.observations.size());
+    out.word_pose.reserve(in.observations.size() * poseDim);
+    out.word_scale = {}; // uninitialized
+
+    for (auto i = 0ul, j = 0ul; i < in.observations.size(); ++i) {
+        out.words.emplace_back(in.observations[i]);
+        assert(in.observation_poses[i].size() == poseDim);
+        for (auto d = 0u; d < poseDim; ++d) {
+            out.word_pose.emplace_back(static_cast<double>(in.observation_poses[i][d]));
+        }
+    }
+    return out;
+}
+
+template<typename WordType, uint32_t PoseDim, typename PoseType = double>
+sunshine_msgs::WordObservation toRosMsg(CategoricalObservation<WordType, PoseDim, PoseType> const &in) {
+    static_assert(std::is_integral<WordType>::value, "Only integral word types are supported!");
+    static_assert(sizeof(WordType) <= sizeof(decltype(sunshine_msgs::WordObservation::words)::value_type),
+                  "WordType is too large!");
+    auto constexpr poseDim = PoseDim;
+
+    sunshine_msgs::WordObservation out{};
+    out.header.frame_id = in.frame;
+    //    out.header.seq = in.id; // deprecate?
+    out.header.stamp = ros::Time(in.timestamp);
+    out.seq = in.id;
+    out.source = ""; // unused
+    out.vocabulary_begin = in.vocabulary_start;
+    out.vocabulary_size = in.vocabulary_size;
+    out.observation_transform = {};
+    out.observation_transform.transform.rotation.w = 1;
 
     out.words.reserve(in.observations.size());
     out.word_pose.reserve(in.observations.size() * poseDim);

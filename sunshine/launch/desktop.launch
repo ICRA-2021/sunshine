@@ -10,12 +10,12 @@
   <arg name="texton" default="true" />
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
-  <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="image_topic" default="/usb_cam/image_raw" />
   
 
   <!-- Topic model arguments -->
   <arg name="K" default="100" />
-  <arg name="V" default="16180" />
+  <arg name="V" default="16436" />
   <arg name="alpha" default="0.1" />
   <arg name="beta" default="1.0" />
   <arg name="gamma" default="0.001" />
@@ -40,9 +40,14 @@
   <arg name="show_equalized" default="true" />
   
   <!-- Launch GSCAM with webcam -->
-  <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! video/x-raw-rgb,width=640,height=480,framerate=30/1 ! videoconvert" />
-  <node pkg="gscam" type="gscam" name="gscam">
-  </node>
+<!--   <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! video/x-raw-rgb,width=640,height=480,framerate=30/1 ! videoconvert" /> -->
+<!--   <node pkg="gscam" type="gscam" name="gscam"> -->
+<!--   </node> -->
+    <node pkg="usb_cam" type="usb_cam_node" name="usb_cam">
+        <param name="pixel_format" value="yuyv" />
+        <param name="camera_name" value="camera" />
+        <param name="framerate" value="2" />
+    </node>
 
   <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
 
@@ -53,10 +58,12 @@
     <param name="feature_descriptor" type="string" value="ORB"/>
     <param name="scale" type="double" value="$(arg scale)"/>
     <param name="rate" type="int" value="$(arg rate)"/>
+    <param name="sensor_frame" type="string" value="map"/>
     <param name="use_hue" value="$(arg hue)"/>
     <param name="use_intensity" value="$(arg intensity)"/>
     <param name="use_orb" value="$(arg orb)"/>
     <param name="publish_2d_words" value="true"/>
+    <param name="publish_3d_words" value="false"/>
     <param name="use_surf" value="$(arg surf)"/>
     <param name="use_texton" value="$(arg texton)" />
     <param name="image" value="$(arg image_topic)"/>
@@ -78,18 +85,19 @@
     <param name="G_time" type="int" value="$(arg G_time)" />
     <param name="G_space" type="int" value="$(arg G_space)" />
     <param name="polled_refine" value="$(arg polled_refine)" />
-    <param name="words_topic" value="$(arg words_topic)" />
+    <param name="words_topic" value="$(arg words_topic)_2d" />
     <param name="min_obs_refine_time" value="$(arg min_obs_refine_time)" />
     <param name="word_obs_queue_size" value="$(arg word_obs_queue_size)" />
   </node>
 
-  <node pkg="sunshine" type="visualize" name="visualizer">
-    <param name="words_topic" type="string" value="$(arg words_topic)" />
+  <node pkg="sunshine" type="visualize" name="visualizer" output="screen" >
+    <param name="words_topic" type="string" value="$(arg words_topic)_2d" />
     <param name="topics_topic" type="string" value="$(arg topics_topic)" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
     <param name="show_topics" type="bool" value="$(arg show_topics)" />
     <param name="show_words" type="bool" value="$(arg show_words)" />
     <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
+    <param name="image" value="$(arg image_topic)"/>
    </node>
 </launch>

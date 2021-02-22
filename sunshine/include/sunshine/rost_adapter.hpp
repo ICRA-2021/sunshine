@@ -164,8 +164,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
                                                                                               k_alpha,
                                                                                               k_beta,
                                                                                               neighbors_t(G),
-                                                                                              hash_container<cell_pose_t>(),
-                                                                                              (k_gamma > 0) ? k_gamma : 1.0);
+                                                                                              hash_container<cell_pose_t>());
         if (k_gamma > 0) {
 //                ROS_INFO("Enabling HDP with gamma=%f", k_gamma);
             auto rost_concrete = dynamic_cast<ROST<cell_pose_t, neighbors_t, hash_container<cell_pose_t>> *>(rost.get());
@@ -260,7 +259,7 @@ class ROSTAdapter : public Adapter<ROSTAdapter<_POSEDIM>, CategoricalObservation
             ROS_DEBUG("#words_refined since last add: %ld", refine_count - last_refine_count);
             auto timeSinceFirstAdd = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - timeFirstAdd).count();
 //            ROS_INFO("Running Refine Rate: %f", static_cast<double>(refine_count - last_refine_count) / chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - lastWordsAdded).count());
-            ROS_DEBUG("(%s) Avg. Refine Rate: %f", (rost->get_num_words() >= 15000) ? "ORB" : "NO ORB", static_cast<double>(refine_count) / timeSinceFirstAdd);
+            ROS_INFO("(%s) Avg. Refine Rate: %f", (rost->get_num_words() >= 15000) ? "ORB" : "NO ORB", static_cast<double>(refine_count) / timeSinceFirstAdd);
             current_cell_poses.clear();
         } else {
             timeFirstAdd = std::chrono::steady_clock::now();
