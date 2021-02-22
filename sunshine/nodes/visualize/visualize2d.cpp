@@ -61,10 +61,19 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+  cv::Mat img;
+  if (image_cache.find(z->seq) == image_cache.end()) {
+      img = image_cache.rbegin()->second;
+  } else {
+        img = image_cache[z->seq];
+    }
 
-  cv::Mat img = image_cache[z->seq];
-
-  if(img.empty()) return;
+  if(img.empty()) {
+      ROS_INFO("Skipping empty image");
+      return;
+  } else {
+//      ROS_INFO("Processing topic visualization");
+  }
   cv::Mat img_grey;
   cv::cvtColor(img,img_grey,CV_BGR2GRAY);
   cv::Mat img_grey_3c;

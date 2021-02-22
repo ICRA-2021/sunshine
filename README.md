@@ -16,7 +16,10 @@ pushd rost-cli
 popd
 
 # Install sunshine (including dependencies)
-sudo apt-get install ros-melodic-desktop ros-melodic-perception libopencv libboost1.65-dev
+## Ubuntu 18.04 MELODIC:
+# sudo apt-get install ros-melodic-desktop ros-melodic-perception libopencv libboost1.65-dev
+## Ubuntu 20.04 NOETIC:
+sudo apt-get install ros-noetic-desktop ros-noetic-perception libopencv-dev libboost1.71-dev
 cd $CATKIN_WS/src
 git clone git@gitlab.com:warplab/ros/sunshine.git
 cd $CATKIN_WS
@@ -28,7 +31,7 @@ Quick Start
 
 Common launchfiles:
  - `desktop.launch`: Uses webcam feed (requires gstreamer to be installed)
- - `sentry.launch`: Uses data from the Sentry503 mission (requires `ds_msgs` dependency, see below)
+ - `sentry.launch`: Uses data from the Sentry503 mission (requires `BUILD_EXT` flag and `ds_msgs` dependency, see below)
  - TODO: Finish listing launchfiles
 
 
