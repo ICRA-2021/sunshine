@@ -14,11 +14,11 @@
   
 
   <!-- Topic model arguments -->
-  <arg name="K" default="100" />
+  <arg name="K" default="64" />
   <arg name="V" default="16436" />
   <arg name="alpha" default="0.1" />
   <arg name="beta" default="1.0" />
-  <arg name="gamma" default="0.001" />
+  <arg name="gamma" default="1e-6" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
@@ -29,6 +29,9 @@
   <arg name="words_topic" default="/rost_vision/words" />
   <arg name="min_obs_refine_time" default="200" />
   <arg name="word_obs_queue_size" default="1" />
+  <arg name="publish_ppx" default="true" />
+  <arg name="publish_local_surprise" default="false" />
+  <arg name="publish_global_surprise" default="false" />
 
   <!-- Visualization arguments -->
   <!--<arg name="words_topic" default="/rost_vision/words" />-->
@@ -69,6 +72,9 @@
     <param name="image" value="$(arg image_topic)"/>
     <param name="use_pc" value="false" />
     <param name="use_tf" value="false" />
+    <param name="publish_ppx" value="$(arg publish_ppx)" />
+    <param name="publish_local_surprise" value="$(arg publish_local_surprise)" />
+    <param name="publish_global_surprise" value="$(arg publish_global_surprise)" />
   </node>
 
   <!-- Launch topic model -->
