@@ -127,7 +127,7 @@ class RobotSim {
             auto new_observation_poses = word_poses_toCellSet(observation->observation_poses, observation->timestamp);
             std::vector<std::array<int, 3>> new_poses;
             std::set_difference(new_observation_poses.begin(), new_observation_poses.end(), old_observation_poses.begin(), old_observation_poses.end(), std::back_inserter(new_poses));
-            ROS_DEBUG("Adding %ld observations across %d new cell poses (%d unique)", observation->observations.size(), new_observation_poses.size(), new_poses.size());
+            ROS_DEBUG("Adding %lu observations across %lu new cell poses (%lu unique)", observation->observations.size(), new_observation_poses.size(), new_poses.size());
 #endif
             if (externalRostAdapter) {
                 observation >> *rostAdapter;

@@ -209,6 +209,8 @@ add_library(sunshine_vision_adapters SHARED vision/visual_word_adapter.cpp visio
 add_executable(visual_word_extractor nodes/visual_word_extractor.cpp)
 add_executable(label_word_extractor nodes/label_extractor.cpp include/sunshine/common/data_proc_utils.hpp)
 add_executable(topic_model nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
+add_executable(topic_model_txyz nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
+add_executable(topic_model_txy nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
 add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
@@ -261,6 +263,14 @@ target_link_libraries(label_word_extractor sunshine_vision_adapters ${libvisualw
 
 target_include_directories(topic_model PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(topic_model ${catkin_LIBRARIES} sunshine_vision_adapters)
+
+target_include_directories(topic_model_txyz PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(topic_model_txyz ${catkin_LIBRARIES} sunshine_vision_adapters)
+target_compile_definitions(topic_model_txyz PUBLIC POSEDIM=4)
+
+target_include_directories(topic_model_txy PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(topic_model_txy ${catkin_LIBRARIES} sunshine_vision_adapters)
+target_compile_definitions(topic_model_txy PUBLIC POSEDIM=3)
 
 target_include_directories(perplexity_viz PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(perplexity_viz ${catkin_LIBRARIES})

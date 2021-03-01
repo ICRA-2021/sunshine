@@ -14,7 +14,7 @@
 #include <sunshine_msgs/Pause.h>
 #include "sunshine/rost_adapter.hpp"
 
-#define POSEDIM 3
+#define POSEDIM 4
 
 namespace sunshine {
 
@@ -30,9 +30,11 @@ class topic_model_node {
     int obs_queue_size;
     bool publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
     float map_publish_period, save_topics_period;
+
     ros::Timer map_publish_timer, save_topics_timer;
     std::string save_topics_path;
     std::string map_ppx_type, current_source = "";
+    std::chrono::time_point<std::chrono::steady_clock> start_refine_time, last_obs_time;
 
     ros::Publisher scene_pub, global_perplexity_pub, global_surprise_pub, local_surprise_pub, topic_weights_pub, map_pub;
     ros::Subscriber word_sub;

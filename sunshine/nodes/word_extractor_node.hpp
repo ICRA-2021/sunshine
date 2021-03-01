@@ -62,7 +62,7 @@ class WordExtractorNode {
         }
 
         latest_transform = *msg;
-        frame_id = msg->child_frame_id;
+        frame_id = latest_transform.header.frame_id;
     }
 
     void pcCallback(const sensor_msgs::PointCloud2ConstPtr &msg) {
@@ -114,8 +114,8 @@ class WordExtractorNode {
                 observation_transform.header = msg->header;
             }
 
-            observation_transform.header.frame_id = world_frame_name;
-            observation_transform.child_frame_id = sensor_frame_name;
+            observation_transform.header.frame_id = sensor_frame_name;
+            observation_transform.child_frame_id = world_frame_name;
             words_pub.publish(toRosMsg(*wordObs3d, observation_transform));
         }
     }

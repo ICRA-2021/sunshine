@@ -314,6 +314,8 @@ void topic_model_node::words_callback(const sunshine_msgs::WordObservation::Cons
     } else if (current_source != wordMsg->source)
         ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordMsg->source.c_str());
     auto const wordObs = fromRosMsg<int, POSEDIM - 1, ROSTAdapter<POSEDIM>::WordDimType>(*wordMsg);
+    last_obs_time = std::chrono::steady_clock::now();
+    start_refine_time = (start_refine_time.time_since_epoch().count() == 0) ? last_obs_time : start_refine_time;
     rostAdapter(&wordObs);
 }
 
@@ -365,6 +367,16 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     if (!publish_global_surprise && !publish_local_surprise && !publish_ppx && !publish_topics) return;
     auto &rost = rostAdapter.get_rost();
 
+    static size_t refine_count = rost.get_refine_count();
+    ROS_INFO("Running refine rate %.2f cells/ms (avg %.2f), %d active topics, %ld cells",
+             static_cast<double>(rost.get_refine_count() - refine_count)
+             / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_obs_time).count(),
+             static_cast<double>(rost.get_refine_count())
+             / std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start_refine_time).count(),
+             rost.get_active_topics(),
+             rost.cells.size());
+    refine_count = rost.get_refine_count();
+
     auto time_checkpoint  = std::chrono::steady_clock::now();
     auto const time_start = time_checkpoint;
 
@@ -373,10 +385,11 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     auto const duration_wait = record_lap(time_checkpoint);
 
     sunshine_msgs::WordObservation::Ptr topicObs(new sunshine_msgs::WordObservation);
+    topicObs->header.frame_id                            = rostAdapter.get_world_frame();
+    topicObs->seq                                        = static_cast<uint32_t>(obs_time);
     topicObs->source                                     = current_source;
     topicObs->vocabulary_begin                           = 0;
     topicObs->vocabulary_size                            = static_cast<int32_t>(rost.get_num_topics());
-    topicObs->seq                                        = static_cast<uint32_t>(obs_time);
     topicObs->observation_transform.transform.rotation.w = 1; // Identity rotation (global frame)
     topicObs->observation_transform.header.stamp         = ros::Time::now();
 

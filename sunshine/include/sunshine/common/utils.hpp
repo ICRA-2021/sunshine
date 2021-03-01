@@ -317,35 +317,35 @@ To inline strictNumericCast(From val) {
 //    else return static_cast<To>(val);
 //}
 
-template <size_t POSEDIM, typename CellDimType, typename WordDimType>
-static inline std::array<CellDimType, POSEDIM>  toCellId(std::array<WordDimType, POSEDIM> const &wordPose, std::array<WordDimType, POSEDIM> const& cellSize) {
+template<size_t PoseDim, typename CellDimType, typename WordDimType>
+static inline std::array<CellDimType, PoseDim>  toCellId(std::array<WordDimType, PoseDim> const &wordPose, std::array<WordDimType, PoseDim> const& cellSize) {
     static_assert(std::numeric_limits<CellDimType>::max() <= std::numeric_limits<WordDimType>::max(),
                   "Word dim type must be larger than cell dim type!");
     static_assert(std::is_signed_v<CellDimType> == std::is_signed_v<WordDimType>, "CellDimType and WordDimType must both be signed/unsigned!");
-    if constexpr (POSEDIM == 4) {
+    if constexpr (PoseDim == 4) {
         return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]), safeNumericCast<CellDimType>(wordPose[2] / cellSize[2]), safeNumericCast<CellDimType>(wordPose[3] / cellSize[3])};
-    } else if constexpr (POSEDIM == 3) {
+    } else if constexpr (PoseDim == 3) {
         return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1]), safeNumericCast<CellDimType>(wordPose[2] / cellSize[2])};
-    } else if constexpr (POSEDIM == 2) {
+    } else if constexpr (PoseDim == 2) {
         return {safeNumericCast<CellDimType>(wordPose[0] / cellSize[0]), safeNumericCast<CellDimType>(wordPose[1] / cellSize[1])};
     } else {
-        static_assert(always_false<POSEDIM>);
+        static_assert(always_false<PoseDim>);
     }
 }
 
-template <size_t POSEDIM, typename CellDimType, typename WordDimType>
-static inline std::array<WordDimType, POSEDIM> toWordPose(std::array<CellDimType, POSEDIM> const &cell, std::array<WordDimType, POSEDIM> const& cell_size) {
+template<size_t PoseDim, typename CellDimType, typename WordDimType>
+static inline std::array<WordDimType, PoseDim> toWordPose(std::array<CellDimType, PoseDim> const &cell, std::array<WordDimType, PoseDim> const& cell_size) {
     static_assert(std::is_signed_v<CellDimType> == std::is_signed_v<WordDimType>, "CellDimType and WordDimType must both be signed/unsigned!");
-    if constexpr(POSEDIM == 4) {
+    if constexpr(PoseDim == 4) {
         return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
                 safeNumericCast<WordDimType>(cell[2] * cell_size[2]), safeNumericCast<WordDimType>(cell[3] * cell_size[3])};
-    } else if constexpr(POSEDIM == 3) {
+    } else if constexpr(PoseDim == 3) {
         return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1]),
                 safeNumericCast<WordDimType>(cell[2] * cell_size[2])};
-    } else if constexpr(POSEDIM == 2) {
+    } else if constexpr(PoseDim == 2) {
         return {safeNumericCast<WordDimType>(cell[0] * cell_size[0]), safeNumericCast<WordDimType>(cell[1] * cell_size[1])};
     } else {
-        static_assert(always_false<POSEDIM>);
+        static_assert(always_false<PoseDim>);
     }
 }
 

@@ -31,8 +31,6 @@ using json = nlohmann::ordered_json;
 
 #define OCT_15_FIX
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 class MultiAgentSimulation {
     std::vector<std::string> bagfiles;
     std::string image_topic;
@@ -204,6 +202,10 @@ class MultiAgentSimulation {
         }
     };
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     MultiAgentSimulation() = default;
     explicit MultiAgentSimulation(std::vector<std::string> bagfiles,
                                   std::string image_topic,
@@ -213,6 +215,11 @@ class MultiAgentSimulation {
                                   , image_topic(std::move(image_topic))
                                   , depth_topic(std::move(depth_topic))
                                   , segmentation_topic(std::move(segmentation_topic)) {}
+   ~MultiAgentSimulation() = default;
+    MultiAgentSimulation(MultiAgentSimulation&& other) = default;
+    MultiAgentSimulation(MultiAgentSimulation const& other) = delete;
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
     template <typename ParamServer>
     bool record_single_robot(ParamServer const& nh) {
@@ -499,6 +506,8 @@ class MultiAgentSimulation {
             });
         }
         pool.join();
+        if (!ros::ok()) return false;
+        return true;
     }
 
     json process(std::vector<std::string> const& match_methods, size_t n_robots = 0, std::string const& map_prefix = "", std::string const& map_box = "", bool parallel=false, std::vector<size_t> match_order = {}) const {
@@ -620,6 +629,10 @@ class MultiAgentSimulation {
         ar & robotMaps;
         ar & robotModels;
         if (version == 0) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             std::string resultsStr;
             if (results.empty()) {
                 ar & resultsStr;
@@ -628,12 +641,13 @@ class MultiAgentSimulation {
                 resultsStr = results.dump();
                 ar & resultsStr;
             }
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
         }
         if (version >= 1) ar & singleRobotSubmaps;
         if (version >= 2) ar & singleRobotModels;
         if (gtMap && !gtMLMap) gtMLMap = merge_segmentations<3>(make_vector(gtMap.get()));
     }
-#pragma clang diagnostic pop
 
     [[nodiscard]] size_t approxBytesSize() const {
         auto gtMapSize = gtMap->bytesSize();
@@ -801,10 +815,11 @@ int main(int argc, char **argv) {
                         reader >> sim;
                     }
                     catch (boost::archive::archive_exception const &e) {
-                        CompressedFileReader reader(file);
-                        std::unique_ptr<MultiAgentSimulation> simPtr;
-                        reader >> simPtr;
-                        sim = std::move(*simPtr);
+                        throw std::invalid_argument("File is encoded with legacy serialization");
+//                        CompressedFileReader reader(file);
+//                        std::unique_ptr<MultiAgentSimulation> simPtr;
+//                        reader >> simPtr;
+//                        sim = std::move(*simPtr);
                     }
 
 #ifdef OCT_15_FIX
