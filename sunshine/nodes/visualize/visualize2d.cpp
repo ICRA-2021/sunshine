@@ -63,17 +63,16 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img;
   if (image_cache.find(z->seq) == image_cache.end()) {
-      img = image_cache.rbegin()->second;
+    img = image_cache.rbegin()->second;
   } else {
-        img = image_cache[z->seq];
-    }
-
-  if(img.empty()) {
-      ROS_INFO("Skipping empty image");
-      return;
-  } else {
-//      ROS_INFO("Processing topic visualization");
+    img = image_cache[z->seq];
   }
+
+  if (img.empty()) {
+    ROS_INFO("Skipping empty image");
+    return;
+  }
+
   cv::Mat img_grey;
   cv::cvtColor(img,img_grey,CV_BGR2GRAY);
   cv::Mat img_grey_3c;
@@ -98,10 +97,18 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   // Draw on the image
   cv::Mat ppx_img_color = colorize(ppx_img, cv::Vec3b(0,0,255), cv::Vec3b(255,255,255));
   
-  // Add it to the existing image
-  cv::Mat img = image_cache[s_msg->seq];
+  // // Add it to the existing image
+  cv::Mat img;
+  if (image_cache.find(s_msg->seq) == image_cache.end()) {
+    img = image_cache.rbegin()->second;
+  } else {
+    img = image_cache[s_msg->seq];
+  }
 
-  if (img.empty()) return;
+  if (img.empty()) {
+    ROS_INFO("Skipping empty image");
+    return;
+  }
   
   cv::Mat ppx_img_full;
   cv::resize(ppx_img_color, ppx_img_full, img.size());
