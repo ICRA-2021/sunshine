@@ -14,7 +14,7 @@
 #include <sunshine_msgs/Pause.h>
 #include "sunshine/rost_adapter.hpp"
 
-#define POSEDIM 4
+#define POSEDIM 3
 
 namespace sunshine {
 

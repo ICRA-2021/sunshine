@@ -75,7 +75,7 @@
   </node>
 
   <!-- Launch topic model -->
-  <node pkg="sunshine" type="topic_model" name="rost">
+  <node pkg="sunshine" type="topic_model_txy" name="rost">
     <param name="K" type="int" value="$(arg K)" />
     <param name="V" type="int" value="$(arg V)" />
     <param name="alpha" type="double" value="$(arg alpha)" />
