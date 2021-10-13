@@ -42,7 +42,10 @@ WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::Const
 void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img = image_cache[z->seq];
 
-  if(img.empty()) return;
+  if(img.empty()) {
+      ROS_WARN("Failed to find matching image for words -- skipping");
+      return;
+  }
   cv::Mat img_grey;
   cv::cvtColor(img,img_grey,CV_BGR2GRAY);
   cv::Mat img_grey_3c;
@@ -64,6 +67,7 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img;
   if (image_cache.find(z->seq) == image_cache.end()) {
     img = image_cache.rbegin()->second;
+    ROS_WARN("Failed to find matching image for topics -- using most recent image in cache");
   } else {
     img = image_cache[z->seq];
   }
@@ -100,7 +104,8 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   // // Add it to the existing image
   cv::Mat img;
   if (image_cache.find(s_msg->seq) == image_cache.end()) {
-    img = image_cache.rbegin()->second;
+      ROS_WARN("Failed to find matching image for perplexity -- using most recent image in cache");
+      img = image_cache.rbegin()->second;
   } else {
     img = image_cache[s_msg->seq];
   }
@@ -121,6 +126,10 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
 
 void image_callback(const sensor_msgs::ImageConstPtr& msg){
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+  if (cv_ptr->image.empty()) {
+      ROS_WARN("Empty image received! Not adding to cache");
+      return;
+  }
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
 
