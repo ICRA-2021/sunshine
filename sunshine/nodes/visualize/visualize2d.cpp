@@ -76,7 +76,7 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
   cv::Mat img;
   if (image_cache.find(z->seq) == image_cache.end()) {
     img = image_cache.rbegin()->second;
-    ROS_WARN("Failed to find matching image for topics -- using most recent image in cache");
+    ROS_WARN("Failed to find matching image with seq number %u for topics -- using most recent image in cache, with seq %u", z->seq, image_cache.rbegin()->first);
   } else {
     img = image_cache[z->seq];
   }
@@ -117,7 +117,7 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   // // Add it to the existing image
   cv::Mat img;
   if (image_cache.find(s_msg->seq) == image_cache.end()) {
-      ROS_WARN("Failed to find matching image for perplexity -- using most recent image in cache");
+      ROS_WARN("Failed to find matching image with seq number %u for perplexity -- using most recent image in cache, with seq %u", z->seq, image_cache.rbegin()->first);
       img = image_cache.rbegin()->second;
   } else {
     img = image_cache[s_msg->seq];
@@ -145,10 +145,6 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
   }
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
-
-  // TODO remove, this is for debugging only
-  cv::imshow("Image", image_cache[msg->header.seq]);
-  cv::waitKey(5);
 
   if (image_cache.size() > cache_size){
     image_cache.erase(image_cache.begin());
