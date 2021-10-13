@@ -11,6 +11,7 @@
 #include "rost_visualize/draw_keypoints.hpp"
 #include "rost_visualize/draw_local_surprise.hpp"
 #include "sunshine/common/utils.hpp"
+#include <memory>
 
 #include <iostream>
 #include <algorithm>
@@ -22,8 +23,19 @@ using namespace sunshine;
 static map<unsigned, cv::Mat> image_cache;
 float scale;
 static int cache_size;
+static std::mutex cache_lock;
 static bool show_topics, show_perplexity, show_words, show_equalized;
 static string image_topic_name, words_topic_name, topic_topic_name, ppx_topic_name; //todo: rename topic model...
+
+static cv::Mat const& getMatchingImage(unsigned seq) {
+    // cache_lock must be locked to use this!!!
+    if (image_cache.find(seq) == image_cache.end()) {
+        ROS_WARN("Failed to find matching image with seq number %u for topics -- using most recent image in cache, with seq %u", seq, image_cache.rbegin()->first);
+        return image_cache.rbegin()->second;
+    } else {
+        return image_cache[seq];
+    }
+}
 
 WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::ConstPtr& z){
   WordObservation zz;
@@ -40,6 +52,7 @@ WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::Const
 }
 
 void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+  std::lock_guard<std::mutex> guard(cache_lock);
   if (image_cache.empty()) {
       ROS_WARN("Image cache empty! Cannot display words");
       return;
@@ -69,17 +82,12 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+    std::lock_guard<std::mutex> guard(cache_lock);
     if (image_cache.empty()) {
         ROS_WARN("Image cache empty! Cannot display words");
         return;
     }
-  cv::Mat img;
-  if (image_cache.find(z->seq) == image_cache.end()) {
-    img = image_cache.rbegin()->second;
-    ROS_WARN("Failed to find matching image with seq number %u for topics -- using most recent image in cache, with seq %u", z->seq, image_cache.rbegin()->first);
-  } else {
-    img = image_cache[z->seq];
-  }
+  cv::Mat const& img = getMatchingImage(z->seq);
 
   if (img.empty()) {
     ROS_INFO("Skipping empty image");
@@ -100,6 +108,7 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
+    std::lock_guard<std::mutex> guard(cache_lock);
   if (image_cache.empty()) {
       ROS_WARN("Image cache empty! Cannot display words");
       return;
@@ -115,13 +124,7 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
   cv::Mat ppx_img_color = colorize(ppx_img, cv::Vec3b(0,0,255), cv::Vec3b(255,255,255));
   
   // // Add it to the existing image
-  cv::Mat img;
-  if (image_cache.find(s_msg->seq) == image_cache.end()) {
-      ROS_WARN("Failed to find matching image with seq number %u for perplexity -- using most recent image in cache, with seq %u", z->seq, image_cache.rbegin()->first);
-      img = image_cache.rbegin()->second;
-  } else {
-    img = image_cache[s_msg->seq];
-  }
+  cv::Mat const& img = getMatchingImage(s_msg->seq);
 
   if (img.empty()) {
     ROS_INFO("Skipping empty image");
@@ -138,6 +141,7 @@ void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
 }
 
 void image_callback(const sensor_msgs::ImageConstPtr& msg){
+    std::lock_guard<std::mutex> guard(cache_lock);
   cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
   if (cv_ptr->image.empty()) {
       ROS_WARN("Empty image received! Not adding to cache");
