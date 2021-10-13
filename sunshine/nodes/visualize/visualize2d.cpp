@@ -146,6 +146,10 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
 
   image_cache[msg->header.seq] = cv_ptr->image.clone();
 
+  // TODO remove, this is for debugging only
+  cv::imshow("Image", image_cache[msg->header.seq]);
+  cv::waitKey(5);
+
   if (image_cache.size() > cache_size){
     image_cache.erase(image_cache.begin());
   }
