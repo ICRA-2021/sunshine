@@ -154,6 +154,12 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
       ROS_INFO("Deleting image with seq %u", image_cache.begin()->first);
     image_cache.erase(image_cache.begin());
   }
+
+  if (image_cache.find(msg->header.seq) == image_cache.end()) {
+    ROS_ERROR("The image for seq %u wasn't actually added to the cache?!", msg->header.seq);
+  } else if ( getMatchingImage(msg->header.seq).empty()) {
+      ROS_ERROR("The image for seq %u is already empty?!", msg->header.seq);
+  }
   
   //cv::imshow("Image", cv_ptr->image);
   //cv::waitKey(5);
