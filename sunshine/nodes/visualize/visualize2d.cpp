@@ -40,6 +40,11 @@ WordObservation msgToWordObservation(const sunshine_msgs::WordObservation::Const
 }
 
 void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+  if (image_cache.empty()) {
+      ROS_WARN("Image cache empty! Cannot display words");
+      return;
+  }
+
   cv::Mat img = image_cache[z->seq];
 
   if(img.empty()) {
@@ -64,6 +69,10 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
+    if (image_cache.empty()) {
+        ROS_WARN("Image cache empty! Cannot display words");
+        return;
+    }
   cv::Mat img;
   if (image_cache.find(z->seq) == image_cache.end()) {
     img = image_cache.rbegin()->second;
@@ -91,6 +100,10 @@ void topic_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
 }
 
 void ppx_callback(const sunshine_msgs::LocalSurprise::ConstPtr& s_msg){
+  if (image_cache.empty()) {
+      ROS_WARN("Image cache empty! Cannot display words");
+      return;
+  }
   // Create and normalize the image
   cv::Mat ppx_img = toMat<int32_t, double, float>(s_msg->surprise_poses, s_msg->surprise);
   cv::Scalar mean_ppx, stddev_ppx;
