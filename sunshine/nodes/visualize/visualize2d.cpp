@@ -20,7 +20,7 @@
 using namespace std;
 using namespace sunshine;
 
-static map<unsigned, cv::Mat> image_cache;
+static map<unsigned, std::unique_ptr<cv::Mat>> image_cache;
 float scale;
 static int cache_size;
 static std::mutex cache_lock;
@@ -31,9 +31,9 @@ static cv::Mat const& getMatchingImage(unsigned seq) {
     // cache_lock must be locked to use this!!!
     if (image_cache.find(seq) == image_cache.end()) {
         ROS_WARN("Failed to find matching image with seq number %u for topics -- using most recent image in cache, with seq %u", seq, image_cache.rbegin()->first);
-        return image_cache.rbegin()->second;
+        return *image_cache.rbegin()->second;
     } else {
-        return image_cache[seq];
+        return *image_cache[seq];
     }
 }
 
@@ -58,7 +58,7 @@ void words_callback(const sunshine_msgs::WordObservation::ConstPtr& z){
       return;
   }
 
-  cv::Mat img = image_cache[z->seq];
+  cv::Mat const& img = getMatchingImage(z->seq);
 
   if(img.empty()) {
       ROS_WARN("Failed to find matching image for words -- skipping");
@@ -148,7 +148,7 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
       return;
   }
 
-  image_cache[msg->header.seq] = cv_ptr->image.clone();
+  image_cache[msg->header.seq] = std::make_unique<cv::Mat>(cv_ptr->image.clone());
 
   if (image_cache.size() > cache_size){
       ROS_INFO("Deleting image with seq %u", image_cache.begin()->first);
