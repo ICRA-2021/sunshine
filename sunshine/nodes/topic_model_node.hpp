@@ -30,6 +30,7 @@ class topic_model_node {
     int obs_queue_size;
     bool publish_topics, publish_local_surprise, publish_global_surprise, publish_ppx;
     float map_publish_period, save_topics_period;
+    int last_seq;
 
     ros::Timer map_publish_timer, save_topics_timer;
     std::string save_topics_path;

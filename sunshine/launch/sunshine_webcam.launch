@@ -18,7 +18,11 @@
   <!-- Topic model arguments -->
   <arg name="K" default="64" />
   <arg name="V" default="16436" />
-  <arg name="alpha" default="0.1" />
+  <!--arg name="alpha" default="0.1" /-->
+  <!--arg name="beta" default="1.0" /-->
+  <!--arg name="gamma" default="1e-6" /-->
+  <!--arg name="tau" default="0.5" /-->
+  <arg name="alpha" default="0.2" />
   <arg name="beta" default="1.0" />
   <arg name="gamma" default="1e-6" />
   <arg name="tau" default="0.5" />
