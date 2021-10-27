@@ -16,15 +16,15 @@
   <arg name="image_topic" default="/usb_cam/image_raw" />
 
   <!-- Topic model arguments -->
-  <arg name="K" default="64" />
+  <arg name="K" default="10" />
   <arg name="V" default="16436" />
   <!--arg name="alpha" default="0.1" /-->
   <!--arg name="beta" default="1.0" /-->
   <!--arg name="gamma" default="1e-6" /-->
   <!--arg name="tau" default="0.5" /-->
-  <arg name="alpha" default="0.2" />
-  <arg name="beta" default="1.0" />
-  <arg name="gamma" default="1e-6" />
+  <arg name="alpha" default="0.073" />
+  <arg name="beta" default="0.15" />
+  <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
