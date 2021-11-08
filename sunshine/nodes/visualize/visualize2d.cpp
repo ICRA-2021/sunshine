@@ -151,7 +151,6 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg){
   image_cache[msg->header.seq] = std::make_unique<cv::Mat>(cv_ptr->image.clone());
 
   if (image_cache.size() > cache_size){
-      ROS_INFO("Deleting image with seq %u", image_cache.begin()->first);
     image_cache.erase(image_cache.begin());
   }
 

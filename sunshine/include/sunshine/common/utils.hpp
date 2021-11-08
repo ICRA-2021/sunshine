@@ -8,7 +8,6 @@
 #include <chrono>
 #include <opencv2/core.hpp>
 #include <boost/functional/hash.hpp>
-#include <ostream>
 #include <iostream>
 
 namespace sunshine {

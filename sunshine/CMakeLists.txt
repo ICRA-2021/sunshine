@@ -96,7 +96,7 @@ set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
 find_package(OpenCV 4 QUIET)
 if (NOT OpenCV_FOUND)
-    message(WARNING "Failed to find OpenCV 3.2 -- falling back to OpenCV 3.2 (deprecated)")
+    message(WARNING "Failed to find OpenCV 4.2 -- falling back to OpenCV 3.2 (deprecated)")
     find_package(OpenCV 3.2 REQUIRED)
 endif()
 
