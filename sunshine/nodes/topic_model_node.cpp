@@ -399,19 +399,18 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     global_perplexity->perplexity = -1;
 
     auto const &cell_size          = rostAdapter.get_cell_size();
-    auto const &current_cell_poses = rostAdapter.get_current_cell_poses();
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
     global_surprise->seq        = static_cast<uint32_t>(this->last_seq);
     global_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
-    global_surprise->surprise.reserve(current_cell_poses.size());
-    global_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
+    global_surprise->surprise.reserve(broadcast_poses.size());
+    global_surprise->surprise_poses.reserve(broadcast_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
     local_surprise->seq        = static_cast<uint32_t>(this->last_seq);
     local_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
-    local_surprise->surprise.reserve(current_cell_poses.size());
-    local_surprise->surprise_poses.reserve(current_cell_poses.size() * (POSEDIM - 1));
+    local_surprise->surprise.reserve(broadcast_poses.size());
+    local_surprise->surprise_poses.reserve(broadcast_poses.size() * (POSEDIM - 1));
 
     TopicWeights::Ptr msg_topic_weights(new TopicWeights);
     msg_topic_weights->seq    = static_cast<uint32_t>(this->last_seq);

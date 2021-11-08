@@ -9,7 +9,7 @@ Installation
 ```bash
 # Install rost-cli (including dependencies)
 sudo apt-get update
-sudo apt-get install libboost-all-dev libflann-dev libfftw3-dev libopencv-dev libsndfile1-dev cmake
+sudo apt-get install libboost-all-dev libflann-dev libfftw3-dev libopencv-dev libsndfile1-dev libgoogle-glog-dev cmake
 git clone git@gitlab.com:warplab/rost-cli.git
 pushd rost-cli
 ./install-rost.sh # check rost-cli README.md for latest install instructions
