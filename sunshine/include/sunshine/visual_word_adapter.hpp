@@ -18,11 +18,12 @@ namespace sunshine {
 class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, CategoricalObservation<int, 2, int>> {
     using Parent = Adapter<VisualWordAdapter, ImageObservation, CategoricalObservation<int, 2, int>>;
 
-    bool use_clahe, show_clahe = false;
+    bool use_clahe = false, show_clahe = false, devignette = false, correct_colors = false;
     double img_scale, seq_start = 0.0, seq_duration;
     MultiBOW multi_bow;
 
-    [[nodiscard]] cv::Mat apply_clahe(cv::Mat img) const;
+    [[nodiscard]] cv::Mat apply_clahe(cv::Mat img, bool devignette) const;
+    [[nodiscard]] cv::Mat color_correct(cv::Mat img) const;
     std::string get_rost_path() const;
 
   public:
@@ -32,7 +33,9 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
         std::string const data_root = get_rost_path();
 
         use_clahe = nh->template param<bool>("use_clahe", false);
+        correct_colors = nh->template param<bool>("color_correction", false);
         show_clahe = nh->template param<bool>("show_clahe", false);
+        devignette = nh->template param<bool>("devignette", false);
         img_scale = nh->template param<double>("scale", 1.0);
         seq_duration = nh->template param<double>("seq_duration", 0);
 
