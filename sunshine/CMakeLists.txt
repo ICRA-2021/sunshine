@@ -237,6 +237,7 @@ add_executable(label_word_extractor nodes/label_extractor.cpp include/sunshine/c
 add_executable(topic_model nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
 add_executable(topic_model_txyz nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
 add_executable(topic_model_txy nodes/topic_model_node.cpp topic_model/rost_adapter.cpp)
+add_executable(image_preprocessor nodes/image_preprocessor.cpp)
 add_executable(visualize nodes/visualize/visualize2d.cpp)
 add_executable(visualize3d nodes/visualize/visualize3d.cpp)
 add_executable(save_topic_map nodes/visualize/save_topic_map.cpp)
@@ -318,6 +319,9 @@ target_link_libraries(test.image_publisher ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.image_walker PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.image_walker ${OpenCV_LIBS} ${catkin_LIBRARIES})
+
+target_include_directories(image_preprocessor PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
+target_link_libraries(image_preprocessor ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)

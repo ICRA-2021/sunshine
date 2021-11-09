@@ -3,6 +3,7 @@
   <arg name="bag_rate" default="1" />
   <arg name="robot_name" />
   <arg name="camera_name" default="mapping_cam" />
+  <arg name="left_or_right" default="left" />
   <arg name="camera_ns" default="/$(arg robot_name)/cameras/$(arg camera_name)" />
   <arg name="bag_start" default="0" />
   <arg name="file_prefix" default="" />
@@ -15,13 +16,13 @@
   <arg name="visualize_2d" default="false" />
   
   <param name="/use_sim_time" value="true"/>
-  <arg name="camera_info_topic" default="$(arg camera_ns)/left/camera_info" /> <!--unused?-->
-  <arg name="image_topic" default="$(arg camera_ns)/left/image_rect_color" /> <!--Rectified color image-->
+  <arg name="camera_info_topic" default="$(arg camera_ns)/$(arg left_or_right)/camera_info" /> <!--unused?-->
+  <arg name="image_topic" default="$(arg camera_ns)/$(arg left_or_right)/image_rect_color" /> <!--Rectified color image-->
   <arg name="depth_cloud_topic" default="$(arg camera_ns)/points" />
   <!-- Vision arguments -->
   <arg name="transform_topic" default="" />
   <arg name="world_frame" default="$(arg robot_name)/map" />
-  <arg name="sensor_frame" default="$(arg camera_name)_left_camera_optical_frame" />
+  <arg name="sensor_frame" default="$(arg camera_name)_$(arg left_or_right)_camera_optical_frame" />
   <arg name="scale" default="1.0" />
   <arg name="rate" default="3" />
   <arg name="hue" default="true" />

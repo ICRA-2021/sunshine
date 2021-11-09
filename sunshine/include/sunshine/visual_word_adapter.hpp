@@ -22,8 +22,6 @@ class VisualWordAdapter : public Adapter<VisualWordAdapter, ImageObservation, Ca
     double img_scale, seq_start = 0.0, seq_duration;
     MultiBOW multi_bow;
 
-    [[nodiscard]] cv::Mat apply_clahe(cv::Mat img, bool devignette) const;
-    [[nodiscard]] cv::Mat color_correct(cv::Mat img) const;
     std::string get_rost_path() const;
 
   public:

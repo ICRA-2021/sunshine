@@ -11,10 +11,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 
-#include "cv_bridge/cv_bridge.h"
-#include "image_transport/image_transport.h"
 #include "ros/ros.h"
+#include "cv_bridge/cv_bridge.h"
 #include "sensor_msgs/image_encodings.h"
+#include "image_transport/image_transport.h"
 
 #include "sensor_msgs/PointCloud2.h"
 #include "tf2_ros/buffer.h"
@@ -40,9 +40,9 @@ class WordExtractorNode {
     bool publish_2d;
     bool publish_3d;
     double rate;
-    std::string frame_id = "";
-    std::string world_frame_name = "";
-    std::string sensor_frame_name = "";
+    std::string frame_id;
+    std::string world_frame_name;
+    std::string sensor_frame_name;
     tf2_ros::Buffer tf_buffer;
     tf2_ros::TransformListener tf_listener;
 
