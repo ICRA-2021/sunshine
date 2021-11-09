@@ -19,8 +19,8 @@ int main(int argc, char** argv) {
 
 sunshine::ImagePreprocessor::ImagePreprocessor(ros::NodeHandle* nh)
         : it(*nh)
-        , imageSub(it.subscribe("/camera/image_rect_color", 3, &ImagePreprocessor::imageCallback, this))
-        , imagePub(it.advertise("/camera/processed_image", 3)) {
+        , imageSub(it.subscribe("/rgb/image_rect_color", 3, &ImagePreprocessor::imageCallback, this))
+        , imagePub(it.advertise("/rgb/processed_image", 3)) {
     use_clahe        = nh->param<bool>("use_clahe", false);
     correct_colors   = nh->param<bool>("color_correction", false);
     show_debug       = nh->param<bool>("show_debug", false);
@@ -30,7 +30,7 @@ sunshine::ImagePreprocessor::ImagePreprocessor(ros::NodeHandle* nh)
 void sunshine::ImagePreprocessor::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
 
-    cv_bridge::CvImage outputImg(img_ptr->header, img_ptr->encoding, cv::Mat());
+    cv_bridge::CvImage outputImg(img_ptr->header, img_ptr->encoding, img_ptr->image);
     cv::Mat& img = outputImg.image;
     if (show_debug) {
         cv::imshow("Original", img);
