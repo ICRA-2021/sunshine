@@ -1,6 +1,9 @@
 <launch>
+  <!-- Sunshine mission node params -->
+  <arg name="robot_name" default="warpauv"/>
+
   <!-- GSCAM arguments -->
-  <arg name="camera" default="/dev/video0" />
+  <!-- <arg name="camera" default="/dev/video0" /> -->
 
   <!-- Vision arguments -->
   <arg name="scale" default="1.0" />
@@ -11,14 +14,17 @@
   <arg name="orb" default="true" />
   <arg name="surf" default="false" />
   <arg name="image_topic" default="/usb_cam/image_raw" />
-  
 
   <!-- Topic model arguments -->
-  <arg name="K" default="64" />
+  <arg name="K" default="10" />
   <arg name="V" default="16436" />
-  <arg name="alpha" default="0.1" />
-  <arg name="beta" default="1.0" />
-  <arg name="gamma" default="1e-6" />
+  <!--arg name="alpha" default="0.1" /-->
+  <!--arg name="beta" default="1.0" /-->
+  <!--arg name="gamma" default="1e-6" /-->
+  <!--arg name="tau" default="0.5" /-->
+  <arg name="alpha" default="0.073" />
+  <arg name="beta" default="0.15" />
+  <arg name="gamma" default="0" />
   <arg name="tau" default="0.5" />
   <arg name="p_refine_last_observation" default="0.5" />
   <arg name="num_threads" default="4" />
@@ -30,27 +36,29 @@
   <arg name="min_obs_refine_time" default="200" />
   <arg name="word_obs_queue_size" default="1" />
   <arg name="publish_ppx" default="true" />
-  <arg name="publish_local_surprise" default="false" />
+  <arg name="publish_local_surprise" default="true" />
   <arg name="publish_global_surprise" default="false" />
 
   <!-- Visualization arguments -->
-  <!--<arg name="words_topic" default="/rost_vision/words" />-->
+  <!-- <arg name="words_topic" default="/rost_vision/words" />
   <arg name="topics_topic" default="/rost/topics" />
   <arg name="ppx_topic" default="/rost/cell_perplexity" />
   <arg name="show_topics" default="true" />
   <arg name="show_words" default="true" />
   <arg name="show_perplexity" default="true" />
-  <arg name="show_equalized" default="true" />
+  <arg name="show_equalized" default="true" /> -->
   
+
+
   <!-- Launch GSCAM with webcam -->
 <!--   <env name="GSCAM_CONFIG" value="v4l2src device=$(arg camera) ! video/x-raw-rgb,width=640,height=480,framerate=30/1 ! videoconvert" /> -->
 <!--   <node pkg="gscam" type="gscam" name="gscam"> -->
 <!--   </node> -->
-    <node pkg="usb_cam" type="usb_cam_node" name="usb_cam">
+    <!-- <node pkg="usb_cam" type="usb_cam_node" name="usb_cam">
         <param name="pixel_format" value="yuyv" />
         <param name="camera_name" value="camera" />
         <param name="framerate" value="10" />
-    </node>
+    </node> -->
 
   <!--<include file="$(find gscam)/examples/v4l.launch"></include>-->
 
@@ -96,7 +104,7 @@
     <param name="publish_global_surprise" value="$(arg publish_global_surprise)" />
   </node>
 
-  <node pkg="sunshine" type="visualize" name="visualizer" output="screen" >
+  <!-- <node pkg="sunshine" type="visualize" name="visualizer" output="screen" >
     <param name="words_topic" type="string" value="$(arg words_topic)_2d" />
     <param name="topics_topic" type="string" value="$(arg topics_topic)" />
     <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
@@ -105,5 +113,5 @@
     <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
     <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
     <param name="image" value="$(arg image_topic)"/>
-   </node>
+   </node> -->
 </launch>

@@ -1,0 +1,25 @@
+<launch>
+  <!-- Vision arguments -->
+  <arg name="image_topic" default="/usb_cam/image_raw" />
+
+  <!-- Visualization arguments -->
+  <arg name="words_topic" default="/rost_vision/words" />
+  <arg name="topics_topic" default="/rost/topics" />
+  <arg name="ppx_topic" default="/rost/cell_perplexity" />
+  <arg name="show_topics" default="true" />
+  <arg name="show_words" default="true" />
+  <arg name="show_perplexity" default="true" />
+  <arg name="show_equalized" default="true" />
+  
+  <!-- Visualizer -->
+  <node pkg="sunshine" type="visualize" name="visualizer" output="screen" >
+    <param name="words_topic" type="string" value="$(arg words_topic)_2d" />
+    <param name="topics_topic" type="string" value="$(arg topics_topic)" />
+    <param name="ppx_topic" type="string" value="$(arg ppx_topic)" />
+    <param name="show_topics" type="bool" value="$(arg show_topics)" />
+    <param name="show_words" type="bool" value="$(arg show_words)" />
+    <param name="show_perplexity" type="bool" value="$(arg show_perplexity)" />
+    <param name="show_equalized" type="bool" value="$(arg show_equalized)" />
+    <param name="image" value="$(arg image_topic)"/>
+   </node>
+</launch>

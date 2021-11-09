@@ -76,6 +76,7 @@ class WordExtractorNode {
     }
 
     void imageCallback(const sensor_msgs::ImageConstPtr &msg) {
+        // TODO: Add logic to handle compressed images. Refer to examples from Nathan/Vv
         cv_bridge::CvImageConstPtr img_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
 
         auto const imgObs = std::make_unique<ImageObservation>(sensor_frame_name, msg->header.stamp.toSec(), msg->header.seq, img_ptr->image);

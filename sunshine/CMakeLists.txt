@@ -57,18 +57,44 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   )
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(glog)
-if (glog_FOUND)
-    message(STATUS "Linking glog")
-    link_libraries(glog::glog)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_GLOG")
+
+find_path(glog_INCLUDE_DIR glog/logging.h)
+message(STATUS "glog header found at: ${glog_INCLUDE_DIR}")
+
+find_library(glog_LIB glog)
+message(STATUS "libglog found at: ${glog_LIB}")
+
+mark_as_advanced(glog_INCLUDE_DIR glog_LIB)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(glog REQUIRED_VARS
+  glog_INCLUDE_DIR
+  glog_LIB
+  )
+
+if(glog_FOUND AND NOT TARGET glog::glog)
+  add_library(glog::glog SHARED IMPORTED)
+  set_target_properties(glog::glog PROPERTIES
+    IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+    IMPORTED_LOCATION "${glog_LIB}"
+    INTERFACE_INCLUDE_DIRECTORIES
+      "${glog_INCLUDE_DIR}"
+    )
 endif()
+
+
+# find_package(glog)
+# if (glog_FOUND)
+#    message(STATUS "Linking glog")
+#    link_libraries(glog::glog)
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_GLOG")
+# endif()
 
 find_package(PCL REQUIRED COMPONENTS common io)
 find_package(Boost REQUIRED program_options filesystem system serialization iostreams )
 set(OPENCV_ENABLE_NONFREE "Enable non-free algorithms" ON)
 set(WITH_OPENCL "Enable OpenCL" OFF)
-find_package(OpenCV 4.2 QUIET)
+find_package(OpenCV 4 QUIET)
 if (NOT OpenCV_FOUND)
     message(WARNING "Failed to find OpenCV 4.2 -- falling back to OpenCV 3.2 (deprecated)")
     find_package(OpenCV 3.2 REQUIRED)

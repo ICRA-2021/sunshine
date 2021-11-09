@@ -314,6 +314,7 @@ void topic_model_node::words_callback(const sunshine_msgs::WordObservation::Cons
     } else if (current_source != wordMsg->source)
         ROS_WARN("Received words from new source! Expected \"%s\", received \"%s\"", current_source.c_str(), wordMsg->source.c_str());
     auto const wordObs = fromRosMsg<int, POSEDIM - 1, ROSTAdapter<POSEDIM>::WordDimType>(*wordMsg);
+    this->last_seq              = wordMsg->seq;
     last_obs_time = std::chrono::steady_clock::now();
     start_refine_time = (start_refine_time.time_since_epoch().count() == 0) ? last_obs_time : start_refine_time;
     rostAdapter(&wordObs);
@@ -386,7 +387,7 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
 
     sunshine_msgs::WordObservation::Ptr topicObs(new sunshine_msgs::WordObservation);
     topicObs->header.frame_id                            = rostAdapter.get_world_frame();
-    topicObs->seq                                        = static_cast<uint32_t>(obs_time);
+    topicObs->seq                                        = static_cast<uint32_t>(this->last_seq);
     topicObs->source                                     = current_source;
     topicObs->vocabulary_begin                           = 0;
     topicObs->vocabulary_size                            = static_cast<int32_t>(rost.get_num_topics());
@@ -394,25 +395,25 @@ void topic_model_node::broadcast_topics(int const obs_time, const std::vector<RO
     topicObs->observation_transform.header.stamp         = ros::Time::now();
 
     Perplexity::Ptr global_perplexity(new Perplexity);
-    global_perplexity->seq        = static_cast<uint32_t>(obs_time);
+    global_perplexity->seq        = static_cast<uint32_t>(this->last_seq);
     global_perplexity->perplexity = -1;
 
     auto const &cell_size          = rostAdapter.get_cell_size();
 
     LocalSurprise::Ptr global_surprise(new LocalSurprise);
-    global_surprise->seq        = static_cast<uint32_t>(obs_time);
+    global_surprise->seq        = static_cast<uint32_t>(this->last_seq);
     global_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
     global_surprise->surprise.reserve(broadcast_poses.size());
     global_surprise->surprise_poses.reserve(broadcast_poses.size() * (POSEDIM - 1));
 
     LocalSurprise::Ptr local_surprise(new LocalSurprise);
-    local_surprise->seq        = static_cast<uint32_t>(obs_time);
+    local_surprise->seq        = static_cast<uint32_t>(this->last_seq);
     local_surprise->cell_width = {cell_size.begin() + 1, cell_size.end()};
     local_surprise->surprise.reserve(broadcast_poses.size());
     local_surprise->surprise_poses.reserve(broadcast_poses.size() * (POSEDIM - 1));
 
     TopicWeights::Ptr msg_topic_weights(new TopicWeights);
-    msg_topic_weights->seq    = static_cast<uint32_t>(obs_time);
+    msg_topic_weights->seq    = static_cast<uint32_t>(this->last_seq);
     msg_topic_weights->weight = rost.get_topic_weights();
 
     auto n_words          = 0ul;

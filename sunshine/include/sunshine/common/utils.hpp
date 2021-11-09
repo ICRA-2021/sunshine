@@ -8,7 +8,7 @@
 #include <chrono>
 #include <opencv2/core.hpp>
 #include <boost/functional/hash.hpp>
-#include <ostream>
+#include <iostream>
 
 namespace sunshine {
 
@@ -57,8 +57,8 @@ struct cvType<cv::Vec3b> {
 template<typename IdxType, typename ValueType, typename MatValueType = ValueType>
 cv::Mat toMat(std::vector<IdxType> const &idxes, std::vector<ValueType> const &values) {
     assert(idxes.size() == (values.size() * 3) || idxes.size() == (values.size() * 2));
-    auto const poseDim = static_cast<int>(values.size() / idxes.size());
-
+    auto const poseDim = static_cast<int>(idxes.size() / values.size());
+    
     // Compute the required size of the matrix based on the largest (x,y) coordinate
     IdxType max_x = 0, max_y = 0;
     for (auto i = 0ul; i < values.size(); i++) {
