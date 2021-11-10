@@ -118,6 +118,9 @@ class ImagePreprocessor {
         return static_cast<uint8_t>(std::max(0., std::min(255., std::round(input))));
     }
 
+    /**
+     * Adapted from https://github.com/nikolajbech/underwater-image-color-correction/blob/b366f3252aebe0e76a1f824d431c94507cc5562b/index.js
+     */
     static ColorFilterMatrix computeColorFilterMatrix(cv::Mat const& img) {
         double const minAvgRed      = 60;
         double const maxHueShift    = 120 * CV_PI / 180.0;
