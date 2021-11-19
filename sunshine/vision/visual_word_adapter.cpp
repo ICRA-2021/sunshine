@@ -1,12 +1,12 @@
 #include "sunshine/visual_word_adapter.hpp"
-#include "sunshine/image_preprocessor.hpp"
+#include "sunshine/common/image_processing.hpp"
 
 using namespace sunshine;
 
-static cv::Mat preprocess_image(cv::Mat img, bool devignette, bool correct_colors, bool use_clahe) {
-    if (devignette) img = ImagePreprocessor::devignette(img);
-    if (correct_colors) img = ImagePreprocessor::color_correct(img);
-    if (use_clahe) img = ImagePreprocessor::apply_clahe(img);
+static cv::Mat preprocess_image(cv::Mat img, bool apply_devignette, bool correct_colors, bool use_clahe) {
+    if (apply_devignette) img = devignette(img);
+    if (correct_colors) img = color_correct(img);
+    if (use_clahe) img = apply_clahe(img);
     return img;
 }
 
