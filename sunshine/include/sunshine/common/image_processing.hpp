@@ -7,13 +7,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#include <boost/progress.hpp>
 
 namespace sunshine {
 
 
 namespace impl {
-
-
     // Helper function to calculate the distance between 2 points.
     static double dist(cv::Point const& a, cv::Point const& b) {
         return sqrt(pow((double) (a.x - b.x), 2) + pow((double) (a.y - b.y), 2));
@@ -64,7 +63,7 @@ namespace impl {
                 //            mask.at<double>(i, j) = minBrightness / temp_s;
 
                 mask.at<double>(i, j) = center_factor + a * pow(temp, exponent);
-                if (mask.at<double>(i, j) > 1) std::cerr << temp << std::endl;
+//                if (mask.at<double>(i, j) > 1) std::cerr << temp << std::endl;
             }
         }
     }
@@ -114,65 +113,6 @@ namespace impl {
     static uint8_t clipDouble(double input) {
         return static_cast<uint8_t>(std::max(0., std::min(255., std::round(input))));
     }
-
-    /**
-     * Adapted from https://github.com/nikolajbech/underwater-image-color-correction/blob/b366f3252aebe0e76a1f824d431c94507cc5562b/index.js
-     */
-    static ColorFilterMatrix computeColorFilterMatrix(cv::Mat const& img) {
-        double const minAvgRed      = 60;
-        double const maxHueShift    = 120 * CV_PI / 180.0;
-        double const blueMagicVal   = 1.2;
-        double const thresholdLevel = (img.rows * img.cols) / 2000.0;
-
-        std::vector<std::vector<uint32_t>> histograms{3, std::vector<uint32_t>(256, 0)};
-        auto const avgColor = cv::mean(img);
-        double avgRed       = avgColor[2];
-
-        double hueShift = 0.;
-        while (avgRed < minAvgRed) {
-            hueShift += CV_PI / 180.0;
-            if (hueShift >= maxHueShift) break;
-            auto const shiftedAvg = hueShiftRed({avgColor[0], avgColor[1], avgColor[2]}, hueShift);
-            avgRed                = shiftedAvg[0] + shiftedAvg[1] + shiftedAvg[2];
-        }
-
-        for (auto row = 0; row < img.rows; ++row) {
-            for (auto col = 0; col < img.cols; ++col) {
-                auto const& pixel       = img.at<cv::Vec3b>(row, col);
-                auto const shiftedPixel = hueShiftRed<uint8_t>({pixel[0], pixel[1], pixel[2]}, hueShift);
-                histograms[0][pixel[0]]++;
-                histograms[1][pixel[1]]++;
-                histograms[2][clipDouble(shiftedPixel[0] + shiftedPixel[1] + shiftedPixel[2])]++;
-            }
-        }
-
-        std::vector<uint8_t> normalize_b(1), normalize_g(1), normalize_r(1);
-        for (auto i = 0; i < 256; ++i) {
-            if (histograms[0][i] < thresholdLevel) normalize_b.push_back(i);
-            if (histograms[1][i] < thresholdLevel) normalize_g.push_back(i);
-            if (histograms[2][i] < thresholdLevel) normalize_r.push_back(i);
-        }
-        normalize_b.push_back(255);
-        normalize_g.push_back(255);
-        normalize_r.push_back(255);
-
-        auto const b_interval = normalizingInterval(normalize_b);
-        auto const g_interval = normalizingInterval(normalize_g);
-        auto const r_interval = normalizingInterval(normalize_r);
-        auto const shifted    = hueShiftRed<int>({1, 1, 1}, hueShift);
-
-        double const b_gain = 255.0 / (b_interval[1] - b_interval[0]);
-        double const g_gain = 255.0 / (g_interval[1] - g_interval[0]);
-        double const r_gain = 255.0 / (r_interval[1] - r_interval[0]);
-
-        double const redBlue   = shifted[0] * r_gain * blueMagicVal;
-        double const redGreen  = shifted[1] * r_gain;
-        double const redAdjust = shifted[2] * r_gain;
-
-        return {{b_gain, 0., 0., -b_gain * b_interval[0]},
-                {0., g_gain, 0., -g_gain * g_interval[0]},
-                {redBlue, redGreen, redAdjust, -r_gain * r_interval[0]}};
-    }
 }
 
 using namespace ::sunshine::impl;
@@ -218,9 +158,129 @@ static inline cv::Mat devignette(cv::Mat img) {
     return img;
 }
 
-static inline cv::Mat color_correct(cv::Mat img) {
-    auto const colorFilter = computeColorFilterMatrix(img);
 
+
+template<typename T = uint32_t>
+static inline std::tuple<double, std::array<std::array<T, 256>, 3>, uint64_t> computeShiftAndHistogram(cv::Mat const& img) {
+    double constexpr minAvgRed      = 60;
+    double constexpr maxHueShift    = 120 * CV_PI / 180.0;
+
+    std::tuple<double, std::array<std::array<T, 256>, 3>, uint64_t> shiftAndHists{};
+    auto const avgColor = cv::mean(img);
+    double avgRed       = avgColor[2];
+
+    while (avgRed < minAvgRed) {
+        std::get<0>(shiftAndHists) += CV_PI / 180.0;
+        if (std::get<0>(shiftAndHists) >= maxHueShift) break;
+        auto const shiftedAvg = hueShiftRed({avgColor[0], avgColor[1], avgColor[2]}, std::get<0>(shiftAndHists));
+        avgRed                = shiftedAvg[0] + shiftedAvg[1] + shiftedAvg[2];
+    }
+
+    for (auto row = 0; row < img.rows; ++row) {
+        for (auto col = 0; col < img.cols; ++col) {
+            auto const& pixel       = img.at<cv::Vec3b>(row, col);
+            auto const shiftedPixel = hueShiftRed<uint8_t>({pixel[0], pixel[1], pixel[2]}, std::get<0>(shiftAndHists));
+            std::get<1>(shiftAndHists)[0][pixel[0]]++;
+            std::get<1>(shiftAndHists)[1][pixel[1]]++;
+            std::get<1>(shiftAndHists)[2][clipDouble(shiftedPixel[0] + shiftedPixel[1] + shiftedPixel[2])]++;
+        }
+    }
+
+    std::get<2>(shiftAndHists) = img.rows * img.cols;
+
+    return shiftAndHists;
+}
+
+template<class FileList, typename T = uint64_t>
+static inline std::tuple<double, std::array<std::array<T, 256>, 3>, uint64_t> computeShiftAndHistogram(FileList const& files, bool const cache_all_images = false) {
+    double constexpr minAvgRed      = 60;
+    double constexpr maxHueShift    = 120 * CV_PI / 180.0;
+    std::vector<cv::Mat> images;
+    images.reserve(files.size());
+
+    std::tuple<double, std::array<std::array<T, 256>, 3>, uint64_t> shiftAndHists{};
+    cv::Scalar avgColor{};
+
+    boost::progress_display bar(files.size());
+    for (auto const& iter : files) {
+        images.push_back(cv::imread(iter, cv::IMREAD_COLOR));
+        avgColor += cv::mean(images.back());
+        std::get<2>(shiftAndHists) += images.back().rows * images.back().cols;
+        if (!cache_all_images) images.clear();
+        ++bar;
+    }
+    avgColor /= static_cast<double>(files.size());
+
+    double avgRed = avgColor[2];
+    while (avgRed < minAvgRed) {
+        std::get<0>(shiftAndHists) += CV_PI / 180.0;
+        if (std::get<0>(shiftAndHists) >= maxHueShift) break;
+        auto const shiftedAvg = hueShiftRed({avgColor[0], avgColor[1], avgColor[2]}, std::get<0>(shiftAndHists));
+        avgRed                = shiftedAvg[0] + shiftedAvg[1] + shiftedAvg[2];
+    }
+
+    boost::progress_display hist_bar(files.size());
+    size_t i = 0;
+    for (auto const& iter : files) {
+        cv::Mat const& img = (cache_all_images) ? images[i++] : cv::imread(iter, cv::IMREAD_COLOR);
+        for (auto row = 0; row < img.rows; ++row) {
+            for (auto col = 0; col < img.cols; ++col) {
+                auto const& pixel       = img.at<cv::Vec3b>(row, col);
+                auto const shiftedPixel = hueShiftRed<uint8_t>({pixel[0], pixel[1], pixel[2]}, std::get<0>(shiftAndHists));
+                std::get<1>(shiftAndHists)[0][pixel[0]]++;
+                std::get<1>(shiftAndHists)[1][pixel[1]]++;
+                std::get<1>(shiftAndHists)[2][clipDouble(shiftedPixel[0] + shiftedPixel[1] + shiftedPixel[2])]++;
+            }
+        }
+        ++hist_bar;
+    }
+
+    return shiftAndHists;
+}
+
+/**
+     * Adapted from https://github.com/nikolajbech/underwater-image-color-correction/blob/b366f3252aebe0e76a1f824d431c94507cc5562b/index.js
+ */
+template<typename T = uint32_t>
+static inline ColorFilterMatrix computeColorFilterMatrix(double const& hueShift, std::array<std::array<T, 256>, 3> const& histograms, double thresholdLevel = -1) {
+    double const blueMagicVal   = 1.2;
+    if (thresholdLevel < 0) {
+        uint64_t n_pts = 0;
+        for (auto const& hist : histograms) {
+            for (auto const& binValue : hist) n_pts += binValue;
+        }
+        thresholdLevel = static_cast<double>(n_pts) / 2000.0;
+    }
+
+    std::vector<uint8_t> normalize_b(1), normalize_g(1), normalize_r(1);
+    for (auto i = 0; i < 256; ++i) {
+        if (histograms[0][i] < thresholdLevel) normalize_b.push_back(i);
+        if (histograms[1][i] < thresholdLevel) normalize_g.push_back(i);
+        if (histograms[2][i] < thresholdLevel) normalize_r.push_back(i);
+    }
+    normalize_b.push_back(255);
+    normalize_g.push_back(255);
+    normalize_r.push_back(255);
+
+    auto const b_interval = normalizingInterval(normalize_b);
+    auto const g_interval = normalizingInterval(normalize_g);
+    auto const r_interval = normalizingInterval(normalize_r);
+    auto const shifted    = hueShiftRed<int>({1, 1, 1}, hueShift);
+
+    double const b_gain = 255.0 / (b_interval[1] - b_interval[0]);
+    double const g_gain = 255.0 / (g_interval[1] - g_interval[0]);
+    double const r_gain = 255.0 / (r_interval[1] - r_interval[0]);
+
+    double const redBlue   = shifted[0] * r_gain * blueMagicVal;
+    double const redGreen  = shifted[1] * r_gain;
+    double const redAdjust = shifted[2] * r_gain;
+
+    return {{b_gain, 0., 0., -b_gain * b_interval[0]},
+            {0., g_gain, 0., -g_gain * g_interval[0]},
+            {redBlue, redGreen, redAdjust, -r_gain * r_interval[0]}};
+}
+
+static inline cv::Mat color_correct(ColorFilterMatrix const& colorFilter, cv::Mat img) {
     for (auto row = 0; row < img.rows; ++row) {
         for (auto col = 0; col < img.cols; ++col) {
             auto& pixel = img.at<cv::Vec3b>(row, col);
@@ -233,6 +293,12 @@ static inline cv::Mat color_correct(cv::Mat img) {
         }
     }
     return img;
+}
+
+static inline cv::Mat color_correct(const cv::Mat& img) {
+     auto const& shiftAndHistograms = computeShiftAndHistogram(img);
+     auto const& colorFilter = computeColorFilterMatrix(std::get<0>(shiftAndHistograms), std::get<1>(shiftAndHistograms), std::get<2>(shiftAndHistograms) / 2000.);
+     return color_correct(colorFilter, img);
 }
 
 }

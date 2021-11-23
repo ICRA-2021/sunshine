@@ -246,6 +246,7 @@ add_executable(perplexity_viz nodes/visualize/perplexity_viz.cpp)
 add_executable(test.image_publisher nodes/image_publisher.cpp)
 add_executable(test.image_walker nodes/image_walk.cpp)
 add_executable(utils.sunshine_eval utilities/sunshine_eval.cpp)
+add_executable(utils.batch_correct utilities/batch_color_correct.cpp)
 add_executable(test.adapters test/test_adapters.cpp)
 add_executable(test.topic_model_node test/dummy_topic_model.cpp)
 
@@ -325,6 +326,9 @@ target_link_libraries(image_preprocessor ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(utils.sunshine_eval PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 target_link_libraries(utils.sunshine_eval ${OpenCV_LIBS} ${catkin_LIBRARIES} ${PCL_COMMON_LIBRARIES} ${PCL_IO_LIBRARIES} sunshine_vision_adapters)
+
+target_include_directories(utils.batch_correct PUBLIC ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(utils.batch_correct ${OpenCV_LIBS} ${catkin_LIBRARIES})
 
 target_include_directories(test.adapters PUBLIC ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 target_link_libraries(test.adapters ${OpenCV_LIBS} ${Boost_LIBRARIES} ${catkin_LIBRARIES} sunshine_vision_adapters)
